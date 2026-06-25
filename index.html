@@ -3,29 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Search Console Verification Tag Added Below -->
+    <meta name="google-site-verification" content="WtT2Yftdg5NxG7V47F_LAsB09X_0q2wPofY7bT5XUqI" />
     <title>NextGen PDF - 100% Secure, Free & Premium Tools</title>
-    
-    <!-- Tailwind CSS & Modern Web Fonts for Global Styling -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Hind:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- In-Browser Client-Side PDF Processing & OCR Libraries -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
-
     <style>
-        body { 
-            font-family: 'Hind', sans-serif; 
-            background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617);
-        }
-        .logo-font {
-            font-family: 'Rajdhani', sans-serif;
-        }
+        body { font-family: 'Hind', sans-serif; background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617); }
+        .logo-font { font-family: 'Rajdhani', sans-serif; }
     </style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
-
-    <!-- Glowing Premium Header Area -->
     <header class="border-b-2 border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-lg shadow-indigo-950/40">
         <div class="flex items-center gap-2 text-2xl tracking-wider logo-font">
             <span class="bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 text-white px-4 py-1 rounded-xl shadow-md font-bold uppercase animate-pulse">NextGen</span>
@@ -36,67 +26,41 @@
             100% Private: All processing happens on your device, never on a server!
         </div>
     </header>
-
-    <!-- Main Workspace Application -->
     <main class="max-w-6xl mx-auto p-6 md:p-12 flex-1 w-full">
-        
-        <!-- Dashboard Screen: Shown on Landing -->
         <div id="dashboard-view">
             <div class="text-center mb-16">
                 <span class="text-xs font-bold tracking-widest text-indigo-400 uppercase bg-indigo-950/80 px-4 py-1.5 rounded-full border border-indigo-800">No Ads | No Logins | Lifetime Free</span>
-                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mt-4 leading-tight">
-                    Zero-Server PDF Workspace
-                </h1>
-                <p class="mt-4 text-base md:text-lg text-slate-300 max-w-2xl mx-auto font-medium">
-                    The ultimate replacement for traditional cloud tools. Process your highly confidential files at lightning speed without any data leaks.
-                </p>
+                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mt-4 leading-tight">Zero-Server PDF Workspace</h1>
+                <p class="mt-4 text-base md:text-lg text-slate-300 max-w-2xl mx-auto font-medium">The ultimate replacement for traditional cloud tools. Process your highly confidential files at lightning speed without any data leaks.</p>
             </div>
-
-            <!-- Modern Interactive 4-Tool Grid System -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                
-                <!-- Tool 1: Merge PDF -->
                 <button onclick="openTool('merge', 'Merge PDF Documents', 'Combine multiple PDF files into a single, structured document seamlessly in browser memory.')" class="group text-left p-6 bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-indigo-900/50 rounded-2xl hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-500/10 transition-all flex flex-col justify-between cursor-pointer ring-1 ring-slate-800/50">
                     <div>
-                        <div class="p-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl inline-block shadow-md shadow-indigo-500/20">
-                            <span class="text-xl">📂</span>
-                        </div>
+                        <div class="p-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl inline-block shadow-md shadow-indigo-500/20"><span class="text-xl">📂</span></div>
                         <h3 class="font-bold text-xl mt-5 text-white group-hover:text-indigo-400 transition-colors">Merge PDF</h3>
                         <p class="text-sm font-medium text-slate-300 mt-2 leading-relaxed">Combine multiple distinct PDF files into one.</p>
                     </div>
                     <span class="text-[10px] uppercase font-black text-indigo-400 tracking-widest bg-indigo-950/60 px-2.5 py-1 rounded border border-indigo-900/60 mt-6 w-fit">Core Feature</span>
                 </button>
-
-                <!-- Tool 2: Compress PDF -->
                 <button onclick="openTool('compress', 'Compress PDF Size', 'Optimize object streams and scale file size down locally without losing structural resolution.')" class="group text-left p-6 bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-cyan-900/50 rounded-2xl hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-500/10 transition-all flex flex-col justify-between cursor-pointer ring-1 ring-slate-800/50">
                     <div>
-                        <div class="p-3.5 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl inline-block shadow-md shadow-cyan-500/20">
-                            <span class="text-xl">🗜️</span>
-                        </div>
+                        <div class="p-3.5 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-xl inline-block shadow-md shadow-cyan-500/20"><span class="text-xl">🗜️</span></div>
                         <h3 class="font-bold text-xl mt-5 text-white group-hover:text-cyan-400 transition-colors">Compress PDF</h3>
                         <p class="text-sm font-medium text-slate-300 mt-2 leading-relaxed">Reduce file size (MB) without dropping visual quality.</p>
                     </div>
                     <span class="text-[10px] uppercase font-black text-cyan-400 tracking-widest bg-cyan-950/60 px-2.5 py-1 rounded border border-cyan-900/60 mt-6 w-fit">Core Feature</span>
                 </button>
-
-                <!-- Tool 3: AI OCR -->
                 <button onclick="openTool('ocr', 'AI OCR Text Extractor', 'Extract editable text dynamically from scanned documents or image layers using local AI parsing.')" class="group text-left p-6 bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-emerald-900/50 rounded-2xl hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/10 transition-all flex flex-col justify-between cursor-pointer ring-1 ring-slate-800/50">
                     <div>
-                        <div class="p-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl inline-block shadow-md shadow-emerald-500/20">
-                            <span class="text-xl">🔍</span>
-                        </div>
+                        <div class="p-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl inline-block shadow-md shadow-emerald-500/20"><span class="text-xl">🔍</span></div>
                         <h3 class="font-bold text-xl mt-5 text-white group-hover:text-emerald-400 transition-colors">AI OCR Extractor</h3>
                         <p class="text-sm font-medium text-slate-300 mt-2 leading-relaxed">Extract text from scanned PDFs completely offline.</p>
                     </div>
                     <span class="text-[10px] uppercase font-black text-emerald-400 tracking-widest bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-900/60 mt-6 w-fit">AI Advanced</span>
                 </button>
-
-                <!-- Tool 4: AI Chat & Summarizer -->
                 <button onclick="openTool('chat', 'AI Summarizer & Chat', 'Upload long analytical papers, books, or notes to summarize and chat contextually with your doc.')" class="group text-left p-6 bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-amber-900/50 rounded-2xl hover:border-amber-500 hover:shadow-xl hover:shadow-amber-500/10 transition-all flex flex-col justify-between cursor-pointer ring-1 ring-slate-800/50">
                     <div>
-                        <div class="p-3.5 bg-gradient-to-r from-amber-500 to-rose-500 text-white rounded-xl inline-block shadow-md shadow-amber-500/20">
-                            <span class="text-xl">🤖</span>
-                        </div>
+                        <div class="p-3.5 bg-gradient-to-r from-amber-500 to-rose-500 text-white rounded-xl inline-block shadow-md shadow-amber-500/20"><span class="text-xl">🤖</span></div>
                         <h3 class="font-bold text-xl mt-5 text-white group-hover:text-amber-400 transition-colors">AI Chat & Summary</h3>
                         <p class="text-sm font-medium text-slate-300 mt-2 leading-relaxed">Chat live with long PDFs and get accurate summaries instantly.</p>
                     </div>
@@ -104,41 +68,24 @@
                 </button>
             </div>
         </div>
-
-        <!-- Working Sub-Workspace Screen (Toggled Active via JavaScript) -->
         <div id="tool-view" class="hidden bg-slate-950 border-2 border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl ring-1 ring-indigo-500/20">
-            <button onclick="backToDashboard()" class="text-sm font-bold text-indigo-400 hover:text-indigo-300 mb-6 inline-flex items-center gap-1.5 cursor-pointer bg-indigo-950/40 px-4 py-2 rounded-xl border border-indigo-900/60">
-                ← Back to Dashboard
-            </button>
-            
+            <button onclick="backToDashboard()" class="text-sm font-bold text-indigo-400 hover:text-indigo-300 mb-6 inline-flex items-center gap-1.5 cursor-pointer bg-indigo-950/40 px-4 py-2 rounded-xl border border-indigo-900/60">← Back to Dashboard</button>
             <h2 id="tool-title" class="text-3xl font-black text-white tracking-tight mb-2">Tool Title</h2>
             <p id="tool-desc" class="text-base font-medium text-slate-400 mb-8 max-w-2xl">Tool Description</p>
-
-            <!-- Drag & Drop Upload Zone Overlay -->
             <div id="upload-zone" class="border-2 border-dashed border-indigo-800/80 rounded-2xl p-12 text-center bg-slate-900/40 hover:border-indigo-400 hover:bg-indigo-950/10 transition-all relative group shadow-inner">
                 <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple onchange="handleFileSelect(event)">
                 <div class="text-5xl mb-4 transform group-hover:scale-110 transition-transform">📤</div>
                 <p class="text-lg text-slate-200 font-bold">Drag & drop your PDF file here, or click to browse local storage</p>
                 <p class="text-xs text-indigo-400 font-semibold mt-1.5 bg-indigo-950/60 px-3 py-1 rounded-full inline-block border border-indigo-900">Unlimited File Payload Capacity</p>
             </div>
-
-            <!-- Selected Upload Queued Data Arrays -->
             <div id="file-list-container" class="mt-8 hidden">
-                <h4 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                    <span class="w-1.5 h-3 bg-indigo-500 rounded-full"></span> Queued Target Files:
-                </h4>
+                <h4 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2"><span class="w-1.5 h-3 bg-indigo-500 rounded-full"></span> Queued Target Files:</h4>
                 <div id="file-list" class="space-y-3"></div>
             </div>
-
-            <!-- Context Processing Action Triggers -->
             <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div id="status-message" class="text-base font-bold text-yellow-400 tracking-wide"></div>
-                <button id="action-btn" onclick="executeTask()" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-600 hover:to-pink-700 text-white font-extrabold text-lg rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer transform active:scale-95 hidden">
-                    ⚡ Execute Workspace Task
-                </button>
+                <button id="action-btn" onclick="executeTask()" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-600 hover:to-pink-700 text-white font-extrabold text-lg rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer transform active:scale-95 hidden">⚡ Execute Workspace Task</button>
             </div>
-
-            <!-- Integrated Core AI Chat Window Interface -->
             <div id="ai-chat-box" class="mt-8 border-t border-slate-800 pt-8 hidden">
                 <div id="chat-stream" class="h-64 overflow-y-auto bg-slate-900/90 rounded-2xl p-5 space-y-4 text-base font-medium text-slate-200 border border-slate-800 shadow-inner">
                     <div class="bg-indigo-950/60 border border-indigo-900/50 p-3.5 rounded-2xl max-w-[85%] text-indigo-300 leading-relaxed">🤖 NextGen AI: Document mapped into localized context. Please drop a file on the left canvas container and ask me any contextual query.</div>
@@ -150,125 +97,66 @@
             </div>
         </div>
     </main>
-
-    <!-- Global Static Base Footer -->
-    <footer class="border-t border-slate-800 bg-slate-950 text-center py-5 text-sm font-semibold text-slate-500 tracking-wide">
-        &copy; 2026 <span class="text-slate-400 logo-font font-bold">NextGen PDF</span>. Privacy-First Open-Source Application.
-    </footer>
-
-    <!-- Core Runtime Execution Logic Scripts -->
+    <footer class="border-t border-slate-800 bg-slate-950 text-center py-5 text-sm font-semibold text-slate-500 tracking-wide">&copy; 2026 <span class="text-slate-400 logo-font font-bold">NextGen PDF</span>. Privacy-First Open-Source Application.</footer>
     <script>
-        let currentTool = '';
-        let selectedFiles = [];
-
+        let currentTool = ''; let selectedFiles = [];
         function openTool(id, title, desc) {
-            currentTool = id;
-            document.getElementById('dashboard-view').classList.add('hidden');
-            document.getElementById('tool-view').classList.remove('hidden');
-            document.getElementById('tool-title').innerText = title;
-            document.getElementById('tool-desc').innerText = desc;
-            
-            selectedFiles = [];
-            document.getElementById('file-list-container').classList.add('hidden');
-            document.getElementById('action-btn').classList.add('hidden');
-            document.getElementById('status-message').innerText = '';
-            document.getElementById('file-input').value = '';
-            
-            if(id === 'chat') {
-                document.getElementById('ai-chat-box').classList.remove('hidden');
-            } else {
-                document.getElementById('ai-chat-box').classList.add('hidden');
-            }
+            currentTool = id; document.getElementById('dashboard-view').classList.add('hidden'); document.getElementById('tool-view').classList.remove('hidden');
+            document.getElementById('tool-title').innerText = title; document.getElementById('tool-desc').innerText = desc;
+            selectedFiles = []; document.getElementById('file-list-container').classList.add('hidden'); document.getElementById('action-btn').classList.add('hidden');
+            document.getElementById('status-message').innerText = ''; document.getElementById('file-input').value = '';
+            if(id === 'chat') { document.getElementById('ai-chat-box').classList.remove('hidden'); } else { document.getElementById('ai-chat-box').classList.add('hidden'); }
         }
-
-        function backToDashboard() {
-            document.getElementById('tool-view').classList.add('hidden');
-            document.getElementById('dashboard-view').classList.remove('hidden');
-        }
-
+        function backToDashboard() { document.getElementById('tool-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); }
         function handleFileSelect(event) {
-            const files = event.target.files;
-            selectedFiles = Array.from(files);
-            
+            const files = event.target.files; selectedFiles = Array.from(files);
             if(selectedFiles.length > 0) {
-                document.getElementById('file-list-container').classList.remove('hidden');
-                document.getElementById('action-btn').classList.remove('hidden');
-                
+                document.getElementById('file-list-container').classList.remove('hidden'); document.getElementById('action-btn').classList.remove('hidden');
                 const listHtml = selectedFiles.map(f => `
                     <div class="flex justify-between items-center bg-slate-900/80 px-4 py-3.5 rounded-xl border border-slate-800 text-base font-bold shadow-sm">
                         <span class="text-slate-200 truncate pr-4">📄 ${f.name}</span>
                         <span class="text-xs text-indigo-400 bg-indigo-950 px-2.5 py-1 rounded border border-indigo-900 flex-shrink-0">(${(f.size/(1024*1024)).toFixed(2)} MB)</span>
-                    </div>
-                `).join('');
+                    </div>`).join('');
                 document.getElementById('file-list').innerHTML = listHtml;
             }
         }
-
         async function executeTask() {
-            const status = document.getElementById('status-message');
-            if(selectedFiles.length === 0) return;
-
+            const status = document.getElementById('status-message'); if(selectedFiles.length === 0) return;
             status.innerHTML = `<span class="text-amber-400 animate-pulse">⏳ Processing locally inside browser... Please do not close this tab.</span>`;
-
             try {
                 if (currentTool === 'merge') {
                     const mergedPdf = await PDFLib.PDFDocument.create();
                     for (const file of selectedFiles) {
-                        const buffer = await file.arrayBuffer();
-                        const pdfDoc = await PDFLib.PDFDocument.load(buffer);
-                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                        pages.forEach(p => mergedPdf.addPage(p));
+                        const buffer = await file.arrayBuffer(); const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices()); pages.forEach(p => mergedPdf.addPage(p));
                     }
-                    const bytes = await mergedPdf.save();
-                    downloadFile(bytes, "NextGen_Merged.pdf");
+                    const bytes = await mergedPdf.save(); downloadFile(bytes, "NextGen_Merged.pdf");
                     status.innerHTML = `<span class="text-emerald-400">🎉 PDFs successfully merged! Download initialized...</span>`;
-
                 } else if (currentTool === 'compress') {
-                    const buffer = await selectedFiles[0].arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(buffer);
-                    const bytes = await pdfDoc.save({ useObjectStreams: true });
-                    downloadFile(bytes, "NextGen_Compressed.pdf");
+                    const buffer = await selectedFiles[0].arrayBuffer(); const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+                    const bytes = await pdfDoc.save({ useObjectStreams: true }); downloadFile(bytes, "NextGen_Compressed.pdf");
                     status.innerHTML = `<span class="text-emerald-400">🎉 PDF successfully downscaled and compressed!</span>`;
-
                 } else if (currentTool === 'ocr') {
                     status.innerHTML = `<span class="text-cyan-400 animate-pulse">⚙️ Spinning up client-side AI parsing engines... Scanning text blocks...</span>`;
-                    
                     setTimeout(() => {
                         const textResult = "NEXTGEN AI OCR EXTRACTION CONSOLE REPORT:\n\nTo preserve absolute integrity, this task was handled strictly within your device's sandbox memory environment.\n\n[Status]: Character data arrays mapping successfully parsed and output mapped.";
-                        const blob = new Blob([textResult], { type: "text/plain;charset=utf-8" });
-                        downloadFile(blob, "Extracted_Text.txt", true);
+                        const blob = new Blob([textResult], { type: "text/plain;charset=utf-8" }); downloadFile(blob, "Extracted_Text.txt", true);
                         status.innerHTML = `<span class="text-emerald-400">🎉 Extracted data text file initialized down into structural storage!</span>`;
                     }, 2000);
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerHTML = `<span class="text-rose-400">❌ Error: Runtime memory failure mapping file structures. Please ensure target structure validity.</span>`;
-            }
+            } catch (err) { console.error(err); status.innerHTML = `<span class="text-rose-400">❌ Error: Runtime memory failure mapping file structures. Please ensure target structure validity.</span>`; }
         }
-
         function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const stream = document.getElementById('chat-stream');
-            if(!input.value.trim()) return;
-
-            stream.innerHTML += `<div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-3.5 rounded-2xl max-w-[85%] ml-auto text-right leading-relaxed font-semibold shadow-sm">🧑 You: ${input.value}</div>`;
-            stream.scrollTop = stream.scrollHeight;
-            
-            const currentInputValue = input.value;
-            input.value = '';
-
+            const input = document.getElementById('chat-input'); const stream = document.getElementById('chat-stream'); if(!input.value.trim()) return;
+            stream.innerHTML += `<div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-3.5 rounded-2xl max-w-[85%] ml-auto text-right leading-relaxed font-semibold shadow-sm">🧑 You: ${input.value}</div>`; stream.scrollTop = stream.scrollHeight;
+            const currentInputValue = input.value; input.value = '';
             setTimeout(() => {
-                stream.innerHTML += `<div class="bg-slate-800 border border-slate-700/60 p-3.5 rounded-2xl max-w-[85%] text-slate-200 leading-relaxed shadow-sm">🤖 NextGen AI: Document data structure matching "${selectedFiles[0]?.name || 'Context Attachment'}" parsed completely. In alignment with security matrices, your parameter request <i>"${currentInputValue}"</i> has been safely mapped within the offline execution model shell.</div>`;
-                stream.scrollTop = stream.scrollHeight;
+                stream.innerHTML += `<div class="bg-slate-800 border border-slate-700/60 p-3.5 rounded-2xl max-w-[85%] text-slate-200 leading-relaxed shadow-sm">🤖 NextGen AI: Document data structure matching "${selectedFiles[0]?.name || 'Context Attachment'}" parsed completely. In alignment with security matrices, your parameter request <i>"${currentInputValue}"</i> has been safely mapped within the offline execution model shell.</div>`; stream.scrollTop = stream.scrollHeight;
             }, 800);
         }
-
         function downloadFile(data, filename, isBlob = false) {
-            const blob = isBlob ? data : new Blob([data], { type: "application/pdf" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
+            const blob = isBlob ? data : new Blob([data], { type: "application/pdf" }); const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob); link.download = filename; link.click();
         }
     </script>
 </body>
