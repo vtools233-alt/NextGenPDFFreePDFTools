@@ -2301,9 +2301,10 @@ function setupSnipAndLinkSystem() {
   }
 
   let isSnipping = false;
-  let startClientX = 0, startClientY = 0;
+  let startX = 0, startY = 0;
   let activePdfCanvas = null;
   let activePageIdx = 0;
+  let lastCroppedDataUrl = null;
 
   const pdfPane = document.getElementById('pdf-pane');
 
@@ -2318,12 +2319,12 @@ function setupSnipAndLinkSystem() {
     activePageIdx = parseInt(pageItem.getAttribute('data-page-index'), 10);
     activePdfCanvas = pageItem.querySelector('.pdf-canvas-item') || pageItem.querySelector('canvas');
     
-    startClientX = e.clientX;
-    startClientY = e.clientY;
+    startX = e.clientX;
+    startY = e.clientY;
 
     overlay.style.display = 'block';
-    overlay.style.left = `${startClientX}px`;
-    overlay.style.top = `${startClientY}px`;
+    overlay.style.left = `${startX}px`;
+    overlay.style.top = `${startY}px`;
     overlay.style.width = `0px`;
     overlay.style.height = `0px`;
   });
@@ -2334,10 +2335,10 @@ function setupSnipAndLinkSystem() {
     const currentX = e.clientX;
     const currentY = e.clientY;
 
-    const left = Math.min(startClientX, currentX);
-    const top = Math.min(startClientY, currentY);
-    const width = Math.abs(currentX - startClientX);
-    const height = Math.abs(currentY - startClientY);
+    const left = Math.min(startX, currentX);
+    const top = Math.min(startY, currentY);
+    const width = Math.abs(currentX - startX);
+    const height = Math.abs(currentY - startY);
 
     overlay.style.left = `${left}px`;
     overlay.style.top = `${top}px`;
@@ -2370,26 +2371,11 @@ function setupSnipAndLinkSystem() {
     tempCanvas.height = cropH;
     const tCtx = tempCanvas.getContext('2d');
     tCtx.drawImage(activePdfCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-    const croppedDataUrl = tempCanvas.toDataURL('image/png');
+    lastCroppedDataUrl = tempCanvas.toDataURL('image/png');
 
-    ensureNotepadsInitialized();
-    const np = getActiveNotepad();
-    if (!np.freeformNotes) np.freeformNotes = [];
-
-    const newSnippetId = "snip_img_" + Date.now();
-    np.freeformNotes.push({
-      id: newSnippetId,
-      type: 'image_snippet',
-      imgUrl: croppedDataUrl,
-      sourcePageIdx: activePageIdx,
-      x: 30,
-      y: 30 + (np.freeformNotes.length * 90),
-      rotation: 0
-    });
-
-    await dbSaveCase(AppState.currentCase);
-    toggleNotesDrawer(true);
-    showToast("📸 Snip Captured & Linked to Notepad!", "success");
+    popover.style.display = 'flex';
+    popover.style.left = `${Math.max(10, rect.left)}px`;
+    popover.style.top = `${Math.max(10, rect.top - 50)}px`;
   });
 
   document.addEventListener('selectionchange', () => {
@@ -2397,6 +2383,7 @@ function setupSnipAndLinkSystem() {
     const text = sel ? sel.toString().trim() : '';
     if (text.length > 1 && AppState.currentCase && AppState.currentTool === 'snip') {
       AppState.selectedText = text;
+      lastCroppedDataUrl = null;
       try {
         const range = sel.getRangeAt(0);
         const rect = range.getBoundingClientRect();
@@ -2404,16 +2391,14 @@ function setupSnipAndLinkSystem() {
         popover.style.left = `${Math.max(10, rect.left)}px`;
         popover.style.top = `${Math.max(10, rect.top - 45)}px`;
       } catch(err) {}
-    } else {
-      popover.style.display = 'none';
     }
   });
 
   document.getElementById('pop-copy').onclick = () => {
-    internalClipboard = AppState.selectedText;
-    navigator.clipboard.writeText(AppState.selectedText);
+    const content = AppState.selectedText || "Snippet Image";
+    navigator.clipboard.writeText(content);
     popover.style.display = 'none';
-    showToast("Copied!", "success");
+    showToast("Copied to Clipboard!", "success");
   };
 
   document.getElementById('pop-snip-note').onclick = async () => {
@@ -2423,36 +2408,46 @@ function setupSnipAndLinkSystem() {
     const np = getActiveNotepad();
     if (!np.freeformNotes) np.freeformNotes = [];
 
+    const newSnippetId = "snip_" + Date.now();
     np.freeformNotes.push({
-      id: "fn_" + Date.now(),
-      type: 'text',
-      text: AppState.selectedText,
-      sourcePageIdx: AppState.currentPageIndex,
-      x: 20,
-      y: 20 + (np.freeformNotes.length * 60),
+      id: newSnippetId,
+      type: lastCroppedDataUrl ? 'image_snippet' : 'text',
+      imgUrl: lastCroppedDataUrl || '',
+      text: AppState.selectedText || "Captured Snip Image",
+      sourcePageIdx: activePageIdx,
+      x: 30,
+      y: 30 + (np.freeformNotes.length * 90),
       rotation: 0
     });
 
     await dbSaveCase(AppState.currentCase);
     toggleNotesDrawer(true);
-    showToast("Snipped Text to Notepad with Reference Link!", "success");
+    showToast("✨ Snipped & Linked with Notepad (Blue Dot Connected)!", "success");
+    lastCroppedDataUrl = null;
+    AppState.selectedText = '';
   };
 
   document.getElementById('pop-board').onclick = async () => {
     popover.style.display = 'none';
+    if (!AppState.currentCase) return;
     if (!AppState.currentCase.boardCards) AppState.currentCase.boardCards = [];
+
+    const cardText = AppState.selectedText || "Image Snippet Evidence";
     AppState.currentCase.boardCards.push({
       id: "card_" + Date.now(),
       type: 'Evidence',
-      title: AppState.selectedText.substring(0, 30) + "...",
-      text: AppState.selectedText,
-      pageId: AppState.currentCase.pages[AppState.currentPageIndex]?.id,
+      title: cardText.substring(0, 30) + "...",
+      text: cardText,
+      pageId: AppState.currentCase.pages[activePageIdx]?.id,
       x: 10, y: 10 + (AppState.currentCase.boardCards.length * 145)
     });
+
     await dbSaveCase(AppState.currentCase);
     toggleBoardPane(true);
     renderBoard();
-    showToast("Sent to Research Board!", "success");
+    showToast("📌 Sent to Research Board with Jump Link!", "success");
+    lastCroppedDataUrl = null;
+    AppState.selectedText = '';
   };
 }
 
@@ -2945,8 +2940,22 @@ function setupUIEvents() {
     };
   });
 
-  document.getElementById('btn-open-pdf').onclick = () => document.getElementById('pdf-file-input').click();
-  document.getElementById('pdf-file-input').onchange = (e) => handlePdfUpload(e.target.files);
+  // मजबूत और डायरेक्ट फाइल अपलोड बाइंडिंग
+  const pdfInputBtn = document.getElementById('btn-open-pdf');
+  const pdfFileInput = document.getElementById('pdf-file-input');
+
+  if (pdfInputBtn && pdfFileInput) {
+    pdfInputBtn.onclick = (e) => {
+      e.preventDefault();
+      pdfFileInput.click();
+    };
+    pdfFileInput.onchange = async (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        await handlePdfUpload(e.target.files);
+        pdfFileInput.value = ''; 
+      }
+    };
+  }
 
   document.getElementById('btn-prev-page').onclick = () => {
     const step = isDualViewActive ? 2 : 1;
@@ -3176,166 +3185,6 @@ function setupUIEvents() {
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-  function setupSnipAndLinkSystem() {
-  const popover = document.getElementById('selection-popover');
-  
-  let overlay = document.getElementById('snip-crop-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'snip-crop-overlay';
-    document.body.appendChild(overlay);
-  }
-
-  let isSnipping = false;
-  let startX = 0, startY = 0;
-  let activePdfCanvas = null;
-  let activePageIdx = 0;
-  let lastCroppedDataUrl = null;
-
-  const pdfPane = document.getElementById('pdf-pane');
-
-  pdfPane.addEventListener('pointerdown', (e) => {
-    if (AppState.currentTool !== 'snip') return;
-    const pageItem = e.target.closest('.page-viewport-item');
-    if (!pageItem) return;
-
-    isSnipping = true;
-    try { pageItem.setPointerCapture(e.pointerId); } catch(err) {}
-    
-    activePageIdx = parseInt(pageItem.getAttribute('data-page-index'), 10);
-    activePdfCanvas = pageItem.querySelector('.pdf-canvas-item') || pageItem.querySelector('canvas');
-    
-    startX = e.clientX;
-    startY = e.clientY;
-
-    overlay.style.display = 'block';
-    overlay.style.left = `${startX}px`;
-    overlay.style.top = `${startY}px`;
-    overlay.style.width = `0px`;
-    overlay.style.height = `0px`;
-  });
-
-  pdfPane.addEventListener('pointermove', (e) => {
-    if (!isSnipping || AppState.currentTool !== 'snip') return;
-    
-    const currentX = e.clientX;
-    const currentY = e.clientY;
-
-    const left = Math.min(startX, currentX);
-    const top = Math.min(startY, currentY);
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
-
-    overlay.style.left = `${left}px`;
-    overlay.style.top = `${top}px`;
-    overlay.style.width = `${width}px`;
-    overlay.style.height = `${height}px`;
-  });
-
-  pdfPane.addEventListener('pointerup', async (e) => {
-    if (!isSnipping || AppState.currentTool !== 'snip') return;
-    isSnipping = false;
-    overlay.style.display = 'none';
-
-    if (!activePdfCanvas) return;
-
-    const rect = overlay.getBoundingClientRect();
-    const canvasRect = activePdfCanvas.getBoundingClientRect();
-
-    const scaleX = activePdfCanvas.width / canvasRect.width;
-    const scaleY = activePdfCanvas.height / canvasRect.height;
-
-    const cropX = Math.max(0, (rect.left - canvasRect.left) * scaleX);
-    const cropY = Math.max(0, (rect.top - canvasRect.top) * scaleY);
-    const cropW = Math.min(activePdfCanvas.width - cropX, rect.width * scaleX);
-    const cropH = Math.min(activePdfCanvas.height - cropY, rect.height * scaleY);
-
-    if (cropW < 5 || cropH < 5) return;
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cropW;
-    tempCanvas.height = cropH;
-    const tCtx = tempCanvas.getContext('2d');
-    tCtx.drawImage(activePdfCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-    lastCroppedDataUrl = tempCanvas.toDataURL('image/png');
-
-    popover.style.display = 'flex';
-    popover.style.left = `${Math.max(10, rect.left)}px`;
-    popover.style.top = `${Math.max(10, rect.top - 50)}px`;
-  });
-
-  document.addEventListener('selectionchange', () => {
-    const sel = window.getSelection();
-    const text = sel ? sel.toString().trim() : '';
-    if (text.length > 1 && AppState.currentCase && AppState.currentTool === 'snip') {
-      AppState.selectedText = text;
-      lastCroppedDataUrl = null;
-      try {
-        const range = sel.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        popover.style.display = 'flex';
-        popover.style.left = `${Math.max(10, rect.left)}px`;
-        popover.style.top = `${Math.max(10, rect.top - 45)}px`;
-      } catch(err) {}
-    }
-  });
-
-  document.getElementById('pop-copy').onclick = () => {
-    const content = AppState.selectedText || "Snippet Image";
-    navigator.clipboard.writeText(content);
-    popover.style.display = 'none';
-    showToast("Copied to Clipboard!", "success");
-  };
-
-  document.getElementById('pop-snip-note').onclick = async () => {
-    popover.style.display = 'none';
-    if (!AppState.currentCase) return;
-    ensureNotepadsInitialized();
-    const np = getActiveNotepad();
-    if (!np.freeformNotes) np.freeformNotes = [];
-
-    const newSnippetId = "snip_" + Date.now();
-    np.freeformNotes.push({
-      id: newSnippetId,
-      type: lastCroppedDataUrl ? 'image_snippet' : 'text',
-      imgUrl: lastCroppedDataUrl || '',
-      text: AppState.selectedText || "Captured Snip Image",
-      sourcePageIdx: activePageIdx,
-      x: 30,
-      y: 30 + (np.freeformNotes.length * 90),
-      rotation: 0
-    });
-
-    await dbSaveCase(AppState.currentCase);
-    toggleNotesDrawer(true);
-    showToast("✨ Snipped & Linked with Notepad (Blue Dot Connected)!", "success");
-    lastCroppedDataUrl = null;
-    AppState.selectedText = '';
-  };
-
-  document.getElementById('pop-board').onclick = async () => {
-    popover.style.display = 'none';
-    if (!AppState.currentCase) return;
-    if (!AppState.currentCase.boardCards) AppState.currentCase.boardCards = [];
-
-    const cardText = AppState.selectedText || "Image Snippet Evidence";
-    AppState.currentCase.boardCards.push({
-      id: "card_" + Date.now(),
-      type: 'Evidence',
-      title: cardText.substring(0, 30) + "...",
-      text: cardText,
-      pageId: AppState.currentCase.pages[activePageIdx]?.id,
-      x: 10, y: 10 + (AppState.currentCase.boardCards.length * 145)
-    });
-
-    await dbSaveCase(AppState.currentCase);
-    toggleBoardPane(true);
-    renderBoard();
-    showToast("📌 Sent to Research Board with Jump Link!", "success");
-    lastCroppedDataUrl = null;
-    AppState.selectedText = '';
-  };
 }
 </script>
 </body>
