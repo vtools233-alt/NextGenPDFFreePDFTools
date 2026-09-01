@@ -1,9 +1,9 @@
-ज<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NextGen Legal Studio - V40 Advanced Snip Studio</title>
+<title>NextGen Legal Studio - V34 Linked Notes & Cross-Dots Edition</title>
 
 <!-- PDF.js & PDF-Lib CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -11,16 +11,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 
 <style>
-/* SNIP CROP SELECTION OVERLAY */
-#snip-crop-overlay {
-  position: absolute;
-  border: 2px dashed #2563eb;
-  background: rgba(37, 99, 235, 0.12);
-  z-index: 999;
-  display: none;
-  pointer-events: none;
-}
-
 :root {
   --primary: #1e3a8a;
   --primary-hover: #1d4ed8;
@@ -46,6 +36,7 @@
   margin: 0; 
   padding: 0; 
   -webkit-tap-highlight-color: transparent; 
+  touch-action: manipulation;
 }
 
 .legal-studio-app {
@@ -68,13 +59,14 @@
 #board-pane {
   width: 0;
   flex-shrink: 0;
-  transition: none !important;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 #case-notes-drawer.open,
 #board-pane.open {
-  width: 50% !important;
-  min-width: 280px;
+  width: 52% !important;
+  min-width: 300px;
+  max-width: 600px;
 }
 
 button {
@@ -145,7 +137,6 @@ input:focus, textarea:focus {
   padding: 3px 8px;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
-  letter-spacing: 0.3px;
 }
 .brand-tag {
   font-size: 9px;
@@ -154,8 +145,6 @@ input:focus, textarea:focus {
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: 800;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  letter-spacing: 0.5px;
 }
 .engine-badge {
   font-size: 9px;
@@ -164,7 +153,6 @@ input:focus, textarea:focus {
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: 800;
-  letter-spacing: 0.3px;
 }
 #active-case-badge {
   font-size: 11px;
@@ -188,16 +176,9 @@ input:focus, textarea:focus {
   width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: 2px;
 }
 .header-row-2::-webkit-scrollbar { display: none; }
-
-.action-cluster {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
+.action-cluster { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 
 #floating-tablet-bar {
   position: absolute;
@@ -230,8 +211,7 @@ input:focus, textarea:focus {
 
 .color-indicator {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   margin-left: 2px;
   border: 1px solid #fff;
@@ -239,8 +219,7 @@ input:focus, textarea:focus {
 
 #tool-palette-popup {
   position: absolute;
-  top: 122px;
-  left: 50%;
+  top: 122px; left: 50%;
   transform: translateX(-50%);
   background: #0f172a;
   border-radius: 20px;
@@ -252,8 +231,7 @@ input:focus, textarea:focus {
   box-shadow: var(--shadow-lg);
 }
 .swatch-item {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid transparent;
@@ -279,7 +257,6 @@ input:focus, textarea:focus {
   overflow-y: scroll;
   overflow-x: auto;
   padding: 65px 10px 40px 10px;
-  scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
 }
 #pdf-pane.scroll-locked {
@@ -298,7 +275,6 @@ input:focus, textarea:focus {
   gap: 16px;
   width: 100%;
   position: relative;
-  margin: 0 auto;
 }
 
 .dual-spread-row {
@@ -328,21 +304,8 @@ input:focus, textarea:focus {
   justify-content: center;
 }
 
-.pdf-canvas-item { 
-  display: block; 
-  width: 100%;
-  height: 100%;
-}
-
-.annotation-canvas-item {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 20;
-  touch-action: none;
-}
+.pdf-canvas-item { display: block; width: 100%; height: 100%; }
+.annotation-canvas-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; touch-action: none; }
 .textLayer {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -350,12 +313,10 @@ input:focus, textarea:focus {
   opacity: 0.35;
   line-height: 1.0;
   z-index: 25;
-  user-select: text !important;
-  -webkit-user-select: text !important;
 }
 .textLayer.blank-mode { opacity: 1 !important; }
 
-/* NOTEPAD DRAWER */
+/* NOTEPAD DRAWER WITH LINKED DOTS */
 #case-notes-drawer {
   background: #ffffff;
   border: 2px solid #2563eb;
@@ -364,9 +325,6 @@ input:focus, textarea:focus {
   box-shadow: -4px 0 12px rgba(0,0,0,0.12);
   position: relative;
 }
-
-#case-notes-drawer::before { content: "NextGen PDF"; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #94a3b8; font-weight: 700; pointer-events: none; z-index: 2; }
-#case-notes-drawer::after { content: "NextGen PDF"; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #94a3b8; font-weight: 700; pointer-events: none; z-index: 2; }
 
 .notes-header {
   padding: 6px 10px;
@@ -385,23 +343,15 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 5px 8px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
   z-index: 10;
   flex-wrap: wrap;
 }
-.notes-toolbar button {
-  font-size: 10px;
-  padding: 3px 6px;
-  border-radius: 4px;
-}
-.notes-toolbar button.active {
-  background: var(--primary) !important;
-  color: #fff !important;
-  border-color: var(--primary) !important;
-}
+.notes-toolbar select, .notes-toolbar button { font-size: 10px; padding: 3px 6px; border-radius: 4px; }
+.notes-toolbar button.active { background: var(--primary) !important; color: #fff !important; }
 
 .notes-body {
   flex: 1;
@@ -409,91 +359,64 @@ input:focus, textarea:focus {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px;
-  background: #ffffff;
   min-height: 2500px;
-  cursor: default;
+  cursor: crosshair;
 }
 
-/* THEMES */
-.notes-body.theme-white { background: #ffffff !important; }
-.notes-body.theme-red-line { background: repeating-linear-gradient(#ffffff, #ffffff 26px, #fca5a5 27px, #ffffff 28px) !important; }
-.notes-body.theme-purple-line { background: repeating-linear-gradient(#ffffff, #ffffff 26px, #cbd5e1 27px, #ffffff 28px) !important; }
-.notes-body.theme-yellow-blank { background: #fefce8 !important; }
-.notes-body.theme-yellow-line { background: repeating-linear-gradient(#fefce8, #fefce8 26px, #fde047 27px, #fefce8 28px) !important; }
-
-.notes-body::before { content: "NextGen PDF"; position: absolute; left: 2px; top: 50%; transform: translateY(-50%) rotate(-90deg); font-size: 8px; color: #94a3b8; font-weight: 700; pointer-events: none; z-index: 2; }
-.notes-body::after { content: "NextGen PDF"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%) rotate(90deg); font-size: 8px; color: #94a3b8; font-weight: 700; pointer-events: none; z-index: 2; }
+/* NOTEBOOK TEMPLATES */
+.notes-body.template-white-blank { background: #ffffff; background-image: none; }
+.notes-body.template-white-ruled { background: #ffffff; background-image: linear-gradient(#e2e8f0 1px, transparent 1px); background-size: 100% 28px; }
+.notes-body.template-white-purple { background: #faf5ff; background-image: linear-gradient(#f3e8ff 1px, transparent 1px); background-size: 100% 28px; }
+.notes-body.template-yellow-black { background: #fefce8; background-image: linear-gradient(#fef08a 1px, transparent 1px), linear-gradient(90deg, #fef08a 1px, transparent 1px); background-size: 20px 20px; }
+.notes-body.template-yellow-ruled { background: #fefce8; background-image: linear-gradient(#fde047 1px, transparent 1px); background-size: 100% 28px; }
 
 #notes-ink-layer {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2500px;
-  z-index: 20;
-  pointer-events: none;
-  touch-action: none;
+  top: 0; left: 0;
+  width: 100%; height: 2500px;
+  z-index: 20; pointer-events: none; touch-action: none;
 }
 
-/* SNIPPET WITH REFERENCE BLUE DOT LINK & TOOLS */
-.flexcil-pure-snippet {
+/* LINKED SNIPPET STYLES WITH DOTS */
+.linked-snippet-card {
   position: absolute;
-  background: rgba(254, 240, 138, 0.35);
-  border: 1px solid #bfdbfe;
-  border-radius: 4px;
-  padding: 4px 8px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 6px 8px;
+  box-shadow: var(--shadow-sm);
   z-index: 25;
   user-select: none;
   touch-action: none;
-  transform-origin: center center;
-  max-width: 95%;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  max-width: 90%;
+  font-size: 11px;
 }
-.flexcil-pure-snippet img { max-width: 100%; border-radius: 3px; display: block; }
-.flexcil-pure-snippet .snippet-content-text {
-  font-size: 12px;
-  line-height: 1.5;
-  color: #0f172a;
-  outline: none;
-  flex: 1;
-  word-break: break-word;
-}
-/* BLUE REFERENCE DOT */
-.snippet-ref-dot {
-  width: 10px;
-  height: 10px;
-  background: #2563eb;
+.linked-snippet-card .dot-link-badge {
+  display: inline-block;
+  width: 10px; height: 10px;
   border-radius: 50%;
+  margin-right: 4px;
   cursor: pointer;
-  flex-shrink: 0;
-  margin-top: 3px;
-  box-shadow: 0 0 4px rgba(37, 99, 235, 0.8);
-  transition: transform 0.15s ease;
+  border: 1px solid #fff;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
 }
-.snippet-ref-dot:hover { transform: scale(1.3); }
+.dot-green { background: #16a34a; }
+.dot-black { background: #0f172a; }
+.dot-blue { background: #2563eb; }
 
 .snippet-mini-bar {
   display: none;
   position: absolute;
-  top: -24px;
-  left: 0;
+  top: -22px; right: 0;
   background: #0f172a;
   border-radius: 4px;
   padding: 1px 4px;
   gap: 3px;
   z-index: 30;
 }
-.flexcil-pure-snippet:hover .snippet-mini-bar { display: flex; }
-.snippet-mini-bar button {
-  background: transparent;
-  color: #fff;
-  border: none;
-  font-size: 8px;
-  padding: 1px 3px;
-  cursor: pointer;
-}
+.linked-snippet-card:hover .snippet-mini-bar { display: flex; }
+.snippet-mini-bar button { background: transparent; color: #fff; border: none; font-size: 8px; padding: 1px 3px; cursor: pointer; }
 
 /* RESEARCH BOARD */
 #board-pane {
@@ -503,200 +426,52 @@ input:focus, textarea:focus {
   flex-direction: column;
   box-shadow: -4px 0 12px rgba(0,0,0,0.12);
 }
-
 .board-header {
-  height: 38px;
-  background: #fff;
-  border-bottom: 1px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  flex-shrink: 0;
+  height: 38px; background: #fff; border-bottom: 1px solid var(--border-light);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 11px; font-weight: 700; color: var(--primary);
 }
-.board-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 5px 6px;
-  background: #f1f5f9;
-  border-bottom: 1px solid var(--border-light);
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-shrink: 0;
-}
-.board-filter-bar::-webkit-scrollbar { display: none; }
-.board-filter-btn {
-  font-size: 9px;
-  font-weight: 600;
-  padding: 3px 6px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.board-filter-btn.active { background: var(--primary) !important; color: #fff !important; }
-
-#board-canvas-area {
-  flex: 1;
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
-  background-size: 16px 16px;
-  padding: 10px 8px 30px 8px;
-  min-height: 1000px;
-}
-#board-svg-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3000px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.board-card {
-  position: absolute;
-  width: 260px;
-  max-width: 95%;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--primary);
-  border-radius: 6px;
-  padding: 8px 10px;
-  box-shadow: var(--shadow-sm);
-  cursor: grab;
-  user-select: none;
-  font-size: 11px;
-  z-index: 5;
-  touch-action: none;
-}
-.board-card:active { cursor: grabbing; }
-.board-card.connecting { border: 2px dashed var(--accent-gold) !important; background: #fffbeb !important; }
-
-.card-tag { display: inline-block; padding: 2px 5px; font-size: 8px; font-weight: 700; border-radius: 3px; text-transform: uppercase; }
-.tag-evidence { background: #dcfce7; color: #166534; }
-.tag-issue { background: #fee2e2; color: #991b1b; }
-.tag-argument { background: #e0e7ff; color: #3730a3; }
-.tag-contradiction { background: #fef3c7; color: #92400e; }
-.tag-order { background: #fae8ff; color: #86198f; }
-.tag-content { background: #e0f2fe; color: #0369a1; }
-.tag-note { background: #f1f5f9; color: #475569; }
-
-.card-title { font-weight: 700; font-size: 11px; color: var(--text-dark); margin-top: 3px; }
-.card-text { font-size: 11px; color: #334155; max-height: 80px; overflow-y: auto; line-height: 1.35; margin: 4px 0; word-break: break-word; }
-.card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-light); padding-top: 4px; font-size: 9px; }
-
-@keyframes flashJump {
-  0% { background: rgba(250, 204, 21, 0.85); outline: 3px solid #ca8a04; }
-  100% { background: transparent; outline: 3px solid transparent; }
-}
-.flash-target {
-  position: absolute;
-  animation: flashJump 2.2s ease-out forwards;
-  pointer-events: none;
-  z-index: 30;
-}
+#board-canvas-area { flex: 1; position: relative; overflow-y: auto; background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 16px 16px; padding: 10px; }
+.board-card { position: absolute; width: 260px; background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 6px; padding: 8px; font-size: 11px; box-shadow: var(--shadow-sm); cursor: grab; }
 
 #laser-dot {
-  position: fixed;
-  width: 14px;
-  height: 14px;
-  background: rgba(239, 68, 68, 0.95);
-  border-radius: 50%;
-  box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.85);
-  pointer-events: none;
-  z-index: 10000;
-  display: none;
-  transform: translate(-50%, -50%);
+  position: fixed; width: 14px; height: 14px; background: rgba(239, 68, 68, 0.95);
+  border-radius: 50%; pointer-events: none; z-index: 10000; display: none; transform: translate(-50%, -50%);
 }
 
 #empty-workspace-state {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  width: 100%;
-  color: #f8fafc;
-  text-align: center;
-  padding: 20px;
+  display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; color: #f8fafc; text-align: center; padding: 20px;
 }
 #empty-workspace-state.active { display: flex; }
 
-/* Sidebar */
 #case-sidebar {
-  width: 280px;
-  background: #fff;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 95;
-  transform: translateX(-100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-lg);
+  width: 280px; background: #fff; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: absolute; left: 0; top: 0; bottom: 0; z-index: 95;
+  transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow-lg);
 }
 #case-sidebar.open { transform: translateX(0); }
-.sidebar-header { padding: 10px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
-.sidebar-search-box { padding: 6px 8px; background: #f1f5f9; border-bottom: 1px solid var(--border-light); }
-.sidebar-content { flex: 1; overflow-y: auto; padding: 6px; }
-.case-card-item { padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; font-size: 11px; display: flex; align-items: center; justify-content: space-between; }
-.case-card-item:hover { border-color: var(--accent); background: #f8fafc; }
+.sidebar-header { padding: 10px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; background: #f8fafc; }
+.case-card-item { padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; font-size: 11px; display: flex; justify-content: space-between; }
 .case-card-item.active { border-color: var(--primary); background: var(--primary-light); }
 
-/* Bottom Bar */
 #bottom-bar {
-  height: 38px;
-  background: #ffffff;
-  border-top: 1px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  z-index: 90;
-  flex-shrink: 0;
+  height: 38px; background: #ffffff; border-top: 1px solid var(--border-light);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 8px; z-index: 90; flex-shrink: 0;
 }
 .page-nav-controls { display: flex; align-items: center; gap: 3px; }
-#page-num-input { width: 48px; text-align: center; padding: 3px 1px; font-size: 11px; font-weight: 700; }
+#page-num-input { width: 48px; text-align: center; padding: 3px; font-weight: 700; }
 
-/* Selection Popover */
 #selection-popover {
-  position: absolute;
-  display: none;
-  background: #0f172a;
-  color: #fff;
-  border-radius: 6px;
-  padding: 6px;
-  gap: 4px;
-  z-index: 9999;
-  box-shadow: var(--shadow-lg);
-  align-items: center;
+  position: absolute; display: none; background: #0f172a; color: #fff;
+  border-radius: 6px; padding: 4px; gap: 4px; z-index: 150; box-shadow: var(--shadow-lg); align-items: center;
 }
 #selection-popover button { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 4px 8px; font-size: 10px; border-radius: 4px; }
-#selection-popover button:hover { background: var(--accent); }
 
 .modal-backdrop {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.70); z-index: 1000; display: none;
-  align-items: center; justify-content: center; padding: 10px;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.7); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px;
 }
 .modal-backdrop.open { display: flex !important; }
-.modal-box {
-  background: #fff; width: 100%; max-width: 480px; max-height: 90%;
-  border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg);
-  z-index: 1001;
-}
-.modal-header { padding: 8px 12px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; font-weight: 700; font-size: 12px; }
+.modal-box { background: #fff; width: 100%; max-width: 480px; max-height: 90%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg); }
+.modal-header { padding: 8px 12px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; font-weight: 700; }
 .modal-body { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .modal-footer { padding: 8px 12px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 6px; background: #fafafa; }
 
@@ -711,9 +486,7 @@ input:focus, textarea:focus {
 <div class="legal-studio-app" id="main-app-container">
   <header id="app-header">
     <div class="header-row-1" style="display:flex; align-items:center; gap:8px;">
-      <div class="brand-title">
-        <span>Legal Studio</span>
-      </div>
+      <div class="brand-title"><span>Legal Studio</span></div>
       <span class="brand-tag">V NEXTGEN PRO</span>
       <span class="engine-badge">Global Advocates' Choice</span>
       <div id="active-case-badge" title="Active Case" style="margin-left:auto;">No Case Open</div>
@@ -724,7 +497,7 @@ input:focus, textarea:focus {
         <button id="btn-toggle-cases" class="primary">Cases</button>
         <button id="btn-new-case" class="primary">+ Case</button>
         <button id="btn-open-pdf" class="primary">Open PDF Brief</button>
-  <input type="file" id="pdf-file-input" accept="application/pdf" multiple style="display:inline-block; margin-left:4px; font-size:10px; color:#fff;">
+        <input type="file" id="pdf-file-input" accept="application/pdf" multiple style="display:none;">
         <button id="btn-insert-page-modal" class="primary" style="background:#059669; border-color:#059669;">+ Insert Page</button>
         <input type="file" id="doc-scan-input" accept="image/*,application/pdf" capture="environment" style="display:none;">
       </div>
@@ -741,28 +514,16 @@ input:focus, textarea:focus {
 
   <!-- FLOATING TOOLBAR -->
   <div id="floating-tablet-bar">
-    <button id="tool-snip" class="active" title="Snip Image / Text to link with Notepad">✂ Snip Image</button>
-    <button id="tool-pan" title="Pan / Scroll Page">✋ Pan</button>
-    <button id="tool-highlight">
-      <span>Highlight</span>
-      <span class="color-indicator" id="dot-highlight" style="background:#fde047;"></span>
-    </button>
-    
-    <button id="tool-underline">
-      <span>Underline</span>
-      <span class="color-indicator" id="dot-underline" style="background:#2563eb;"></span>
-    </button>
-    
-    <button id="tool-pen">
-      <span>Pen</span>
-      <span class="color-indicator" id="dot-pen" style="background:#0f172a;"></span>
-    </button>
-    
-    <button id="tool-mask" title="Mask / Hide Secret Fact">🙈 Mask</button>
-    <button id="tool-laser" title="Court Laser Pointer">🔴 Laser</button>
+    <button id="tool-select" class="active" title="Select text or drag">🔤 Select</button>
+    <button id="tool-pan" title="Pan / Scroll">✋ Pan</button>
+    <button id="tool-highlight"><span>Highlight</span><span class="color-indicator" id="dot-highlight" style="background:#fde047;"></span></button>
+    <button id="tool-underline"><span>Underline</span><span class="color-indicator" id="dot-underline" style="background:#2563eb;"></span></button>
+    <button id="tool-pen"><span>Pen</span><span class="color-indicator" id="dot-pen" style="background:#0f172a;"></span></button>
+    <button id="tool-crop" title="Crop Image & Send to Notepad">✂️ Crop</button>
+    <button id="tool-magic" title="Magic Pen Link">🪄 Magic Link</button>
+    <button id="tool-laser" title="Laser Pointer">🔴 Laser</button>
     <button id="tool-white">Whiteout</button>
     <button id="tool-eraser">Eraser</button>
-    
     <button id="btn-undo" title="Undo" disabled>↩️</button>
     <button id="btn-redo" title="Redo" disabled>↪️</button>
     <button id="btn-search-open">🔍</button>
@@ -776,59 +537,51 @@ input:focus, textarea:focus {
     <!-- SIDEBAR -->
     <aside id="case-sidebar">
       <div class="sidebar-header">
-        <strong>📁 Daily Cases (Device Memory)</strong>
+        <strong>📁 Daily Cases</strong>
         <button id="btn-close-sidebar" class="danger" style="padding:2px 6px;">✕</button>
       </div>
-      <div class="sidebar-search-box">
-        <input type="text" id="case-search-filter" placeholder="🔍 Search case name / number..." style="width:100%;">
-      </div>
-      <div class="sidebar-content" id="case-list-container"></div>
+      <div style="padding:6px;"><input type="text" id="case-search-filter" placeholder="🔍 Search case..." style="width:100%;"></div>
+      <div class="sidebar-content" id="case-list-container" style="flex:1; overflow-y:auto; padding:6px;"></div>
     </aside>
 
     <!-- PDF WORKSPACE -->
     <main id="pdf-pane">
       <div id="empty-workspace-state">
         <div style="font-size:36px; margin-bottom:8px;">📁</div>
-        <strong id="empty-title-text" style="font-size:14px; margin-bottom:4px;">No Case Open on Screen</strong>
-        <p id="empty-desc-text" style="font-size:11px; color:#cbd5e1; max-width:320px; margin-bottom:12px;">Select a case or create a new case to load PDF.</p>
+        <strong style="font-size:14px; margin-bottom:4px;">No Pages in Current Case</strong>
+        <p style="font-size:11px; color:#cbd5e1; max-width:320px; margin-bottom:12px;">Load a PDF brief or insert a page to begin.</p>
+        <button class="primary" onclick="document.getElementById('pdf-file-input').click()">+ Load PDF Brief</button>
       </div>
-
       <div id="pages-container"></div>
     </main>
 
-    <!-- NOTEPAD DRAWER WITH BUILT-IN TOOLS -->
+    <!-- NOTEPAD DRAWER WITH LINKED DOTS -->
     <aside id="case-notes-drawer">
       <div class="notes-header">
-        <span>📝 Notepad Manager</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span>📝 Notebooks:</span>
+          <select id="notebook-selector"></select>
+          <button id="btn-new-notebook" class="primary" style="padding:2px 5px; font-size:9px;">+ New</button>
+        </div>
         <button id="btn-close-notes" class="danger" style="padding:2px 6px;">✕ Close</button>
       </div>
       
       <div class="notes-toolbar">
+        <span style="font-size:9px; font-weight:700;">Template:</span>
+        <select id="notes-template-selector">
+          <option value="template-white-blank">White Blank Page</option>
+          <option value="template-white-ruled">White Ruled / Red Line</option>
+          <option value="template-white-purple">White Purple Page</option>
+          <option value="template-yellow-black">Yellow Black Grid</option>
+          <option value="template-yellow-ruled">Yellow Ruled Line</option>
+        </select>
         <button id="btn-note-tool-drag" class="active">✋ Move</button>
         <button id="btn-note-tool-pen">✏️ Pen</button>
-        <button id="btn-note-tool-highlight">🖍️ Highlight</button>
-        <button id="btn-note-tool-underline">✒️ Red Line</button>
         <button id="btn-note-tool-eraser">🧹 Eraser</button>
-        
-        <div style="display:flex; align-items:center; gap:2px; border-left:1px solid #cbd5e1; border-right:1px solid #cbd5e1; padding:0 4px;">
-          <button id="btn-prev-notepad" style="padding:2px 5px;" title="Previous Notepad">◀</button>
-          <span id="notepad-counter-badge" style="font-size:10px; font-weight:700; color:var(--primary); min-width:54px; text-align:center;">1/1</span>
-          <button id="btn-next-notepad" style="padding:2px 5px;" title="Next Notepad">▶</button>
-          <button id="btn-new-notepad" class="primary" style="padding:2px 6px; font-size:10px;" title="Create New Notepad">+ New</button>
-        </div>
-
-        <select id="note-paper-theme-select" style="font-size:10px; padding:2px 4px; font-weight:600; border-color:#2563eb; color:var(--primary);">
-          <option value="theme-white">📄 White (Blank)</option>
-          <option value="theme-red-line">📝 White (Light Red Line)</option>
-          <option value="theme-purple-line">📘 White (Light Purple Line)</option>
-          <option value="theme-yellow-blank">📒 Light Yellow (Blank)</option>
-          <option value="theme-yellow-line">📜 Yellow (Lined)</option>
-        </select>
-
         <button id="btn-note-clear-ink" class="warning" style="margin-left:auto;">Clear Ink</button>
       </div>
 
-      <div class="notes-body theme-white" id="notes-free-canvas" contenteditable="true" spellcheck="false" title="Click anywhere to type or paste text">
+      <div class="notes-body template-white-blank" id="notes-free-canvas">
         <canvas id="notes-ink-layer"></canvas>
       </div>
     </aside>
@@ -837,26 +590,9 @@ input:focus, textarea:focus {
     <aside id="board-pane">
       <div class="board-header">
         <span>📋 Research Board</span>
-        <div style="display:flex; gap:3px;">
-          <button id="btn-auto-arrange-board" style="padding:2px 5px; background:#eff6ff; color:var(--primary);" title="Clean & Arrange Cards">✨ Auto Arrange</button>
-          <button id="btn-add-manual-card" style="padding:2px 5px;">+ Card</button>
-          <button id="btn-close-board" class="danger" style="padding:2px 6px;">✕ Close</button>
-        </div>
+        <button id="btn-close-board" class="danger" style="padding:2px 6px;">✕ Close</button>
       </div>
-
-      <div class="board-filter-bar">
-        <div class="board-filter-btn active" data-filter="All">All</div>
-        <div class="board-filter-btn" data-filter="Evidence">Evidence</div>
-        <div class="board-filter-btn" data-filter="Argument">Argument</div>
-        <div class="board-filter-btn" data-filter="Issue">Issue</div>
-        <div class="board-filter-btn" data-filter="Contradiction">Contradiction</div>
-        <div class="board-filter-btn" data-filter="Order">Order</div>
-        <div class="board-filter-btn" data-filter="Content">Content</div>
-      </div>
-
-      <div id="board-canvas-area">
-        <svg id="board-svg-layer"></svg>
-      </div>
+      <div id="board-canvas-area"><svg id="board-svg-layer" style="position:absolute; top:0; left:0; width:100%; height:3000px; pointer-events:none;"></svg></div>
     </aside>
 
   </div>
@@ -871,10 +607,9 @@ input:focus, textarea:focus {
       <button id="btn-page-go" class="primary" style="padding:3px 5px; font-size:10px;">Go</button>
       <span style="font-size:11px; margin-left:1px;">/ <span id="total-page-count">0</span></span>
       <button id="btn-next-page">▶</button>
-      <button id="btn-delete-page" class="danger" style="padding:3px 5px; font-size:10px; margin-left:4px;" title="Delete current page">🗑️ Del</button>
-      <button id="btn-toggle-scroll" style="background:#eff6ff; color:var(--primary); margin-left:6px;" title="Toggle Scroll Lock">📜 Scroll: ON</button>
+      <button id="btn-delete-page" class="danger" style="padding:3px 5px; font-size:10px; margin-left:4px;">🗑️ Del</button>
+      <button id="btn-toggle-scroll" style="background:#eff6ff; color:var(--primary); margin-left:6px;">📜 Scroll: ON</button>
     </div>
-
     <div class="page-nav-controls">
       <button id="btn-zoom-out">−</button>
       <span id="zoom-val-lbl" style="font-size:11px; min-width:26px; text-align:center;">100%</span>
@@ -886,197 +621,63 @@ input:focus, textarea:focus {
   <!-- SELECTION POPOVER -->
   <div id="selection-popover">
     <button id="pop-copy">📋 Copy</button>
-    <button id="pop-snip-note" style="background:var(--primary); color:#fff; font-weight:700;">✂ Snip to Notepad (Link)</button>
-    <button id="pop-board">📌 Send to Board</button>
+    <button id="pop-notepad" title="Send to Notepad with Green Dot Link">📌 Send to Notepad (Green Dot)</button>
+    <button id="pop-board">📋 Send to Board</button>
   </div>
 
   <!-- MODALS -->
   <div class="modal-backdrop" id="modal-confirm-delete">
     <div class="modal-box">
-      <div class="modal-header">
-        <span style="color:var(--danger);">Remove Case / Delete</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
-      <div class="modal-body">
-        <p id="delete-case-prompt-text" style="font-size:12px; line-height:1.4; color:var(--text-dark);"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-        <button class="danger" id="btn-execute-delete-case">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="modal-delete-page">
-    <div class="modal-box">
-      <div class="modal-header">
-        <span style="color:var(--danger);">Remove Page from Bundle</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
-      <div class="modal-body">
-        <p id="delete-page-prompt-text" style="font-size:12px; line-height:1.4; color:var(--text-dark);"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-        <button class="danger" id="btn-execute-delete-page">Yes, Delete Page</button>
-      </div>
+      <div class="modal-header"><span style="color:var(--danger);">Delete Case</span><button class="btn-modal-close" style="border:none; background:transparent;">✕</button></div>
+      <div class="modal-body"><p id="delete-case-prompt-text" style="font-size:12px;"></p></div>
+      <div class="modal-footer"><button class="modal-close">Cancel</button><button class="danger" id="btn-execute-delete-case">Delete</button></div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="modal-case">
-    <div class="modal-box" style="max-width: 480px;">
-      <div class="modal-header">
-        <span>📁 Case Setup & Important Date Memory</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
+    <div class="modal-box">
+      <div class="modal-header"><span>📁 Case Setup</span><button class="btn-modal-close" style="border:none; background:transparent;">✕</button></div>
       <div class="modal-body">
-        <label>Case Name (e.g. A vs B)</label>
-        <input type="text" id="case-input-name" placeholder="e.g. Ramesh vs State of M.P.">
-        
-        <label style="margin-top:4px;">Case / Cause List Number</label>
-        <input type="text" id="case-input-num" placeholder="e.g. Item No. 14 / WP 4021/2026">
-
-        <hr style="border:0; border-top:1px solid var(--border-light); margin:6px 0;">
-
-        <strong style="font-size:11px; color:var(--primary);">📅 Important Date Memory & Hearing Log (Optional)</strong>
-        
-        <div style="display:flex; gap:6px; margin-top:2px;">
-          <div style="flex:1;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Hearing Date:</label>
-            <input type="date" id="hearing-date-input" style="width:100%;">
-          </div>
-          <div style="width:110px;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Time:</label>
-            <input type="time" id="hearing-time-input" style="width:100%;">
-          </div>
-        </div>
-
-        <div style="display:flex; gap:6px; margin-top:2px;">
-          <div style="flex:1;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Judge Name:</label>
-            <input type="text" id="hearing-judge-input" placeholder="e.g. Hon. Justice..." style="width:100%;">
-          </div>
-          <div style="flex:1;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Court Name:</label>
-            <input type="text" id="hearing-court-input" placeholder="e.g. Court Room No. 4" style="width:100%;">
-          </div>
-        </div>
-
-        <div style="display:flex; gap:6px; margin-top:2px;">
-          <div style="flex:1;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Client Name:</label>
-            <input type="text" id="hearing-client-input" placeholder="e.g. Ramesh Kumar" style="width:100%;">
-          </div>
-          <div style="flex:1;">
-            <label style="font-size:9px; font-weight:600; color:var(--text-muted);">Advocate / Opp. Name:</label>
-            <input type="text" id="hearing-adv-input" placeholder="e.g. State / Counsel" style="width:100%;">
-          </div>
-        </div>
-
-        <div style="margin-top:2px;">
-          <label style="font-size:9px; font-weight:600; color:var(--text-muted);">What Happened / Proceedings Notes:</label>
-          <textarea id="hearing-notes-input" rows="2" placeholder="Note down orders, arguments or next steps..." style="width:100%;"></textarea>
-        </div>
+        <label>Case Name</label><input type="text" id="case-input-name" placeholder="e.g. A vs B">
+        <label style="margin-top:4px;">Case Number</label><input type="text" id="case-input-num" placeholder="e.g. WP 4021/2026">
       </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-        <button class="primary" id="btn-save-case">Save Case & Record</button>
-      </div>
+      <div class="modal-footer"><button class="modal-close">Cancel</button><button class="primary" id="btn-save-case">Save Case</button></div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="modal-insert-page">
     <div class="modal-box">
-      <div class="modal-header">
-        <span>Insert Document / Scan / Blank Note Page</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
+      <div class="modal-header"><span>Insert Document</span><button class="btn-modal-close" style="border:none; background:transparent;">✕</button></div>
       <div class="modal-body">
-        <label>Insert Position:</label>
-        <select id="insert-pos-select">
-          <option value="after">After Current Page</option>
-          <option value="before">Before Current Page</option>
-          <option value="end">At End of Case Bundle</option>
-        </select>
-
-        <label style="margin-top:6px;">Select Item to Insert:</label>
-        <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
-          <button class="primary" id="btn-action-insert-scan" style="background:#059669; padding:8px;">📷 Take Camera Photo / Upload Scan Document</button>
-          <button class="primary" id="btn-action-insert-blank" style="background:#4338ca; padding:8px;">📝 Add Blank White Paper (No Lines)</button>
-        </div>
+        <button class="primary" id="btn-action-insert-scan" style="background:#059669; padding:8px;">📷 Upload Scan / Photo</button>
+        <button class="primary" id="btn-action-insert-blank" style="background:#4338ca; padding:8px;">📝 Add Blank White Paper</button>
       </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-      </div>
+      <div class="modal-footer"><button class="modal-close">Cancel</button></div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="modal-search">
     <div class="modal-box">
-      <div class="modal-header">
-        <span>🔍 Search Documents</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
+      <div class="modal-header"><span>🔍 Search</span><button class="btn-modal-close" style="border:none; background:transparent;">✕</button></div>
       <div class="modal-body">
-        <div style="display:flex; gap:4px;">
-          <input type="text" id="search-query-input" placeholder="Type keyword, witness, section..." style="flex:1;">
-          <button class="primary" id="btn-run-search">Search</button>
-        </div>
-        <div id="search-progress" style="font-size:10px; color:var(--text-muted); display:none;">Searching...</div>
-        <div id="search-results-list" style="max-height: 220px; overflow-y: auto; display:flex; flex-direction:column; gap:4px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="modal-card">
-    <div class="modal-box">
-      <div class="modal-header">
-        <span>Excerpt / Research Card</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
-      <div class="modal-body">
-        <label>Category</label>
-        <select id="card-input-type">
-          <option value="Evidence">Evidence</option>
-          <option value="Argument">Argument</option>
-          <option value="Issue">Issue</option>
-          <option value="Contradiction">Contradiction</option>
-          <option value="Order">Order</option>
-          <option value="Content">Content</option>
-          <option value="Research Note">Research Note</option>
-        </select>
-        <label>Title</label>
-        <input type="text" id="card-input-title" placeholder="Brief subject...">
-        <label>Content</label>
-        <textarea id="card-input-text" rows="3" placeholder="Statement or argument details..."></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-        <button class="primary" id="btn-save-card">Save Card</button>
+        <div style="display:flex; gap:4px;"><input type="text" id="search-query-input" placeholder="Keyword..." style="flex:1;"><button class="primary" id="btn-run-search">Search</button></div>
+        <div id="search-results-list" style="max-height: 220px; overflow-y: auto;"></div>
       </div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="modal-export">
     <div class="modal-box">
-      <div class="modal-header">
-        <span>Export Annotated PDF</span>
-        <button class="btn-modal-close" style="border:none; background:transparent;">✕</button>
-      </div>
-      <div class="modal-body">
-        <label>Filename</label>
-        <input type="text" id="export-filename-input" value="Annotated_Legal_Brief.pdf">
-        <div id="export-progress-text" style="font-size:10px; color:var(--text-muted);"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-close">Cancel</button>
-        <button class="primary" id="btn-execute-export">Download</button>
-          </div>
+      <div class="modal-header"><span>Export PDF</span><button class="btn-modal-close" style="border:none; background:transparent;">✕</button></div>
+      <div class="modal-body"><input type="text" id="export-filename-input" value="Annotated_Legal_Brief.pdf"><div id="export-progress-text" style="font-size:10px;"></div></div>
+      <div class="modal-footer"><button class="modal-close">Cancel</button><button class="primary" id="btn-execute-export">Download</button></div>
+    </div>
   </div>
+
+  <div id="toast-container"></div>
 </div>
 
 <script>
-
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let isDualViewActive = false;
@@ -1089,24 +690,21 @@ let currentNoteTool = 'drag';
 let isNoteDrawing = false;
 let currentNotePath = [];
 let internalClipboard = "";
-let currentBoardFilter = "All";
-let currentNotepadIndex = 0;
 
 const COLOR_CONFIG = {
-  pen: { current: '#0f172a', options: ['#0f172a', '#dc2626', '#2563eb', '#16a34a'], dotId: 'dot-pen' },
+  pen: { current: '#0f172a', options: ['#0f172a', '#dc2626', '#2563eb', '#16a34a', '#9333ea', '#ea580c'], dotId: 'dot-pen' },
   highlight: { current: 'rgba(254, 240, 138, 0.45)', options: ['rgba(254, 240, 138, 0.45)', 'rgba(187, 247, 208, 0.45)', 'rgba(251, 207, 232, 0.50)', 'rgba(191, 219, 254, 0.45)'], dotColors: ['#fde047', '#86efac', '#f472b6', '#60a5fa'], dotId: 'dot-highlight' },
-  underline: { current: '#dc2626', options: ['#dc2626', '#2563eb', '#16a34a', '#d97706'], dotId: 'dot-underline' }
+  underline: { current: '#2563eb', options: ['#2563eb', '#dc2626', '#16a34a', '#d97706'], dotId: 'dot-underline' }
 };
 
 const AppState = {
-  db: null, currentCase: null, currentPageIndex: 0, zoom: 1.0, currentTool: 'snip',
+  db: null, currentCase: null, currentPageIndex: 0, zoom: 1.0, currentTool: 'select',
   selectedText: '', selectedRect: null, isDrawing: false, drawStartX: 0, drawStartY: 0,
-  currentPath: [], historyStack: [], redoStack: [], connectingSourceCardId: null,
-  pendingDeleteCaseId: null, textExtractCache: new Map(), docProxyCache: new Map(),
-  pageDimensions: new Map()
+  currentPath: [], docProxyCache: new Map(), pageDimensions: new Map(), activeNotebookId: 'default_nb',
+  magicLinkStart: null
 };
 
-const DB_NAME = "LegalStudio_V40_AdvancedSnip_DB";
+const DB_NAME = "LegalStudio_V34_LinkedDots_DB";
 
 function initDB() {
   return new Promise((resolve) => {
@@ -1159,10 +757,7 @@ function showToast(msg, type = 'info') {
   toast.className = `toast ${type}`;
   toast.innerText = msg;
   container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 250);
-  }, 2200);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 250); }, 2200);
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1170,76 +765,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDefaultOrLastCase();
   setupUIEvents();
   setupLaserPointerGlobalEvents();
-  setupSnipAndLinkSystem();
+  setupPureSelectAndTapPaste();
   setupThreeFingerGesture();
   setupVirtualScrollObserver();
   setupNotepadInkSystem();
-  setupLiveScrollPageTracker();
 });
-
-function ensureNotepadsInitialized() {
-  if (!AppState.currentCase) return;
-  if (!AppState.currentCase.notepads || !Array.isArray(AppState.currentCase.notepads) || AppState.currentCase.notepads.length === 0) {
-    AppState.currentCase.notepads = [
-      {
-        id: "np_" + Date.now(),
-        paperTheme: AppState.currentCase.paperTheme || 'theme-white',
-        freeformNotes: AppState.currentCase.freeformNotes || [],
-        noteInks: AppState.currentCase.noteInks || []
-      }
-    ];
-  }
-  if (currentNotepadIndex >= AppState.currentCase.notepads.length) {
-    currentNotepadIndex = AppState.currentCase.notepads.length - 1;
-  }
-}
-
-function getActiveNotepad() {
-  ensureNotepadsInitialized();
-  return AppState.currentCase.notepads[currentNotepadIndex];
-}
-
-function updateNotepadManagerUI() {
-  ensureNotepadsInitialized();
-  const total = AppState.currentCase.notepads.length;
-  document.getElementById('notepad-counter-badge').innerText = `${currentNotepadIndex + 1}/${total}`;
-  
-  const np = getActiveNotepad();
-  const theme = np.paperTheme || 'theme-white';
-  document.getElementById('note-paper-theme-select').value = theme;
-  document.getElementById('notes-free-canvas').className = `notes-body ${theme}`;
-  
-  renderFreeformNotes();
-  redrawNotepadInk();
-}
-
-function setupLiveScrollPageTracker() {
-  const pdfPane = document.getElementById('pdf-pane');
-  pdfPane.addEventListener('scroll', () => {
-    if (isScrollLocked || !AppState.currentCase || !AppState.currentCase.pages) return;
-    const pageItems = document.querySelectorAll('.page-viewport-item');
-    const paneRect = pdfPane.getBoundingClientRect();
-    let currentIdx = AppState.currentPageIndex;
-
-    pageItems.forEach(item => {
-      const rect = item.getBoundingClientRect();
-      const pIdx = parseInt(item.getAttribute('data-page-index'), 10);
-      if (rect.top <= paneRect.top + 150 && rect.bottom >= paneRect.top + 50) {
-        currentIdx = pIdx;
-      }
-    });
-
-    if (currentIdx !== AppState.currentPageIndex) {
-      AppState.currentPageIndex = currentIdx;
-      document.getElementById('page-num-input').value = currentIdx + 1;
-    }
-  }, { passive: true });
-}
 
 function setupLaserPointerGlobalEvents() {
   const laser = document.getElementById('laser-dot');
   const pdfPane = document.getElementById('pdf-pane');
-
   pdfPane.addEventListener('pointermove', (e) => {
     if (AppState.currentTool === 'laser') {
       laser.style.display = 'block';
@@ -1247,34 +781,16 @@ function setupLaserPointerGlobalEvents() {
       laser.style.top = e.clientY + 'px';
     }
   });
-
-  pdfPane.addEventListener('pointerdown', (e) => {
-    if (AppState.currentTool === 'laser') {
-      laser.style.display = 'block';
-      laser.style.left = e.clientX + 'px';
-      laser.style.top = e.clientY + 'px';
-    }
-  });
-
-  window.addEventListener('pointerup', () => {
-    if (AppState.currentTool === 'laser') laser.style.display = 'none';
-  });
+  window.addEventListener('pointerup', () => { if (AppState.currentTool === 'laser') laser.style.display = 'none'; });
 }
 
 function setupThreeFingerGesture() {
   let touchStartY = 0;
   const pane = document.getElementById('pdf-pane');
-  pane.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 3) touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-
+  pane.addEventListener('touchstart', (e) => { if (e.touches.length === 3) touchStartY = e.touches[0].clientY; }, { passive: true });
   pane.addEventListener('touchend', (e) => {
     if (touchStartY !== 0 && e.changedTouches.length >= 1) {
-      let touchEndY = e.changedTouches[0].clientY;
-      if (touchStartY - touchEndY > 60) {
-        toggleNotesDrawer(true);
-        showToast("Notes opened via 3-Finger Gesture", "info");
-      }
+      if (touchStartY - e.changedTouches[0].clientY > 60) toggleNotesDrawer(true);
       touchStartY = 0;
     }
   }, { passive: true });
@@ -1282,57 +798,51 @@ function setupThreeFingerGesture() {
 
 function toggleNotesDrawer(forceOpen = null) {
   const drawer = document.getElementById('case-notes-drawer');
-  if (forceOpen !== null) isNotesDrawerOpen = forceOpen;
-  else isNotesDrawerOpen = !isNotesDrawerOpen;
-
+  isNotesDrawerOpen = forceOpen !== null ? forceOpen : !isNotesDrawerOpen;
   if (isNotesDrawerOpen && isBoardPaneOpen) toggleBoardPane(false);
-
   drawer.classList.toggle('open', isNotesDrawerOpen);
   document.getElementById('btn-case-notes-toggle').classList.toggle('active', isNotesDrawerOpen);
-  scrollToPageIndex(AppState.currentPageIndex);
-  if (isNotesDrawerOpen) {
-    initNotepadCanvasDimensions();
-    updateNotepadManagerUI();
-  }
+
+  setTimeout(() => {
+    renderAllContinuousPages();
+    if (isNotesDrawerOpen) { initNotepadCanvasDimensions(); renderNotebooksUI(); renderFreeformNotes(); redrawNotepadInk(); }
+  }, 240);
 }
 
 function toggleBoardPane(forceOpen = null) {
   const board = document.getElementById('board-pane');
-  if (forceOpen !== null) isBoardPaneOpen = forceOpen;
-  else isBoardPaneOpen = !isBoardPaneOpen;
-
+  isBoardPaneOpen = forceOpen !== null ? forceOpen : !isBoardPaneOpen;
   if (isBoardPaneOpen && isNotesDrawerOpen) toggleNotesDrawer(false);
-
   board.classList.toggle('open', isBoardPaneOpen);
   document.getElementById('btn-board-toggle').classList.toggle('active', isBoardPaneOpen);
-
-  setTimeout(() => {
-    renderAllContinuousPages();
-    scrollToPageIndex(AppState.currentPageIndex);
-    if (isBoardPaneOpen) renderBoard();
-  }, 240);
+  setTimeout(() => { renderAllContinuousPages(); if (isBoardPaneOpen) renderBoard(); }, 240);
 }
 
 async function loadDefaultOrLastCase() {
   const tx = AppState.db.transaction(["cases"], "readonly");
-  const req = tx.objectStore("cases").getAll();
-  req.onsuccess = async () => {
-    const cases = req.result || [];
+  tx.objectStore("cases").getAll().onsuccess = async (e) => {
+    const cases = e.target.result || [];
     if (cases.length > 0) {
       cases.sort((a,b) => b.modified - a.modified);
       AppState.currentCase = cases[0];
-      ensureNotepadsInitialized();
-      currentNotepadIndex = 0;
-
+      ensureNotebookStructure();
       updateActiveCaseBadge();
       renderSidebarList();
       renderBoard();
       renderAllContinuousPages();
-      updateNotepadManagerUI();
-    } else {
-      showEmptyState();
-    }
+      renderNotebooksUI();
+    } else { showEmptyState(); }
   };
+}
+
+function ensureNotebookStructure() {
+  if (!AppState.currentCase) return;
+  if (!AppState.currentCase.notebooks || AppState.currentCase.notebooks.length === 0) {
+    AppState.currentCase.notebooks = [{ id: 'default_nb', title: 'Main Notebook', template: 'template-white-blank', snippets: [], inks: [] }];
+  }
+  if (!AppState.activeNotebookId || !AppState.currentCase.notebooks.some(n => n.id === AppState.activeNotebookId)) {
+    AppState.activeNotebookId = AppState.currentCase.notebooks[0].id;
+  }
 }
 
 function updateActiveCaseBadge() {
@@ -1340,26 +850,12 @@ function updateActiveCaseBadge() {
   if (AppState.currentCase) {
     badge.innerText = AppState.currentCase.name + (AppState.currentCase.number ? ` (${AppState.currentCase.number})` : '');
     badge.style.display = 'block';
-  } else {
-    badge.innerText = "No Case Open";
-  }
+  } else { badge.innerText = "No Case Open"; }
 }
 
 function showEmptyState() {
-  const emptyState = document.getElementById('empty-workspace-state');
-  const titleText = document.getElementById('empty-title-text');
-  const descText = document.getElementById('empty-desc-text');
-
-  if (AppState.currentCase) {
-    titleText.innerText = `Case: ${AppState.currentCase.name}`;
-    descText.innerText = "No pages in this case. Load a PDF brief or insert a page.";
-  } else {
-    titleText.innerText = "No Case Open on Screen";
-    descText.innerText = "Select a case or create a new case to load PDF.";
-  }
-
+  document.getElementById('empty-workspace-state').classList.add('active');
   document.getElementById('pages-container').innerHTML = '';
-  emptyState.classList.add('active');
   document.getElementById('page-num-input').value = '0';
   document.getElementById('total-page-count').innerText = '0';
   renderSidebarList();
@@ -1368,32 +864,18 @@ function showEmptyState() {
 function renderSidebarList(filterText = '') {
   const cont = document.getElementById('case-list-container');
   cont.innerHTML = '';
-  const tx = AppState.db.transaction(["cases"], "readonly");
-  tx.objectStore("cases").getAll().onsuccess = (e) => {
+  AppState.db.transaction(["cases"], "readonly").objectStore("cases").getAll().onsuccess = (e) => {
     let list = e.target.result || [];
     list.sort((a,b) => b.modified - a.modified);
-
     if (filterText.trim()) {
       const q = filterText.toLowerCase();
-      list = list.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.number && c.number.toLowerCase().includes(q)));
+      list = list.filter(c => c.name.toLowerCase().includes(q) || (c.number && c.number.toLowerCase().includes(q)));
     }
-
-    if (list.length === 0) {
-      cont.innerHTML = `<div style="font-size:11px; color:#64748b; text-align:center; padding:15px;">No cases found in memory.</div>`;
-      return;
-    }
-
+    if (list.length === 0) { cont.innerHTML = `<div style="font-size:11px; color:#64748b; text-align:center; padding:15px;">No cases found.</div>`; return; }
     list.forEach(cs => {
-      const isCurrent = AppState.currentCase && AppState.currentCase.id === cs.id;
       const card = document.createElement('div');
-      card.className = `case-card-item ${isCurrent ? 'active' : ''}`;
-      card.innerHTML = `
-        <div style="flex:1;" onclick="switchCase('${cs.id}')">
-          <div style="font-weight:700;">${escapeHtml(cs.name)}</div>
-          <div style="font-size:10px; color:var(--text-muted);">${cs.number ? `No: ${escapeHtml(cs.number)} • ` : ''}${cs.pages ? cs.pages.length : 0} Pgs • ${cs.boardCards ? cs.boardCards.length : 0} Cards</div>
-        </div>
-        <button class="danger" style="padding:2px 5px; font-size:10px;" onclick="openCustomDeleteModal('${cs.id}', '${escapeHtml(cs.name)}', event)">✕</button>
-      `;
+      card.className = `case-card-item ${AppState.currentCase && AppState.currentCase.id === cs.id ? 'active' : ''}`;
+      card.innerHTML = `<div style="flex:1;" onclick="switchCase('${cs.id}')"><strong>${escapeHtml(cs.name)}</strong><div style="font-size:10px; color:var(--text-muted);">${cs.pages ? cs.pages.length : 0} Pgs</div></div><button class="danger" style="padding:2px 5px; font-size:10px;" onclick="openCustomDeleteModal('${cs.id}', '${escapeHtml(cs.name)}', event)">✕</button>`;
       cont.appendChild(card);
     });
   };
@@ -1402,229 +884,124 @@ function renderSidebarList(filterText = '') {
 window.openCustomDeleteModal = function(caseId, caseName, e) {
   e.stopPropagation();
   AppState.pendingDeleteCaseId = caseId;
-  document.getElementById('delete-case-prompt-text').innerHTML = `Permanently delete case <strong>"${escapeHtml(caseName)}"</strong>?`;
+  document.getElementById('delete-case-prompt-text').innerHTML = `Delete case <strong>"${escapeHtml(caseName)}"</strong>?`;
   document.getElementById('modal-confirm-delete').classList.add('open');
 };
 
 window.switchCase = async function(caseId) {
-  const tx = AppState.db.transaction(["cases"], "readonly");
-  tx.objectStore("cases").get(caseId).onsuccess = (e) => {
+  AppState.db.transaction(["cases"], "readonly").objectStore("cases").get(caseId).onsuccess = (e) => {
     const cs = e.target.result;
     if (cs) {
-      AppState.currentCase = cs;
-      ensureNotepadsInitialized();
-      currentNotepadIndex = 0;
-
-      AppState.currentPageIndex = 0;
-      AppState.historyStack = [];
-      AppState.redoStack = [];
-      AppState.docProxyCache.clear();
-      AppState.pageDimensions.clear();
-      updateUndoRedoUI();
-      updateActiveCaseBadge();
-      document.getElementById('case-sidebar').classList.remove('open');
-      renderSidebarList();
-      renderBoard();
-      renderAllContinuousPages();
-      updateNotepadManagerUI();
+      AppState.currentCase = cs; ensureNotebookStructure(); AppState.currentPageIndex = 0;
+      AppState.docProxyCache.clear(); AppState.pageDimensions.clear();
+      updateActiveCaseBadge(); document.getElementById('case-sidebar').classList.remove('open');
+      renderSidebarList(); renderBoard(); renderAllContinuousPages(); renderNotebooksUI();
       showToast(`Active: ${cs.name}`, "success");
     }
   };
 };
 
+function renderNotebooksUI() {
+  if (!AppState.currentCase) return;
+  ensureNotebookStructure();
+  const select = document.getElementById('notebook-selector');
+  select.innerHTML = '';
+  AppState.currentCase.notebooks.forEach(nb => {
+    const opt = document.createElement('option'); opt.value = nb.id; opt.textContent = nb.title;
+    if (nb.id === AppState.activeNotebookId) opt.selected = true;
+    select.appendChild(opt);
+  });
+  const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId) || AppState.currentCase.notebooks[0];
+  document.getElementById('notes-template-selector').value = activeNb.template || 'template-white-blank';
+  document.getElementById('notes-free-canvas').className = `notes-body ${activeNb.template || 'template-white-blank'}`;
+  renderFreeformNotes(); redrawNotepadInk();
+}
+
 async function handlePdfUpload(files) {
   if (!files || files.length === 0) return;
-  showToast("Streaming bundle into fast memory...", "info");
-
+  showToast("Streaming PDF bundle...", "info");
   if (!AppState.currentCase) {
-    const defaultName = files[0].name.replace(/\.[^/.]+$/, "");
-    AppState.currentCase = {
-      id: "case_" + Date.now(), name: defaultName, number: "", notes: "", notepads: [], docs: [], pages: [], boardCards: [], boardLinks: [], hearingHistory: []
-    };
+    AppState.currentCase = { id: "case_" + Date.now(), name: files[0].name.replace(/\.[^/.]+$/, ""), number: "", docs: [], pages: [], boardCards: [], notebooks: [] };
+    ensureNotebookStructure();
   }
-
   for (let file of files) {
     const buffer = await file.arrayBuffer();
     const bKey = "blob_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
     await dbSaveBlob(bKey, buffer);
     const docProxy = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-    const docId = "doc_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
+    const docId = "doc_" + Date.now();
     AppState.docProxyCache.set(docId, docProxy);
     AppState.currentCase.docs.push({ id: docId, name: file.name, blobKey: bKey });
-    
     for (let p = 1; p <= docProxy.numPages; p++) {
-      AppState.currentCase.pages.push({
-        id: "page_" + Date.now() + "_" + p + "_" + Math.random().toString(36).substr(2, 4),
-        kind: 'pdf', docId: docId, pageNum: p, annotations: []
-      });
+      AppState.currentCase.pages.push({ id: "page_" + Date.now() + "_" + p + "_" + Math.random().toString(36).substr(2, 4), kind: 'pdf', docId, pageNum: p, annotations: [] });
     }
   }
-  
-  ensureNotepadsInitialized();
-  await dbSaveCase(AppState.currentCase);
-  AppState.currentPageIndex = 0;
-  AppState.historyStack = [];
-  AppState.redoStack = [];
-  updateUndoRedoUI();
-  updateActiveCaseBadge();
-  document.getElementById('empty-workspace-state').classList.remove('active');
-  renderAllContinuousPages();
-  renderSidebarList();
+  await dbSaveCase(AppState.currentCase); AppState.currentPageIndex = 0;
+  updateActiveCaseBadge(); document.getElementById('empty-workspace-state').classList.remove('active');
+  renderAllContinuousPages(); renderSidebarList();
   showToast(`${AppState.currentCase.pages.length} Pages Loaded!`, "success");
-}
-
-async function handleInsertImageOrScan(file) {
-  if (!AppState.currentCase) return;
-  const posOption = document.getElementById('insert-pos-select').value;
-  let targetIndex = AppState.currentPageIndex + 1;
-  if (posOption === 'before') targetIndex = AppState.currentPageIndex;
-  else if (posOption === 'end' || AppState.currentCase.pages.length === 0) targetIndex = AppState.currentCase.pages.length;
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const bKey = "blob_img_" + Date.now();
-    await dbSaveBlob(bKey, e.target.result);
-    AppState.currentCase.pages.splice(targetIndex, 0, {
-      id: "page_scan_" + Date.now(), kind: 'image', imageBlobKey: bKey, annotations: []
-    });
-    await dbSaveCase(AppState.currentCase);
-    AppState.currentPageIndex = targetIndex;
-    document.getElementById('modal-insert-page').classList.remove('open');
-    renderAllContinuousPages();
-    scrollToPageIndex(targetIndex);
-    renderSidebarList();
-    showToast("Scan inserted!", "success");
-  };
-  reader.readAsDataURL(file);
-}
-
-async function handleInsertBlankNotePage() {
-  if (!AppState.currentCase) return;
-  const posOption = document.getElementById('insert-pos-select').value;
-  let targetIndex = AppState.currentPageIndex + 1;
-  if (posOption === 'before') targetIndex = AppState.currentPageIndex;
-  else if (posOption === 'end' || AppState.currentCase.pages.length === 0) targetIndex = AppState.currentCase.pages.length;
-
-  AppState.currentCase.pages.splice(targetIndex, 0, {
-    id: "page_blank_" + Date.now(), 
-    kind: 'blank', 
-    text: "", 
-    annotations: [],
-    width: 595.28,
-    height: 841.89
-  });
-  await dbSaveCase(AppState.currentCase);
-  AppState.currentPageIndex = targetIndex;
-  document.getElementById('modal-insert-page').classList.remove('open');
-  renderAllContinuousPages();
-  scrollToPageIndex(targetIndex);
-  renderSidebarList();
-  showToast("Blank PDF Size Page Added!", "success");
 }
 
 async function getDocProxy(docId) {
   if (AppState.docProxyCache.has(docId)) return AppState.docProxyCache.get(docId);
   const docMeta = AppState.currentCase.docs.find(d => d.id === docId);
   if (!docMeta) return null;
-  const rawBuffer = await dbGetBlob(docMeta.blobKey);
-  const docProxy = await pdfjsLib.getDocument({ data: rawBuffer.slice(0) }).promise;
+  const docProxy = await pdfjsLib.getDocument({ data: await dbGetBlob(docMeta.blobKey) }).promise;
   AppState.docProxyCache.set(docId, docProxy);
   return docProxy;
 }
 
 function getAvailablePaneWidth() {
   const pane = document.getElementById('pdf-pane');
-  if (!pane) return 320;
-  return Math.max(160, pane.clientWidth - 20);
+  return pane ? Math.max(160, pane.clientWidth - 20) : 320;
 }
 
 function calculateScaleForPageWidth(unscaledWidth) {
-  const availableWidth = getAvailablePaneWidth();
-  const pageBaseW = unscaledWidth || 595.28;
-  
-  let targetW = availableWidth;
-  if (isDualViewActive) {
-    targetW = Math.max(120, (availableWidth / 2) - 8);
-  }
-  
-  return (targetW / pageBaseW) * AppState.zoom;
+  const targetW = isDualViewActive ? Math.max(120, (getAvailablePaneWidth() / 2) - 8) : getAvailablePaneWidth();
+  return (targetW / (unscaledWidth || 595.28)) * AppState.zoom;
 }
 
 let virtualIntersectionObserver = null;
-
-function setupVirtualScrollObserver() {}
-
-function purgePageCanvasMemory(pageWrapper) {}
+function setupVirtualScrollObserver() {
+  if (virtualIntersectionObserver) virtualIntersectionObserver.disconnect();
+  virtualIntersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const target = entry.target;
+      const idx = parseInt(target.getAttribute('data-page-index'), 10);
+      if (isNaN(idx) || !AppState.currentCase || !AppState.currentCase.pages[idx]) return;
+      if (entry.isIntersecting) {
+        if (!target.getAttribute('data-rendered')) renderSinglePageRealContent(AppState.currentCase.pages[idx], idx, target);
+      } else if (!isScrollLocked && target.getAttribute('data-rendered')) {
+        target.querySelector('.pdf-canvas-item').width = 0; target.removeAttribute('data-rendered'); target.classList.add('placeholder');
+      }
+    });
+  }, { root: document.getElementById('pdf-pane'), rootMargin: '600px 0px 600px 0px', threshold: 0.01 });
+}
 
 async function renderAllContinuousPages() {
   activeRenderTasks.forEach((task) => { try { task.cancel(); } catch(e){} });
   activeRenderTasks.clear();
-
   const cont = document.getElementById('pages-container');
   cont.innerHTML = '';
-  
   if (!AppState.currentCase || !AppState.currentCase.pages || AppState.currentCase.pages.length === 0) {
-    showEmptyState();
-    return;
+    showEmptyState(); return;
   }
-
   document.getElementById('empty-workspace-state').classList.remove('active');
   document.getElementById('total-page-count').innerText = AppState.currentCase.pages.length;
-  document.getElementById('zoom-val-lbl').innerText = Math.round(AppState.zoom * 100) + '%';
   document.getElementById('page-num-input').value = AppState.currentPageIndex + 1;
 
   const total = AppState.currentCase.pages.length;
-
   if (isScrollLocked) {
-    if (isDualViewActive) {
-      let firstIdx = AppState.currentPageIndex;
-      if (firstIdx % 2 !== 0) firstIdx = firstIdx - 1;
-      firstIdx = Math.max(0, Math.min(firstIdx, total - 1));
-
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'dual-spread-row';
-
-      const leftWrap = createVirtualPageSkeleton(firstIdx);
-      rowDiv.appendChild(leftWrap);
-      await renderSinglePageRealContent(AppState.currentCase.pages[firstIdx], firstIdx, leftWrap);
-
-      if (firstIdx + 1 < total) {
-        const rightWrap = createVirtualPageSkeleton(firstIdx + 1);
-        rowDiv.appendChild(rightWrap);
-        await renderSinglePageRealContent(AppState.currentCase.pages[firstIdx + 1], firstIdx + 1, rightWrap);
-      }
-      cont.appendChild(rowDiv);
-    } else {
-      const pageWrap = createVirtualPageSkeleton(AppState.currentPageIndex);
-      cont.appendChild(pageWrap);
-      await renderSinglePageRealContent(AppState.currentCase.pages[AppState.currentPageIndex], AppState.currentPageIndex, pageWrap);
-    }
+    const pageWrap = createVirtualPageSkeleton(AppState.currentPageIndex);
+    cont.appendChild(pageWrap);
+    renderSinglePageRealContent(AppState.currentCase.pages[AppState.currentPageIndex], AppState.currentPageIndex, pageWrap);
     return;
   }
-
-  if (isDualViewActive) {
-    for (let i = 0; i < total; i += 2) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'dual-spread-row';
-      rowDiv.id = `spread-row-${i}`;
-
-      const leftWrap = createVirtualPageSkeleton(i);
-      rowDiv.appendChild(leftWrap);
-      await renderSinglePageRealContent(AppState.currentCase.pages[i], i, leftWrap);
-
-      if (i + 1 < total) {
-        const rightWrap = createVirtualPageSkeleton(i + 1);
-        rowDiv.appendChild(rightWrap);
-        await renderSinglePageRealContent(AppState.currentCase.pages[i + 1], i + 1, rightWrap);
-      }
-      cont.appendChild(rowDiv);
-    }
-  } else {
-    for (let i = 0; i < total; i++) {
-      const pageWrap = createVirtualPageSkeleton(i);
-      cont.appendChild(pageWrap);
-      await renderSinglePageRealContent(AppState.currentCase.pages[i], i, pageWrap);
-    }
+  setupVirtualScrollObserver();
+  for (let i = 0; i < total; i++) {
+    const pageWrap = createVirtualPageSkeleton(i);
+    cont.appendChild(pageWrap);
+    virtualIntersectionObserver.observe(pageWrap);
   }
 }
 
@@ -1633,18 +1010,9 @@ function createVirtualPageSkeleton(idx) {
   pageWrapper.className = 'page-viewport-item placeholder';
   pageWrapper.id = `page-wrap-${idx}`;
   pageWrapper.setAttribute('data-page-index', idx);
-
   const cachedDim = AppState.pageDimensions.get(idx) || { w: getAvailablePaneWidth(), h: getAvailablePaneWidth() * 1.41 };
-  pageWrapper.style.width = cachedDim.w + 'px';
-  pageWrapper.style.height = cachedDim.h + 'px';
-
-  pageWrapper.innerHTML = `
-    <canvas class="pdf-canvas-item" id="pdf-canvas-${idx}"></canvas>
-    <canvas class="annotation-canvas-item" id="annot-canvas-${idx}"></canvas>
-    <div class="textLayer" id="text-layer-${idx}"></div>
-    <div style="font-size:11px; font-weight:700; opacity:0.3;">PAGE ${idx + 1}</div>
-  `;
-
+  pageWrapper.style.width = cachedDim.w + 'px'; pageWrapper.style.height = cachedDim.h + 'px';
+  pageWrapper.innerHTML = `<canvas class="pdf-canvas-item" id="pdf-canvas-${idx}"></canvas><canvas class="annotation-canvas-item" id="annot-canvas-${idx}"></canvas><div class="textLayer" id="text-layer-${idx}"></div><div style="font-size:11px; font-weight:700; opacity:0.3;">PAGE ${idx + 1}</div>`;
   return pageWrapper;
 }
 
@@ -1652,102 +1020,53 @@ async function renderSinglePageRealContent(page, idx, pageWrapper) {
   if (!page || !pageWrapper) return;
   pageWrapper.classList.remove('placeholder');
   pageWrapper.setAttribute('data-rendered', 'true');
-
   const canvas = pageWrapper.querySelector('.pdf-canvas-item');
   const annotCanvas = pageWrapper.querySelector('.annotation-canvas-item');
   const textLayerDiv = pageWrapper.querySelector('.textLayer');
   textLayerDiv.innerHTML = '';
 
   if (page.kind === 'pdf') {
-    textLayerDiv.classList.remove('blank-mode');
     const docProxy = await getDocProxy(page.docId);
     if (!docProxy) return;
     const pdfPage = await docProxy.getPage(page.pageNum);
-    
-    const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
-    const scale = calculateScaleForPageWidth(unscaledViewport.width);
-    const viewport = pdfPage.getViewport({ scale: scale });
-    
+    const viewport = pdfPage.getViewport({ scale: calculateScaleForPageWidth(pdfPage.getViewport({scale:1.0}).width) });
     AppState.pageDimensions.set(idx, { w: viewport.width, h: viewport.height });
-
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    annotCanvas.width = viewport.width;
-    annotCanvas.height = viewport.height;
-    
-    textLayerDiv.style.width = viewport.width + 'px';
-    textLayerDiv.style.height = viewport.height + 'px';
-    pageWrapper.style.width = viewport.width + 'px';
-    pageWrapper.style.height = viewport.height + 'px';
-    
-    const ctx = canvas.getContext('2d');
-    const renderTask = pdfPage.render({ canvasContext: ctx, viewport });
-    activeRenderTasks.set(idx, renderTask);
-    
-    try {
-      await renderTask.promise;
-      activeRenderTasks.delete(idx);
-      const textContent = await pdfPage.getTextContent();
-      pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] });
-    } catch(err) {
-      if (err.name !== 'RenderingCancelledException') console.error(err);
-    }
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    annotCanvas.width = viewport.width; annotCanvas.height = viewport.height;
+    textLayerDiv.style.width = viewport.width + 'px'; textLayerDiv.style.height = viewport.height + 'px';
+    pageWrapper.style.width = viewport.width + 'px'; pageWrapper.style.height = viewport.height + 'px';
+    await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    pdfjsLib.renderTextLayer({ textContentSource: await pdfPage.getTextContent(), container: textLayerDiv, viewport, textDivs: [] });
   } else if (page.kind === 'image') {
-    textLayerDiv.classList.remove('blank-mode');
-    const imgDataUrl = await dbGetBlob(page.imageBlobKey);
-    const img = new Image();
-    await new Promise(r => { img.onload = r; img.src = imgDataUrl; });
+    const img = new Image(); img.src = await dbGetBlob(page.imageBlobKey);
+    await new Promise(r => img.onload = r);
     const scale = calculateScaleForPageWidth(img.width);
-    const baseW = img.width * scale;
-    const baseH = img.height * scale;
-    AppState.pageDimensions.set(idx, { w: baseW, h: baseH });
-
-    canvas.width = baseW; canvas.height = baseH;
-    annotCanvas.width = baseW; annotCanvas.height = baseH;
-    textLayerDiv.style.width = baseW + 'px'; textLayerDiv.style.height = baseH + 'px';
-    pageWrapper.style.width = baseW + 'px'; pageWrapper.style.height = baseH + 'px';
-    canvas.getContext('2d').drawImage(img, 0, 0, baseW, baseH);
-  } else {
-    textLayerDiv.classList.add('blank-mode');
-    const pageWidth = page.width || 595.28;
-    const pageHeight = page.height || 841.89;
-    const scale = calculateScaleForPageWidth(pageWidth);
-    const baseW = pageWidth * scale;
-    const baseH = pageHeight * scale;
-    AppState.pageDimensions.set(idx, { w: baseW, h: baseH });
-
-    canvas.width = baseW; canvas.height = baseH;
-    annotCanvas.width = baseW; annotCanvas.height = baseH;
-    textLayerDiv.style.width = baseW + 'px'; textLayerDiv.style.height = baseH + 'px';
-    pageWrapper.style.width = baseW + 'px'; pageWrapper.style.height = baseH + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, baseW, baseH);
-
-    const textarea = document.createElement('textarea');
-    textarea.value = page.text || '';
-    textarea.placeholder = 'Type case notes here...';
-    textarea.style.cssText = `position:absolute; top:15px; left:15px; width:${baseW-30}px; height:${baseH-30}px; background:transparent; border:${AppState.currentTool==='snip'?'1px dashed #64748b':'none'}; padding:8px; font-size:14px; font-weight:600; line-height:1.6; color:#000; resize:none; outline:none; z-index:10; pointer-events:${AppState.currentTool==='snip'?'auto':'none'};`;
-    textarea.oninput = (e) => { page.text = e.target.value; dbSaveCase(AppState.currentCase); };
-    textLayerDiv.appendChild(textarea);
+    const w = img.width * scale, h = img.height * scale;
+    AppState.pageDimensions.set(idx, { w, h });
+    canvas.width = w; canvas.height = h; annotCanvas.width = w; annotCanvas.height = h;
+    pageWrapper.style.width = w + 'px'; pageWrapper.style.height = h + 'px';
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
   }
-
   attachDrawingToCanvas(annotCanvas, idx);
   drawAnnotations(page, annotCanvas);
 }
 
-function scrollToPageIndex(idx) {
-  if (isScrollLocked) {
-    AppState.currentPageIndex = idx;
-    document.getElementById('page-num-input').value = idx + 1;
-    renderAllContinuousPages();
-    return;
-  }
+function scrollToPageIndex(idx, targetRect = null) {
   const target = document.getElementById(`page-wrap-${idx}`);
   if (target) {
     target.scrollIntoView({ behavior: 'auto', block: 'start' });
     AppState.currentPageIndex = idx;
     document.getElementById('page-num-input').value = idx + 1;
+    if (!target.getAttribute('data-rendered')) renderSinglePageRealContent(AppState.currentCase.pages[idx], idx, target);
+    
+    if (targetRect) {
+      setTimeout(() => {
+        const flash = document.createElement('div');
+        flash.style.cssText = `position:absolute; left:${targetRect.x}px; top:${targetRect.y}px; width:${targetRect.w}px; height:${targetRect.h}px; background:rgba(250,204,21,0.6); border:2px solid #ca8a04; z-index:30; pointer-events:none;`;
+        target.appendChild(flash);
+        setTimeout(() => flash.remove(), 2000);
+      }, 100);
+    }
   }
 }
 
@@ -1756,38 +1075,13 @@ function drawAnnotations(page, annotCanvas) {
   const ctx = annotCanvas.getContext('2d');
   ctx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
   if (!page || !page.annotations) return;
-
   page.annotations.forEach(ann => {
     ctx.save();
-    if (ann.type === 'highlight') {
-      ctx.fillStyle = ann.color || 'rgba(254, 240, 138, 0.45)';
-      ctx.fillRect(ann.x, ann.y, ann.w, ann.h);
-    } else if (ann.type === 'underline') {
-      ctx.strokeStyle = ann.color || '#dc2626';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(ann.x, ann.y + ann.h);
-      ctx.lineTo(ann.x + ann.w, ann.y + ann.h);
-      ctx.stroke();
-    } else if (ann.type === 'mask') {
-      ctx.fillStyle = ann.revealed ? "rgba(148, 163, 184, 0.25)" : "#0f172a";
-      ctx.fillRect(ann.x, ann.y, ann.w, ann.h);
-      if (!ann.revealed) {
-        ctx.fillStyle = "#ffffff";
-        ctx.font = `bold 10px sans-serif`;
-        ctx.fillText("TAP TO UNMASK", ann.x + 4, ann.y + 14);
-      }
-    } else if (ann.type === 'white') {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(ann.x, ann.y, ann.w, ann.h);
-    } else if (ann.type === 'pen' && ann.points) {
-      ctx.strokeStyle = ann.color || '#0f172a';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
+    if (ann.type === 'highlight') { ctx.fillStyle = ann.color || 'rgba(254, 240, 138, 0.45)'; ctx.fillRect(ann.x, ann.y, ann.w, ann.h); }
+    else if (ann.type === 'pen' && ann.points) {
+      ctx.strokeStyle = ann.color || '#0f172a'; ctx.lineWidth = 2; ctx.beginPath();
       ctx.moveTo(ann.points[0].x, ann.points[0].y);
-      for (let pt of ann.points) ctx.lineTo(pt.x, pt.y);
-      ctx.stroke();
+      ann.points.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.stroke();
     }
     ctx.restore();
   });
@@ -1795,264 +1089,91 @@ function drawAnnotations(page, annotCanvas) {
 
 function getPointerCoords(e, canvas) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return { 
-    x: (e.clientX - rect.left) * scaleX, 
-    y: (e.clientY - rect.top) * scaleY 
-  };
-}
-
-function eraseAtPoint(x, y, page, annotCanvas) {
-  if (!page || !page.annotations || page.annotations.length === 0) return;
-  const threshold = 16;
-  const idx = page.annotations.findIndex(ann => {
-    if (ann.type === 'pen' && ann.points) {
-      return ann.points.some(pt => Math.hypot(pt.x - x, pt.y - y) <= threshold);
-    } else if (ann.x !== undefined && ann.y !== undefined) {
-      return (
-        x >= (ann.x - 8) &&
-        x <= (ann.x + (ann.w || 20) + 8) &&
-        y >= (ann.y - 8) &&
-        y <= (ann.y + (ann.h || 20) + 8)
-      );
-    }
-    return false;
-  });
-
-  if (idx !== -1) {
-    const removedAnn = page.annotations.splice(idx, 1)[0];
-    AppState.historyStack.push({ type: 'remove', pageId: page.id, annotation: removedAnn, pageIdx: AppState.currentPageIndex });
-    AppState.redoStack = [];
-    updateUndoRedoUI();
-    dbSaveCase(AppState.currentCase);
-    drawAnnotations(page, annotCanvas);
-  }
+  return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
 }
 
 function attachDrawingToCanvas(annotCanvas, pageIdx) {
-  function start(e) {
-    if (AppState.currentTool === 'snip' || AppState.currentTool === 'pan' || AppState.currentTool === 'laser' || !AppState.currentCase) return;
-    try { annotCanvas.setPointerCapture(e.pointerId); } catch(err) {}
-    AppState.isDrawing = true;
+  let isDrawing = false, startX = 0, startY = 0, path = [];
+  annotCanvas.onpointerdown = (e) => {
+    if (AppState.currentTool === 'select' || AppState.currentTool === 'pan') return;
+    isDrawing = true; const pos = getPointerCoords(e, annotCanvas);
+    startX = pos.x; startY = pos.y; path = [pos];
+  };
+  annotCanvas.onpointermove = (e) => {
+    if (!isDrawing) return;
     const pos = getPointerCoords(e, annotCanvas);
-    AppState.drawStartX = pos.x;
-    AppState.drawStartY = pos.y;
-    const page = AppState.currentCase.pages[pageIdx];
-
-    if (AppState.currentTool === 'eraser') {
-      eraseAtPoint(pos.x, pos.y, page, annotCanvas);
-    } else if (AppState.currentTool === 'pen') {
-      AppState.currentPath = [{ x: pos.x, y: pos.y }];
-    } else if (AppState.currentTool === 'mask' && page) {
-      const mask = page.annotations?.find(a => a.type === 'mask' && pos.x >= a.x && pos.x <= a.x + a.w && pos.y >= a.y && pos.y <= a.y + a.h);
-      if (mask) {
-        mask.revealed = !mask.revealed;
-        drawAnnotations(page, annotCanvas);
-        dbSaveCase(AppState.currentCase);
-        AppState.isDrawing = false;
-      }
-    }
-  }
-
-  function move(e) {
-    if (!AppState.isDrawing || AppState.currentTool === 'snip' || AppState.currentTool === 'pan' || AppState.currentTool === 'laser') return;
-    const pos = getPointerCoords(e, annotCanvas);
-    const ctx = annotCanvas.getContext('2d');
-    const page = AppState.currentCase.pages[pageIdx];
-
-    if (AppState.currentTool === 'eraser') {
-      eraseAtPoint(pos.x, pos.y, page, annotCanvas);
-      return;
-    }
-
     if (AppState.currentTool === 'pen') {
-      AppState.currentPath.push({ x: pos.x, y: pos.y });
-      drawAnnotations(page, annotCanvas);
-      ctx.save();
-      ctx.strokeStyle = COLOR_CONFIG.pen.current;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(AppState.currentPath[0].x, AppState.currentPath[0].y);
-      for (let pt of AppState.currentPath) ctx.lineTo(pt.x, pt.y);
-      ctx.stroke();
-      ctx.restore();
-    } else if (['highlight', 'underline', 'white', 'mask'].includes(AppState.currentTool)) {
-      drawAnnotations(page, annotCanvas);
-      ctx.save();
-      const sx = AppState.drawStartX;
-      const sy = AppState.drawStartY;
-      const w = pos.x - AppState.drawStartX;
-      const h = pos.y - AppState.drawStartY;
-      if (AppState.currentTool === 'highlight') {
-        ctx.fillStyle = COLOR_CONFIG.highlight.current;
-        ctx.fillRect(sx, sy, w, h);
-      } else if (AppState.currentTool === 'underline') {
-        ctx.strokeStyle = COLOR_CONFIG.underline.current;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sx, sy, w, h);
-      } else if (AppState.currentTool === 'mask') {
-        ctx.fillStyle = "#0f172a";
-        ctx.fillRect(sx, sy, w, h);
-      } else if (AppState.currentTool === 'white') {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(sx, sy, w, h);
-      }
-      ctx.restore();
+      path.push(pos); const ctx = annotCanvas.getContext('2d');
+      ctx.strokeStyle = COLOR_CONFIG.pen.current; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y); path.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.stroke();
     }
-  }
-
-  async function end(e) {
-    if (!AppState.isDrawing || !AppState.currentCase) return;
-    try { annotCanvas.releasePointerCapture(e.pointerId); } catch(err) {}
-    AppState.isDrawing = false;
+  };
+  annotCanvas.onpointerup = async (e) => {
+    if (!isDrawing) return; isDrawing = false;
     const page = AppState.currentCase.pages[pageIdx];
-    if (!page || AppState.currentTool === 'eraser' || AppState.currentTool === 'laser') return;
-
-    let ann = null;
-    if (AppState.currentTool === 'pen' && AppState.currentPath.length > 1) {
-      ann = { id: "ann_" + Date.now(), type: 'pen', points: AppState.currentPath, color: COLOR_CONFIG.pen.current };
-    } else if (['highlight', 'underline', 'white', 'mask'].includes(AppState.currentTool)) {
-      const pos = getPointerCoords(e, annotCanvas);
-      const w = Math.abs(pos.x - AppState.drawStartX);
-      const h = Math.abs(pos.y - AppState.drawStartY);
-      if (w > 4 && h > 4) {
-        ann = {
-          id: "ann_" + Date.now(),
-          type: AppState.currentTool,
-          x: Math.min(AppState.drawStartX, pos.x),
-          y: Math.min(AppState.drawStartY, pos.y),
-          w, h,
-          color: COLOR_CONFIG[AppState.currentTool] ? COLOR_CONFIG[AppState.currentTool].current : undefined,
-          revealed: false
-        };
+    const pos = getPointerCoords(e, annotCanvas);
+    
+    // CROP TOOL FEATURE (Blue Dot Link)
+    if (AppState.currentTool === 'crop') {
+      const w = Math.abs(pos.x - startX), h = Math.abs(pos.y - startY);
+      if (w > 10 && h > 10) {
+        const x = Math.min(startX, pos.x), y = Math.min(startY, pos.y);
+        const pdfCanvas = document.getElementById(`pdf-canvas-${pageIdx}`);
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = w; cropCanvas.height = h;
+        cropCanvas.getContext('2d').drawImage(pdfCanvas, x, y, w, h, 0, 0, w, h);
+        
+        ensureNotebookStructure();
+        const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+        activeNb.snippets.push({
+          id: "snip_" + Date.now(), type: 'image', dataUrl: cropCanvas.toDataURL(),
+          pageIdx: pageIdx, targetRect: { x, y, w, h }, dotType: 'blue', x: 20, y: 30 + (activeNb.snippets.length * 90)
+        });
+        await dbSaveCase(AppState.currentCase);
+        toggleNotesDrawer(true);
+        showToast("Cropped image sent with Blue Dot Link!", "success");
       }
     }
-
-    if (ann) {
-      page.annotations.push(ann);
-      AppState.historyStack.push({ type: 'add', pageId: page.id, annotation: ann, pageIdx });
-      AppState.redoStack = [];
-      updateUndoRedoUI();
-      dbSaveCase(AppState.currentCase);
-      drawAnnotations(page, annotCanvas);
+    // MAGIC LINK FEATURE (Black Dot Link across Notepad)
+    else if (AppState.currentTool === 'magic') {
+      toggleNotesDrawer(true);
+      AppState.magicLinkStart = { pageIdx, rect: { x: startX, y: startY, w: Math.abs(pos.x - startX), h: Math.abs(pos.y - startY) } };
+      showToast("Magic link active! Now tap on Notepad where you want to drop it.", "success");
     }
-  }
-
-  annotCanvas.onpointerdown = start;
-  annotCanvas.onpointermove = move;
-  annotCanvas.onpointerup = end;
-  annotCanvas.onpointercancel = end;
+  };
 }
 
 function initNotepadCanvasDimensions() {
   const inkCanvas = document.getElementById('notes-ink-layer');
-  const container = document.getElementById('notes-free-canvas');
-  inkCanvas.width = container.clientWidth || 320;
+  inkCanvas.width = document.getElementById('notes-free-canvas').clientWidth || 320;
   inkCanvas.height = 2500;
 }
 
-let currentNotepadTool = 'drag';
-let isNotepadDrawing = false;
-let currentNotepadPath = [];
-let noteDrawStartX = 0, noteDrawStartY = 0;
-
 function setupNotepadInkSystem() {
   const inkCanvas = document.getElementById('notes-ink-layer');
-  
-  function getInkCoords(e) {
-    const rect = inkCanvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  }
-
+  let drawing = false, points = [];
   inkCanvas.onpointerdown = (e) => {
-    if (currentNotepadTool === 'drag') return;
-    try { inkCanvas.setPointerCapture(e.pointerId); } catch(err) {}
-    isNotepadDrawing = true;
-    const pos = getInkCoords(e);
-    noteDrawStartX = pos.x;
-    noteDrawStartY = pos.y;
-    
-    if (currentNotepadTool === 'pen') {
-      currentNotepadPath = [{ x: pos.x, y: pos.y }];
-    } else if (currentNotepadTool === 'eraser') {
-      eraseNotepadItemAt(pos.x, pos.y);
-    }
+    if (currentNoteTool === 'drag') return;
+    drawing = true; const rect = inkCanvas.getBoundingClientRect();
+    points = [{ x: e.clientX - rect.left, y: e.clientY - rect.top }];
   };
-
   inkCanvas.onpointermove = (e) => {
-    if (!isNotepadDrawing || currentNotepadTool === 'drag') return;
-    const pos = getInkCoords(e);
-
-    if (currentNotepadTool === 'pen') {
-      currentNotepadPath.push({ x: pos.x, y: pos.y });
-      redrawNotepadInk();
-      const ctx = inkCanvas.getContext('2d');
-      ctx.save();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(currentNotepadPath[0].x, currentNotepadPath[0].y);
-      for (let pt of currentNotepadPath) ctx.lineTo(pt.x, pt.y);
-      ctx.stroke();
-      ctx.restore();
-    } else if (currentNotepadTool === 'highlight' || currentNotepadTool === 'underline') {
-      redrawNotepadInk();
-      const ctx = inkCanvas.getContext('2d');
-      ctx.save();
-      const w = pos.x - noteDrawStartX;
-      const h = pos.y - noteDrawStartY;
-      if (currentNotepadTool === 'highlight') {
-        ctx.fillStyle = 'rgba(254, 240, 138, 0.45)';
-        ctx.fillRect(noteDrawStartX, noteDrawStartY, w, h);
-      } else if (currentNotepadTool === 'underline') {
-        ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(noteDrawStartX, noteDrawStartY + h);
-        ctx.lineTo(noteDrawStartX + w, noteDrawStartY + h);
-        ctx.stroke();
-      }
-      ctx.restore();
-    } else if (currentNotepadTool === 'eraser') {
-      eraseNotepadItemAt(pos.x, pos.y);
-    }
+    if (!drawing || currentNoteTool !== 'pen') return;
+    const rect = inkCanvas.getBoundingClientRect();
+    points.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const ctx = inkCanvas.getContext('2d');
+    ctx.strokeStyle = COLOR_CONFIG.pen.current; ctx.lineWidth = 2.5; ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y); points.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.stroke();
   };
-
-  inkCanvas.onpointerup = async (e) => {
-    if (!isNotepadDrawing) return;
-    try { inkCanvas.releasePointerCapture(e.pointerId); } catch(err) {}
-    isNotepadDrawing = false;
-    const pos = getInkCoords(e);
-    
-    const np = getActiveNotepad();
-    if (!np.noteInks) np.noteInks = [];
-
-    if (currentNotepadTool === 'pen' && currentNotepadPath.length > 1) {
-      np.noteInks.push({ id: "nink_" + Date.now(), type: 'pen', points: currentNotepadPath, color: '#0f172a' });
+  inkCanvas.onpointerup = async () => {
+    if (!drawing) return; drawing = false;
+    if (points.length > 1) {
+      ensureNotebookStructure();
+      const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+      if (!activeNb.inks) activeNb.inks = [];
+      activeNb.inks.push({ points, color: COLOR_CONFIG.pen.current });
       await dbSaveCase(AppState.currentCase);
-    } else if (currentNotepadTool === 'highlight' || currentNotepadTool === 'underline') {
-      const w = pos.x - noteDrawStartX;
-      const h = pos.y - noteDrawStartY;
-      if (Math.abs(w) > 4 && Math.abs(h) > 4) {
-        np.noteInks.push({
-          id: "nink_" + Date.now(),
-          type: currentNotepadTool,
-          x: Math.min(noteDrawStartX, pos.x),
-          y: Math.min(noteDrawStartY, pos.y),
-          w: Math.abs(w),
-          h: Math.abs(h),
-          color: currentNotepadTool === 'highlight' ? 'rgba(254, 240, 138, 0.45)' : '#dc2626'
-        });
-        await dbSaveCase(AppState.currentCase);
-      }
     }
-    redrawNotepadInk();
   };
 }
 
@@ -2061,1124 +1182,196 @@ function redrawNotepadInk() {
   const ctx = inkCanvas.getContext('2d');
   ctx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
   if (!AppState.currentCase) return;
-
-  const np = getActiveNotepad();
-  if (!np || !np.noteInks) return;
-
-  np.noteInks.forEach(ink => {
-    ctx.save();
-    if (ink.type === 'pen' && ink.points && ink.points.length > 1) {
-      ctx.strokeStyle = ink.color || '#0f172a';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(ink.points[0].x, ink.points[0].y);
-      for (let pt of ink.points) ctx.lineTo(pt.x, pt.y);
-      ctx.stroke();
-    } else if (ink.type === 'highlight') {
-      ctx.fillStyle = ink.color || 'rgba(254, 240, 138, 0.45)';
-      ctx.fillRect(ink.x, ink.y, ink.w, ink.h);
-    } else if (ink.type === 'underline') {
-      ctx.strokeStyle = ink.color || '#dc2626';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(ink.x, ink.y + ink.h);
-      ctx.lineTo(ink.x + ink.w, ink.y + ink.h);
-      ctx.stroke();
-    }
-    ctx.restore();
-  });
-}
-
-function eraseNotepadItemAt(x, y) {
-  if (!AppState.currentCase) return;
-  const np = getActiveNotepad();
-  if (!np || !np.noteInks) return;
-
-  const threshold = 18;
-  const idx = np.noteInks.findIndex(ink => {
-    if (ink.type === 'pen' && ink.points) {
-      return ink.points.some(pt => Math.hypot(pt.x - x, pt.y - y) <= threshold);
-    } else if (ink.x !== undefined) {
-      return x >= ink.x && x <= ink.x + ink.w && y >= ink.y && y <= ink.y + ink.h;
-    }
-    return false;
-  });
-  if (idx !== -1) {
-    np.noteInks.splice(idx, 1);
-    dbSaveCase(AppState.currentCase);
-    redrawNotepadInk();
+  ensureNotebookStructure();
+  const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+  if (activeNb && activeNb.inks) {
+    activeNb.inks.forEach(ink => {
+      ctx.strokeStyle = ink.color || '#0f172a'; ctx.lineWidth = 2.5; ctx.beginPath();
+      ctx.moveTo(ink.points[0].x, ink.points[0].y); ink.points.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.stroke();
+    });
   }
 }
 
+// RENDER LINKED SNIPPETS & DOTS ON NOTEPAD
 function renderFreeformNotes() {
   const cont = document.getElementById('notes-free-canvas');
-  cont.querySelectorAll('.flexcil-pure-snippet').forEach(el => el.remove());
+  cont.querySelectorAll('.linked-snippet-card').forEach(el => el.remove());
   if (!AppState.currentCase) return;
+  ensureNotebookStructure();
+  const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+  if (!activeNb || !activeNb.snippets) return;
 
-  const np = getActiveNotepad();
-  if (!np || !np.freeformNotes) return;
-
-  np.freeformNotes.forEach((item, idx) => {
+  activeNb.snippets.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = 'flexcil-pure-snippet';
-    const posX = item.x !== undefined ? item.x : 15;
-    const posY = item.y !== undefined ? item.y : (30 + idx * 75);
-    const rot = item.rotation !== undefined ? item.rotation : 0;
+    card.className = 'linked-snippet-card';
+    card.style.left = (item.x || 15) + 'px';
+    card.style.top = (item.y || (30 + idx * 80)) + 'px';
+
+    let dotClass = 'dot-green';
+    if (item.dotType === 'blue') dotClass = 'dot-blue';
+    if (item.dotType === 'black') dotClass = 'dot-black';
+
+    let inner = `<div style="display:flex; align-items:center; margin-bottom:4px;"><span class="dot-link-badge ${dotClass}" title="Click to jump to PDF Source" onclick="jumpFromNotepad(${item.pageIdx}, ${item.targetRect ? JSON.stringify(item.targetRect).replace(/"/g, '&quot;') : 'null'})"></span><strong style="font-size:10px; color:var(--primary);">Page ${item.pageIdx + 1} Link</strong><button class="danger" style="margin-left:auto; padding:1px 3px; font-size:8px;" onclick="deleteSnippet('${item.id}')">✕</button></div>`;
     
-    card.style.left = posX + 'px';
-    card.style.top = posY + 'px';
-    card.style.transform = `rotate(${rot}deg)`;
+    if (item.type === 'image') {
+      inner += `<img src="${item.dataUrl}" style="max-width:140px; border-radius:4px; display:block;">`;
+    } else {
+      inner += `<div style="font-size:11px; color:#0f172a;">${escapeHtml(item.text)}</div>`;
+    }
+    card.innerHTML = inner;
 
-    card.innerHTML = `
-      <div class="snippet-mini-bar">
-        <button onclick="copySnippetText('${item.id}')" title="Copy">📋</button>
-        <button onclick="rotateSnippet('${item.id}', 15)" title="Rotate">↻</button>
-        <button onclick="sendSnippetToPdf('${item.id}')" title="Send to PDF">📄</button>
-        <button onclick="deleteFreeformNote('${item.id}')" title="Delete">✕</button>
-      </div>
-      <div class="snippet-ref-dot" title="Click to jump to PDF source" onclick="jumpToPdfSource('${item.sourcePageIdx}')"></div>
-      <div class="snippet-content-text">
-        ${item.type === 'image_snippet' ? `<img src="${item.imgUrl}" style="max-width:180px; border-radius:4px; display:block;">` : escapeHtml(item.text)}
-      </div>
-    `;
-
+    // Dragging support for Notepad Cards
     card.onpointerdown = (e) => {
-      if (e.target.tagName === 'BUTTON' || e.target.classList.contains('snippet-ref-dot')) return;
-      try { card.setPointerCapture(e.pointerId); } catch(err) {}
-      let shiftX = e.clientX - card.getBoundingClientRect().left;
-      let shiftY = e.clientY - card.getBoundingClientRect().top;
-
-      function onPointerMove(e) {
-        const contRect = cont.getBoundingClientRect();
-        item.x = Math.max(5, e.clientX - contRect.left - shiftX + cont.scrollLeft);
-        item.y = Math.max(5, e.clientY - contRect.top - shiftY + cont.scrollTop);
-        card.style.left = item.x + 'px';
-        card.style.top = item.y + 'px';
-      }
-
-      card.onpointermove = onPointerMove;
-      card.onpointerup = (e) => {
-        try { card.releasePointerCapture(e.pointerId); } catch(err) {}
-        card.onpointermove = null;
-        card.onpointerup = null;
-        dbSaveCase(AppState.currentCase);
+      if (e.target.tagName === 'BUTTON' || e.target.classList.contains('dot-link-badge')) return;
+      card.setPointerCapture(e.pointerId);
+      const shiftX = e.clientX - card.getBoundingClientRect().left, shiftY = e.clientY - card.getBoundingClientRect().top;
+      card.onpointermove = (e) => {
+        item.x = Math.max(5, e.clientX - cont.getBoundingClientRect().left - shiftX + cont.scrollLeft);
+        item.y = Math.max(5, e.clientY - cont.getBoundingClientRect().top - shiftY + cont.scrollTop);
+        card.style.left = item.x + 'px'; card.style.top = item.y + 'px';
       };
+      card.onpointerup = (e) => { card.releasePointerCapture(e.pointerId); card.onpointermove = null; dbSaveCase(AppState.currentCase); };
     };
-
     cont.appendChild(card);
   });
 }
 
-window.jumpToPdfSource = function(pageIdx) {
-  const pIdx = parseInt(pageIdx, 10);
-  if (!isNaN(pIdx)) {
-    toggleNotesDrawer(false);
-    scrollToPageIndex(pIdx);
-    showToast(`Jumped to PDF Page ${pIdx + 1}`, "success");
-  }
-};
-
-window.copySnippetText = function(id) {
-  const np = getActiveNotepad();
-  const item = np.freeformNotes.find(f => f.id === id);
-  if (item && item.text) {
-    internalClipboard = item.text;
-    navigator.clipboard.writeText(item.text);
-    showToast("Snippet copied!", "success");
-  }
-};
-
-window.rotateSnippet = async function(id, angleChange) {
-  const np = getActiveNotepad();
-  const item = np.freeformNotes.find(f => f.id === id);
-  if (item) {
-    item.rotation = (item.rotation || 0) + angleChange;
-    await dbSaveCase(AppState.currentCase);
-    renderFreeformNotes();
-  }
-};
-
-window.sendSnippetToPdf = async function(id) {
-  const np = getActiveNotepad();
-  const item = np.freeformNotes.find(f => f.id === id);
-  if (!item) return;
-
-  const curPageIdx = AppState.currentPageIndex;
-  const page = AppState.currentCase.pages[curPageIdx];
-  if (!page) {
-    showToast("Open a PDF page first", "error");
-    return;
-  }
-
-  if (!page.annotations) page.annotations = [];
-  page.annotations.push({
-    id: "ann_snip_" + Date.now(),
-    type: 'highlight',
-    x: 40, y: 40 + (page.annotations.length * 20), w: 220, h: 20,
-    color: 'rgba(254, 240, 138, 0.7)'
-  });
-
-  await dbSaveCase(AppState.currentCase);
+window.jumpFromNotepad = function(pageIdx, targetRect) {
   toggleNotesDrawer(false);
-  scrollToPageIndex(curPageIdx);
-  showToast(`Placed on Page ${curPageIdx + 1}!`, "success");
+  scrollToPageIndex(pageIdx, targetRect);
+  showToast(`Jumped to Page ${pageIdx + 1}`, "success");
 };
 
-window.deleteFreeformNote = function(id) {
-  const np = getActiveNotepad();
-  np.freeformNotes = np.freeformNotes.filter(f => f.id !== id);
+window.deleteSnippet = function(id) {
+  const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+  activeNb.snippets = activeNb.snippets.filter(s => s.id !== id);
   dbSaveCase(AppState.currentCase);
   renderFreeformNotes();
 };
 
-function updateUndoRedoUI() {
-  document.getElementById('btn-undo').disabled = (AppState.historyStack.length === 0);
-  document.getElementById('btn-redo').disabled = (AppState.redoStack.length === 0);
-}
-
-function handleUndoAction() {
-  if (AppState.historyStack.length === 0 || !AppState.currentCase) return;
-  const action = AppState.historyStack.pop();
-  AppState.redoStack.push(action);
-
-  if (action.type === 'page_delete') {
-    AppState.currentCase.pages.splice(action.index, 0, action.page);
-    dbSaveCase(AppState.currentCase);
-    renderAllContinuousPages();
-    scrollToPageIndex(action.index);
-    showToast(`Page ${action.index + 1} Restored!`, "success");
-  } else {
-    const page = AppState.currentCase.pages.find(p => p.id === action.pageId);
-    if (page && page.annotations) {
-      if (action.type === 'add') {
-        page.annotations = page.annotations.filter(a => a.id !== action.annotation.id);
-      } else if (action.type === 'remove') {
-        page.annotations.push(action.annotation);
-      }
-      dbSaveCase(AppState.currentCase);
-      const ac = document.getElementById(`annot-canvas-${action.pageIdx}`);
-      if (ac) drawAnnotations(page, ac);
-    }
-  }
-  updateUndoRedoUI();
-}
-
-function handleRedoAction() {
-  if (AppState.redoStack.length === 0 || !AppState.currentCase) return;
-  const action = AppState.redoStack.pop();
-  AppState.historyStack.push(action);
-
-  if (action.type === 'page_delete') {
-    AppState.currentCase.pages.splice(action.index, 1);
-    dbSaveCase(AppState.currentCase);
-    renderAllContinuousPages();
-    showToast("Page removed again", "info");
-  } else {
-    const page = AppState.currentCase.pages.find(p => p.id === action.pageId);
-    if (page && page.annotations) {
-      if (action.type === 'add') {
-        page.annotations.push(action.annotation);
-      } else if (action.type === 'remove') {
-        page.annotations = page.annotations.filter(a => a.id !== action.annotation.id);
-      }
-      dbSaveCase(AppState.currentCase);
-      const ac = document.getElementById(`annot-canvas-${action.pageIdx}`);
-      if (ac) drawAnnotations(page, ac);
-    }
-  }
-  updateUndoRedoUI();
-}
-
-function setupSnipAndLinkSystem() {
+function setupPureSelectAndTapPaste() {
   const popover = document.getElementById('selection-popover');
-  
-  let overlay = document.getElementById('snip-crop-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'snip-crop-overlay';
-    document.body.appendChild(overlay);
-  }
-
-  let isSnipping = false;
-  let startX = 0, startY = 0;
-  let activePdfCanvas = null;
-  let activePageIdx = 0;
-  let lastCroppedDataUrl = null;
-
-  const pdfPane = document.getElementById('pdf-pane');
-
-  pdfPane.addEventListener('pointerdown', (e) => {
-    if (AppState.currentTool !== 'snip') return;
-    const pageItem = e.target.closest('.page-viewport-item');
-    if (!pageItem) return;
-
-    isSnipping = true;
-    try { pageItem.setPointerCapture(e.pointerId); } catch(err) {}
-    
-    activePageIdx = parseInt(pageItem.getAttribute('data-page-index'), 10);
-    activePdfCanvas = pageItem.querySelector('.pdf-canvas-item') || pageItem.querySelector('canvas');
-    
-    startX = e.clientX;
-    startY = e.clientY;
-
-    overlay.style.display = 'block';
-    overlay.style.left = `${startX}px`;
-    overlay.style.top = `${startY}px`;
-    overlay.style.width = `0px`;
-    overlay.style.height = `0px`;
-  });
-
-  pdfPane.addEventListener('pointermove', (e) => {
-    if (!isSnipping || AppState.currentTool !== 'snip') return;
-    
-    const currentX = e.clientX;
-    const currentY = e.clientY;
-
-    const left = Math.min(startX, currentX);
-    const top = Math.min(startY, currentY);
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
-
-    overlay.style.left = `${left}px`;
-    overlay.style.top = `${top}px`;
-    overlay.style.width = `${width}px`;
-    overlay.style.height = `${height}px`;
-  });
-
-  pdfPane.addEventListener('pointerup', async (e) => {
-    if (!isSnipping || AppState.currentTool !== 'snip') return;
-    isSnipping = false;
-    overlay.style.display = 'none';
-
-    if (!activePdfCanvas) return;
-
-    const rect = overlay.getBoundingClientRect();
-    const canvasRect = activePdfCanvas.getBoundingClientRect();
-
-    const scaleX = activePdfCanvas.width / canvasRect.width;
-    const scaleY = activePdfCanvas.height / canvasRect.height;
-
-    const cropX = Math.max(0, (rect.left - canvasRect.left) * scaleX);
-    const cropY = Math.max(0, (rect.top - canvasRect.top) * scaleY);
-    const cropW = Math.min(activePdfCanvas.width - cropX, rect.width * scaleX);
-    const cropH = Math.min(activePdfCanvas.height - cropY, rect.height * scaleY);
-
-    if (cropW < 5 || cropH < 5) return;
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cropW;
-    tempCanvas.height = cropH;
-    const tCtx = tempCanvas.getContext('2d');
-    tCtx.drawImage(activePdfCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-    lastCroppedDataUrl = tempCanvas.toDataURL('image/png');
-
-    popover.style.display = 'flex';
-    popover.style.left = `${Math.max(10, rect.left)}px`;
-    popover.style.top = `${Math.max(10, rect.top - 50)}px`;
-  });
+  const noteCanvas = document.getElementById('notes-free-canvas');
 
   document.addEventListener('selectionchange', () => {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
-    if (text.length > 1 && AppState.currentCase && AppState.currentTool === 'snip') {
+    if (text.length > 1 && AppState.currentCase) {
       AppState.selectedText = text;
-      lastCroppedDataUrl = null;
       try {
-        const range = sel.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        popover.style.display = 'flex';
-        popover.style.left = `${Math.max(10, rect.left)}px`;
-        popover.style.top = `${Math.max(10, rect.top - 45)}px`;
+        const rect = sel.getRangeAt(0).getBoundingClientRect();
+        popover.style.display = 'flex'; popover.style.left = `${rect.left}px`; popover.style.top = `${rect.top - 38}px`;
       } catch(err) {}
-    }
+    } else { popover.style.display = 'none'; }
   });
 
-  document.getElementById('pop-copy').onclick = () => {
-    const content = AppState.selectedText || "Snippet Image";
-    navigator.clipboard.writeText(content);
+  document.getElementById('pop-notepad').onclick = async () => {
     popover.style.display = 'none';
-    showToast("Copied to Clipboard!", "success");
-  };
-
-  document.getElementById('pop-snip-note').onclick = async () => {
-    popover.style.display = 'none';
-    if (!AppState.currentCase) return;
-    ensureNotepadsInitialized();
-    const np = getActiveNotepad();
-    if (!np.freeformNotes) np.freeformNotes = [];
-
-    const newSnippetId = "snip_" + Date.now();
-    np.freeformNotes.push({
-      id: newSnippetId,
-      type: lastCroppedDataUrl ? 'image_snippet' : 'text',
-      imgUrl: lastCroppedDataUrl || '',
-      text: AppState.selectedText || "Captured Snip Image",
-      sourcePageIdx: activePageIdx,
-      x: 30,
-      y: 30 + (np.freeformNotes.length * 90),
-      rotation: 0
+    ensureNotebookStructure();
+    const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+    activeNb.snippets.push({
+      id: "snip_" + Date.now(), type: 'text', text: AppState.selectedText,
+      pageIdx: AppState.currentPageIndex, dotType: 'green', x: 15, y: 30 + (activeNb.snippets.length * 90)
     });
-
     await dbSaveCase(AppState.currentCase);
     toggleNotesDrawer(true);
-    showToast("✨ Snipped & Linked with Notepad (Blue Dot Connected)!", "success");
-    lastCroppedDataUrl = null;
-    AppState.selectedText = '';
+    showToast("Added to Notepad with Green Dot Link!", "success");
   };
 
-  document.getElementById('pop-board').onclick = async () => {
-    popover.style.display = 'none';
-    if (!AppState.currentCase) return;
-    if (!AppState.currentCase.boardCards) AppState.currentCase.boardCards = [];
+  // TAP TO DROP MAGIC LINK OR TEXT
+  noteCanvas.addEventListener('pointerup', async (e) => {
+    if (e.target.closest('.linked-snippet-card') || e.target.tagName === 'BUTTON') return;
+    const contRect = noteCanvas.getBoundingClientRect();
+    const clickX = e.clientX - contRect.left + noteCanvas.scrollLeft;
+    const clickY = e.clientY - contRect.top + noteCanvas.scrollTop;
 
-    const cardText = AppState.selectedText || "Image Snippet Evidence";
-    AppState.currentCase.boardCards.push({
-      id: "card_" + Date.now(),
-      type: 'Evidence',
-      title: cardText.substring(0, 30) + "...",
-      text: cardText,
-      pageId: AppState.currentCase.pages[activePageIdx]?.id,
-      x: 10, y: 10 + (AppState.currentCase.boardCards.length * 145)
-    });
+    ensureNotebookStructure();
+    const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
 
-    await dbSaveCase(AppState.currentCase);
-    toggleBoardPane(true);
-    renderBoard();
-    showToast("📌 Sent to Research Board with Jump Link!", "success");
-    lastCroppedDataUrl = null;
-    AppState.selectedText = '';
-  };
+    if (AppState.magicLinkStart) {
+      activeNb.snippets.push({
+        id: "snip_" + Date.now(), type: 'text', text: "[Magic Linked Section]",
+        pageIdx: AppState.magicLinkStart.pageIdx, targetRect: AppState.magicLinkStart.rect, dotType: 'black', x: clickX, y: clickY
+      });
+      AppState.magicLinkStart = null;
+      await dbSaveCase(AppState.currentCase);
+      renderFreeformNotes();
+      showToast("Magic Link established with Black Dot!", "success");
+    }
+  });
 }
 
 function renderBoard() {
   const area = document.getElementById('board-canvas-area');
-  const svg = document.getElementById('board-svg-layer');
   area.querySelectorAll('.board-card').forEach(el => el.remove());
-  svg.innerHTML = '';
-
-  if (!AppState.currentCase) return;
-  if (!AppState.currentCase.boardCards) AppState.currentCase.boardCards = [];
-  if (!AppState.currentCase.boardLinks) AppState.currentCase.boardLinks = [];
-
-  let visibleCards = (currentBoardFilter === 'All') 
-    ? AppState.currentCase.boardCards 
-    : AppState.currentCase.boardCards.filter(c => c.type === currentBoardFilter);
-
-  renderBoardLinksOnly();
-
-  visibleCards.forEach((cardData, idx) => {
+  if (!AppState.currentCase || !AppState.currentCase.boardCards) return;
+  AppState.currentCase.boardCards.forEach((cardData, idx) => {
     const card = document.createElement('div');
-    card.className = `board-card ${AppState.connectingSourceCardId === cardData.id ? 'connecting' : ''}`;
-    card.style.left = (cardData.x !== undefined ? cardData.x : 10) + 'px';
-    card.style.top = (cardData.y !== undefined ? cardData.y : (10 + idx * 145)) + 'px';
-
-    const tagClass = 'tag-' + (cardData.type || 'note').toLowerCase().replace(' ', '');
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="card-tag ${tagClass}">${escapeHtml(cardData.type)}</span>
-        <button class="danger" style="padding:1px 4px; font-size:9px;" onclick="deleteBoardCard('${cardData.id}')">✕</button>
-      </div>
-      <div class="card-title">${escapeHtml(cardData.title)}</div>
-      <div class="card-text">${escapeHtml(cardData.text)}</div>
-      <div class="card-footer">
-        ${cardData.pageId ? `<span style="color:var(--accent); cursor:pointer; font-weight:700;" onclick="jumpToSource('${cardData.pageId}', ${cardData.targetRect ? JSON.stringify(cardData.targetRect).replace(/"/g, '&quot;') : 'null'})">🔗 Jump to Page ${getPageNumById(cardData.pageId)}</span>` : '<span></span>'}
-        <button style="padding:1px 5px; font-size:9px;" onclick="triggerCardConnect('${cardData.id}')">⚡ Connect</button>
-      </div>
-    `;
-
-    card.onpointerdown = (e) => {
-      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SPAN') return;
-      try { card.setPointerCapture(e.pointerId); } catch(err) {}
-      let shiftX = e.clientX - card.getBoundingClientRect().left;
-      let shiftY = e.clientY - card.getBoundingClientRect().top;
-
-      function onPointerMove(e) {
-        const areaRect = area.getBoundingClientRect();
-        cardData.x = Math.max(5, e.clientX - areaRect.left - shiftX + area.scrollLeft);
-        cardData.y = Math.max(5, e.clientY - areaRect.top - shiftY + area.scrollTop);
-        card.style.left = cardData.x + 'px';
-        card.style.top = cardData.y + 'px';
-        renderBoardLinksOnly();
-      }
-
-      card.onpointermove = onPointerMove;
-      card.onpointerup = (e) => {
-        try { card.releasePointerCapture(e.pointerId); } catch(err) {}
-        card.onpointermove = null;
-        card.onpointerup = null;
-        dbSaveCase(AppState.currentCase);
-        renderBoard();
-      };
-    };
-
+    card.className = 'board-card';
+    card.style.left = (cardData.x || 10) + 'px'; card.style.top = (cardData.y || (10 + idx * 120)) + 'px';
+    card.innerHTML = `<strong>${escapeHtml(cardData.title)}</strong><div style="font-size:10px; color:#475569;">${escapeHtml(cardData.text)}</div>`;
     area.appendChild(card);
   });
-}
-
-function renderBoardLinksOnly() {
-  const svg = document.getElementById('board-svg-layer');
-  svg.innerHTML = '';
-  
-  let visibleCards = (currentBoardFilter === 'All') 
-    ? AppState.currentCase.boardCards 
-    : AppState.currentCase.boardCards.filter(c => c.type === currentBoardFilter);
-
-  AppState.currentCase.boardLinks.forEach(link => {
-    const cardA = visibleCards.find(c => c.id === link.from);
-    const cardB = visibleCards.find(c => c.id === link.to);
-    if (cardA && cardB) {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const ax = (cardA.x || 10) + 130;
-      const ay = (cardA.y || 10) + 40;
-      const bx = (cardB.x || 10) + 130;
-      const by = (cardB.y || 10) + 40;
-      const dx = Math.abs(bx - ax) * 0.5;
-      path.setAttribute('d', `M ${ax} ${ay} C ${ax + dx} ${ay}, ${bx - dx} ${by}, ${bx} ${by}`);
-      path.setAttribute('stroke', '#d97706');
-      path.setAttribute('stroke-width', '2');
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke-dasharray', '4,4');
-      svg.appendChild(path);
-    }
-  });
-}
-
-function getPageNumById(pageId) {
-  const idx = AppState.currentCase.pages.findIndex(p => p.id === pageId);
-  return idx !== -1 ? (idx + 1) : 1;
-}
-
-window.triggerCardConnect = function(cardId) {
-  if (!AppState.connectingSourceCardId) {
-    AppState.connectingSourceCardId = cardId;
-    showToast("Select second card to connect", "info");
-    renderBoard();
-  } else {
-    if (AppState.connectingSourceCardId !== cardId) {
-      AppState.currentCase.boardLinks.push({ from: AppState.connectingSourceCardId, to: cardId });
-      dbSaveCase(AppState.currentCase);
-      showToast("Cards Connected!", "success");
-    }
-    AppState.connectingSourceCardId = null;
-    renderBoard();
-  }
-};
-
-window.deleteBoardCard = function(id) {
-  AppState.currentCase.boardCards = AppState.currentCase.boardCards.filter(c => c.id !== id);
-  AppState.currentCase.boardLinks = AppState.currentCase.boardLinks.filter(l => l.from !== id && l.to !== id);
-  dbSaveCase(AppState.currentCase);
-  renderBoard();
-};
-
-window.jumpToSource = async function(pageId, targetRect) {
-  const idx = AppState.currentCase.pages.findIndex(p => p.id === pageId);
-  if (idx !== -1) {
-    scrollToPageIndex(idx);
-    setTimeout(() => {
-      if (targetRect) {
-        const pageWrap = document.getElementById(`page-wrap-${idx}`);
-        if (pageWrap) {
-          const flash = document.createElement('div');
-          flash.className = 'flash-target';
-          flash.style.left = targetRect.x + 'px';
-          flash.style.top = targetRect.y + 'px';
-          flash.style.width = targetRect.w + 'px';
-          flash.style.height = targetRect.h + 'px';
-          pageWrap.appendChild(flash);
-          setTimeout(() => flash.remove(), 2200);
-        }
-      }
-    }, 150);
-    showToast(`Jumped to Page ${idx+1}`, "info");
-  }
-};
-
-async function runCaseSearch(q) {
-  if (!q.trim() || !AppState.currentCase) {
-    showToast("Please enter a keyword to search", "warning");
-    return;
-  }
-  
-  const list = document.getElementById('search-results-list');
-  const prog = document.getElementById('search-progress');
-  list.innerHTML = '';
-  prog.style.display = 'block';
-  prog.innerText = '🔍 Searching across all pages...';
-  
-  const query = q.trim().toLowerCase();
-  const originalQuery = q.trim();
-  let allMatches = [];
-  let matchCount = 0;
-  
-  for (let i = 0; i < AppState.currentCase.pages.length; i++) {
-    const page = AppState.currentCase.pages[i];
-    prog.innerText = `🔍 Checking page ${i+1} / ${AppState.currentCase.pages.length}...`;
-    let text = "";
-    let pageMatches = [];
-    
-    if (AppState.textExtractCache.has(page.id)) {
-      text = AppState.textExtractCache.get(page.id);
-    } else if (page.kind === 'pdf') {
-      try {
-        const docProxy = await getDocProxy(page.docId);
-        if (docProxy) {
-          const pdfP = await docProxy.getPage(page.pageNum);
-          const tc = await pdfP.getTextContent();
-          text = tc.items.map(item => item.str).join(' ');
-          AppState.textExtractCache.set(page.id, text);
-        }
-      } catch(e) {}
-    } else if (page.kind === 'blank' && page.text) {
-      text = page.text;
-    }
-    
-    if (text) {
-      const lowerText = text.toLowerCase();
-      let startIdx = 0;
-      while (true) {
-        const matchIdx = lowerText.indexOf(query, startIdx);
-        if (matchIdx === -1) break;
-        const endIdx = Math.min(matchIdx + query.length, text.length);
-        const contextStart = Math.max(0, matchIdx - 50);
-        const contextEnd = Math.min(text.length, matchIdx + query.length + 50);
-        let snippet = text.substring(contextStart, contextEnd);
-        if (contextStart > 0) snippet = '...' + snippet;
-        if (contextEnd < text.length) snippet = snippet + '...';
-        
-        pageMatches.push({ snippet, matchText: text.substring(matchIdx, endIdx) });
-        startIdx = matchIdx + query.length;
-      }
-      
-      if (pageMatches.length > 0) {
-        allMatches.push({ pageIndex: i, matches: pageMatches });
-        matchCount += pageMatches.length;
-      }
-    }
-  }
-  
-  prog.style.display = 'none';
-  if (allMatches.length === 0) {
-    list.innerHTML = `<div style="font-size:12px; text-align:center; padding:20px; color:var(--text-muted);">❌ No results found.</div>`;
-    return;
-  }
-  
-  allMatches.forEach(pageData => {
-    const pageDiv = document.createElement('div');
-    pageDiv.style.cssText = "padding:8px 10px; border:1px solid var(--border-light); border-radius:6px; margin-bottom:8px; background:#fff;";
-    pageDiv.innerHTML = `<div style="font-weight:700; font-size:12px; color:var(--primary);">📄 Page ${pageData.pageIndex + 1}</div>`;
-    list.appendChild(pageDiv);
-  });
-  showToast(`✅ ${matchCount} matches found`, "success");
-}
-
-async function exportFullDocument() {
-  if (!AppState.currentCase || !AppState.currentCase.pages || AppState.currentCase.pages.length === 0) {
-    showToast("No pages to export", "error");
-    return;
-  }
-  const filenameInput = document.getElementById('export-filename-input');
-  let filename = filenameInput.value.trim() || "Annotated_Legal_Brief.pdf";
-  if (!filename.endsWith('.pdf')) filename += '.pdf';
-
-  const prog = document.getElementById('export-progress-text');
-  const btn = document.getElementById('btn-execute-export');
-  btn.disabled = true;
-
-  try {
-    const pdfDoc = await PDFLib.PDFDocument.create();
-    const total = AppState.currentCase.pages.length;
-
-    for (let i = 0; i < total; i++) {
-      prog.innerText = `Baking page ${i+1} / ${total}...`;
-      const page = AppState.currentCase.pages[i];
-      const exportCanvas = document.createElement('canvas');
-      const ctx = exportCanvas.getContext('2d');
-      const quality = 1.8;
-
-      let w = 600, h = 800;
-
-      if (page.kind === 'pdf') {
-        const docProxy = await getDocProxy(page.docId);
-        const pdfPage = await docProxy.getPage(page.pageNum);
-        const viewport = pdfPage.getViewport({ scale: quality });
-        exportCanvas.width = viewport.width;
-        exportCanvas.height = viewport.height;
-        w = viewport.width;
-        h = viewport.height;
-        await pdfPage.render({ canvasContext: ctx, viewport }).promise;
-      } else if (page.kind === 'image') {
-        const imgDataUrl = await dbGetBlob(page.imageBlobKey);
-        const img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = imgDataUrl; });
-        exportCanvas.width = img.width;
-        exportCanvas.height = img.height;
-        w = img.width;
-        h = img.height;
-        ctx.drawImage(img, 0, 0);
-      } else {
-        exportCanvas.width = 600 * quality;
-        exportCanvas.height = 800 * quality;
-        w = exportCanvas.width;
-        h = exportCanvas.height;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, w, h);
-        if (page.text) {
-          ctx.fillStyle = "#000000";
-          ctx.font = `bold ${14 * quality}px sans-serif`;
-          const lines = page.text.split('\n');
-          let yPos = 40 * quality;
-          lines.forEach(line => { ctx.fillText(line, 25 * quality, yPos); yPos += 24 * quality; });
-        }
-      }
-
-      const imgData = exportCanvas.toDataURL('image/jpeg', 0.92);
-      const embedded = await pdfDoc.embedJpg(imgData);
-      const pLibPage = pdfDoc.addPage([w / quality, h / quality]);
-      pLibPage.drawImage(embedded, { x: 0, y: 0, width: w / quality, height: h / quality });
-    }
-
-    prog.innerText = "Finalizing PDF...";
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-
-    document.getElementById('modal-export').classList.remove('open');
-    showToast("PDF Exported Successfully", "success");
-  } catch (err) {
-    showToast("Export error: " + err.message, "error");
-  } finally {
-    btn.disabled = false;
-    prog.innerText = '';
-  }
-}
-
-function renderPalettePopup(toolName) {
-  const popup = document.getElementById('tool-palette-popup');
-  const cfg = COLOR_CONFIG[toolName];
-  if (!cfg) { popup.style.display = 'none'; return; }
-
-  popup.innerHTML = '';
-  const options = cfg.options;
-  const dots = cfg.dotColors || cfg.options;
-
-  options.forEach((cVal, idx) => {
-    const sw = document.createElement('div');
-    sw.className = `swatch-item ${cVal === cfg.current ? 'selected' : ''}`;
-    sw.style.background = dots[idx];
-    sw.onclick = (e) => {
-      e.stopPropagation();
-      cfg.current = cVal;
-      document.getElementById(cfg.dotId).style.background = dots[idx];
-      popup.style.display = 'none';
-      showToast("Color set", "info");
-    };
-    popup.appendChild(sw);
-  });
-  popup.style.display = 'flex';
 }
 
 function setupUIEvents() {
   document.getElementById('btn-toggle-cases').onclick = () => document.getElementById('case-sidebar').classList.toggle('open');
   document.getElementById('btn-close-sidebar').onclick = () => document.getElementById('case-sidebar').classList.remove('open');
-
-  document.getElementById('case-search-filter').oninput = (e) => renderSidebarList(e.target.value);
-
   document.getElementById('btn-case-notes-toggle').onclick = () => toggleNotesDrawer();
   document.getElementById('btn-close-notes').onclick = () => toggleNotesDrawer(false);
-
-  document.getElementById('btn-new-notepad').onclick = async () => {
-    if (!AppState.currentCase) {
-      showToast("Open a case first", "error");
-      return;
-    }
-    ensureNotepadsInitialized();
-    AppState.currentCase.notepads.push({
-      id: "np_" + Date.now(),
-      paperTheme: 'theme-white',
-      freeformNotes: [],
-      noteInks: []
-    });
-    currentNotepadIndex = AppState.currentCase.notepads.length - 1;
-    await dbSaveCase(AppState.currentCase);
-    updateNotepadManagerUI();
-    showToast(`Created Notepad ${currentNotepadIndex + 1}`, "success");
-  };
-
-  document.getElementById('btn-prev-notepad').onclick = () => {
-    if (!AppState.currentCase) return;
-    ensureNotepadsInitialized();
-    if (currentNotepadIndex > 0) {
-      currentNotepadIndex--;
-      updateNotepadManagerUI();
-    }
-  };
-
-  document.getElementById('btn-next-notepad').onclick = () => {
-    if (!AppState.currentCase) return;
-    ensureNotepadsInitialized();
-    if (currentNotepadIndex < AppState.currentCase.notepads.length - 1) {
-      currentNotepadIndex++;
-      updateNotepadManagerUI();
-    }
-  };
-
   document.getElementById('btn-board-toggle').onclick = () => toggleBoardPane();
   document.getElementById('btn-close-board').onclick = () => toggleBoardPane(false);
 
-  document.getElementById('note-paper-theme-select').onchange = async (e) => {
-    const theme = e.target.value;
-    document.getElementById('notes-free-canvas').className = `notes-body ${theme}`;
-    if (AppState.currentCase) {
-      ensureNotepadsInitialized();
-      const np = getActiveNotepad();
-      np.paperTheme = theme;
-      await dbSaveCase(AppState.currentCase);
-      showToast("Paper theme updated!", "success");
+  document.getElementById('notebook-selector').onchange = (e) => { AppState.activeNotebookId = e.target.value; renderNotebooksUI(); };
+  document.getElementById('btn-new-notebook').onclick = async () => {
+    const title = prompt("New notebook title:", "Notebook " + (AppState.currentCase.notebooks.length + 1));
+    if (title && title.trim()) {
+      ensureNotebookStructure();
+      const newNb = { id: 'nb_' + Date.now(), title: title.trim(), template: 'template-white-blank', snippets: [], inks: [] };
+      AppState.currentCase.notebooks.push(newNb); AppState.activeNotebookId = newNb.id;
+      await dbSaveCase(AppState.currentCase); renderNotebooksUI(); showToast("Notebook created!", "success");
     }
   };
 
-  document.getElementById('btn-note-tool-drag').onclick = () => {
-    currentNotepadTool = 'drag';
-    document.querySelectorAll('.notes-toolbar button').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-note-tool-drag').classList.add('active');
-    document.getElementById('notes-ink-layer').style.pointerEvents = 'none';
+  document.getElementById('notes-template-selector').onchange = async (e) => {
+    ensureNotebookStructure();
+    const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+    if (activeNb) { activeNb.template = e.target.value; await dbSaveCase(AppState.currentCase); renderNotebooksUI(); }
   };
-  document.getElementById('btn-note-tool-pen').onclick = () => {
-    currentNotepadTool = 'pen';
-    document.querySelectorAll('.notes-toolbar button').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-note-tool-pen').classList.add('active');
-    document.getElementById('notes-ink-layer').style.pointerEvents = 'auto';
-  };
-  document.getElementById('btn-note-tool-highlight').onclick = () => {
-    currentNotepadTool = 'highlight';
-    document.querySelectorAll('.notes-toolbar button').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-note-tool-highlight').classList.add('active');
-    document.getElementById('notes-ink-layer').style.pointerEvents = 'auto';
-  };
-  document.getElementById('btn-note-tool-underline').onclick = () => {
-    currentNotepadTool = 'underline';
-    document.querySelectorAll('.notes-toolbar button').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-note-tool-underline').classList.add('active');
-    document.getElementById('notes-ink-layer').style.pointerEvents = 'auto';
-  };
-  document.getElementById('btn-note-tool-eraser').onclick = () => {
-    currentNotepadTool = 'eraser';
-    document.querySelectorAll('.notes-toolbar button').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-note-tool-eraser').classList.add('active');
-    document.getElementById('notes-ink-layer').style.pointerEvents = 'auto';
-  };
+
+  document.getElementById('btn-note-tool-drag').onclick = () => { currentNoteTool = 'drag'; document.getElementById('notes-ink-layer').style.pointerEvents = 'none'; };
+  document.getElementById('btn-note-tool-pen').onclick = () => { currentNoteTool = 'pen'; document.getElementById('notes-ink-layer').style.pointerEvents = 'auto'; };
+  document.getElementById('btn-note-tool-eraser').onclick = () => { currentNoteTool = 'eraser'; document.getElementById('notes-ink-layer').style.pointerEvents = 'auto'; };
   document.getElementById('btn-note-clear-ink').onclick = async () => {
-    if (AppState.currentCase) {
-      const np = getActiveNotepad();
-      np.noteInks = [];
-      await dbSaveCase(AppState.currentCase);
-      redrawNotepadInk();
-      showToast("Notepad Ink Cleared", "info");
-    }
+    ensureNotebookStructure();
+    const activeNb = AppState.currentCase.notebooks.find(n => n.id === AppState.activeNotebookId);
+    if (activeNb) { activeNb.inks = []; await dbSaveCase(AppState.currentCase); redrawNotepadInk(); }
   };
 
-  document.getElementById('btn-toggle-scroll').onclick = () => {
-    isScrollLocked = !isScrollLocked;
-    const btn = document.getElementById('btn-toggle-scroll');
-    const pane = document.getElementById('pdf-pane');
-    if (isScrollLocked) {
-      pane.classList.add('scroll-locked');
-      btn.innerText = "🔒 Scroll: OFF";
-      btn.style.background = "#fee2e2";
-      btn.style.color = "var(--danger)";
-      showToast("Slide Mode Active (Scroll Locked)", "info");
-    } else {
-      pane.classList.remove('scroll-locked');
-      btn.innerText = "📜 Scroll: ON";
-      btn.style.background = "#eff6ff";
-      btn.style.color = "var(--primary)";
-      showToast("Continuous Scroll Active", "info");
-    }
-    renderAllContinuousPages();
-    scrollToPageIndex(AppState.currentPageIndex);
-  };
+  document.getElementById('btn-open-pdf').onclick = () => document.getElementById('pdf-file-input').click();
+  document.getElementById('pdf-file-input').onchange = (e) => handlePdfUpload(e.target.files);
 
-  document.getElementById('btn-dual-view').onclick = () => {
-    isDualViewActive = !isDualViewActive;
-    document.getElementById('btn-dual-view').classList.toggle('active', isDualViewActive);
-    renderAllContinuousPages();
-    scrollToPageIndex(AppState.currentPageIndex);
-    showToast(isDualViewActive ? "Dual-Page Spread Active" : "Single Page View Active", "info");
-  };
-
-  document.getElementById('btn-close-file').onclick = () => {
-    if (AppState.currentCase) {
-      AppState.currentCase = null;
-      showEmptyState();
-      updateActiveCaseBadge();
-      showToast("File closed from screen (Safe in memory)", "info");
-    }
-  };
-
-  document.getElementById('btn-auto-arrange-board').onclick = () => {
-    if (AppState.currentCase && AppState.currentCase.boardCards) {
-      AppState.currentCase.boardCards.forEach((c, idx) => {
-        c.x = 10;
-        c.y = 10 + idx * 145;
-      });
-      dbSaveCase(AppState.currentCase);
-      renderBoard();
-      showToast("Cards neatly stacked!", "success");
-    }
-  };
-
-  document.querySelectorAll('.board-filter-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.board-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentBoardFilter = btn.getAttribute('data-filter');
-      renderBoard();
-    };
-  });
-
-  // मजबूत और डायरेक्ट फाइल अपलोड बाइंडिंग
-  const pdfInputBtn = document.getElementById('btn-open-pdf');
-  const pdfFileInput = document.getElementById('pdf-file-input');
-
-  if (pdfInputBtn && pdfFileInput) {
-    pdfInputBtn.onclick = (e) => {
-      e.preventDefault();
-      pdfFileInput.click();
-    };
-    pdfFileInput.onchange = async (e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        await handlePdfUpload(e.target.files);
-        pdfFileInput.value = ''; 
-      }
-    };
-  }
-
-  document.getElementById('btn-prev-page').onclick = () => {
-    const step = isDualViewActive ? 2 : 1;
-    if (AppState.currentPageIndex > 0) { 
-      const targetIdx = Math.max(0, AppState.currentPageIndex - step);
-      scrollToPageIndex(targetIdx);
-    }
-  };
-  document.getElementById('btn-next-page').onclick = () => {
-    const step = isDualViewActive ? 2 : 1;
-    if (AppState.currentCase && AppState.currentCase.pages && AppState.currentPageIndex < AppState.currentCase.pages.length - 1) {
-      const targetIdx = Math.min(AppState.currentCase.pages.length - 1, AppState.currentPageIndex + step);
-      scrollToPageIndex(targetIdx);
-    }
-  };
-
-  document.getElementById('btn-delete-page').onclick = () => {
-    if (!AppState.currentCase || !AppState.currentCase.pages || AppState.currentCase.pages.length <= 1) {
-      showToast("Cannot delete the only page", "error");
-      return;
-    }
-    const curP = AppState.currentPageIndex + 1;
-    document.getElementById('delete-page-prompt-text').innerHTML = `Remove Page <strong>${curP}</strong> from case bundle?`;
-    document.getElementById('modal-delete-page').classList.add('open');
-  };
-
-  document.getElementById('btn-execute-delete-page').onclick = async () => {
-    if (!AppState.currentCase || !AppState.currentCase.pages) return;
-    const delIdx = AppState.currentPageIndex;
-    const deletedPage = AppState.currentCase.pages[delIdx];
-    
-    AppState.historyStack.push({ type: 'page_delete', index: delIdx, page: JSON.parse(JSON.stringify(deletedPage)) });
-    AppState.redoStack = [];
-    updateUndoRedoUI();
-
-    AppState.currentCase.pages.splice(delIdx, 1);
-    if (AppState.currentPageIndex >= AppState.currentCase.pages.length) {
-      AppState.currentPageIndex = Math.max(0, AppState.currentCase.pages.length - 1);
-    }
-    await dbSaveCase(AppState.currentCase);
-    document.getElementById('modal-delete-page').classList.remove('open');
-    renderSidebarList();
-    renderAllContinuousPages();
-    scrollToPageIndex(AppState.currentPageIndex);
-    showToast("Page deleted", "info");
-  };
-
-  document.getElementById('btn-execute-delete-case').onclick = async () => {
-    if (AppState.pendingDeleteCaseId) {
-      const caseId = AppState.pendingDeleteCaseId;
-      await dbDeleteCase(caseId);
-      document.getElementById('modal-confirm-delete').classList.remove('open');
-      if (AppState.currentCase && AppState.currentCase.id === caseId) {
-        await loadDefaultOrLastCase();
-      } else {
-        renderSidebarList();
-      }
-      showToast("Case removed", "info");
-      AppState.pendingDeleteCaseId = null;
-    }
-  };
-
-  document.getElementById('btn-insert-page-modal').onclick = () => {
-    if (!AppState.currentCase) { showToast("Open a case first", "error"); return; }
-    document.getElementById('modal-insert-page').classList.add('open');
-  };
-  document.getElementById('btn-action-insert-scan').onclick = () => document.getElementById('doc-scan-input').click();
-  document.getElementById('doc-scan-input').onchange = (e) => {
-    if (e.target.files && e.target.files[0]) handleInsertImageOrScan(e.target.files[0]);
-  };
-  document.getElementById('btn-action-insert-blank').onclick = handleInsertBlankNotePage;
-
-  document.getElementById('btn-page-go').onclick = () => {
-    if (!AppState.currentCase || !AppState.currentCase.pages) return;
-    const val = parseInt(document.getElementById('page-num-input').value, 10);
-    if (!isNaN(val) && val >= 1 && val <= AppState.currentCase.pages.length) {
-      scrollToPageIndex(val - 1);
-    }
-  };
-
-  document.getElementById('btn-zoom-in').onclick = () => { 
-    AppState.zoom += 0.15; 
-    renderAllContinuousPages(); 
-    scrollToPageIndex(AppState.currentPageIndex);
-  };
-  document.getElementById('btn-zoom-out').onclick = () => { 
-    if(AppState.zoom > 0.4) { 
-      AppState.zoom -= 0.15; 
-      renderAllContinuousPages(); 
-      scrollToPageIndex(AppState.currentPageIndex);
-    } 
-  };
-  document.getElementById('btn-fit-width').onclick = () => {
-    AppState.zoom = 1.0;
-    renderAllContinuousPages();
-    scrollToPageIndex(AppState.currentPageIndex);
-  };
-
-  ['snip', 'pan', 'highlight', 'underline', 'pen', 'mask', 'laser', 'white', 'eraser'].forEach(t => {
+  ['select', 'pan', 'highlight', 'underline', 'pen', 'crop', 'magic', 'laser', 'white', 'eraser'].forEach(t => {
     const btn = document.getElementById('tool-' + t);
     if (!btn) return;
     btn.onclick = () => {
       document.querySelectorAll('#floating-tablet-bar button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      AppState.currentTool = t;
-
-      if (['pen', 'highlight', 'underline'].includes(t)) renderPalettePopup(t);
-      else document.getElementById('tool-palette-popup').style.display = 'none';
-
-      const annotCanvases = document.querySelectorAll('.annotation-canvas-item');
-      const textLayers = document.querySelectorAll('.textLayer');
-      
-      if (t === 'snip') {
-        annotCanvases.forEach(ac => ac.style.pointerEvents = 'auto');
-        textLayers.forEach(tl => {
-          tl.style.pointerEvents = 'auto';
-          tl.style.userSelect = 'text';
-        });
-      } else if (t === 'pan') {
-        annotCanvases.forEach(ac => ac.style.pointerEvents = 'none');
-        textLayers.forEach(tl => {
-          tl.style.pointerEvents = 'none';
-          tl.style.userSelect = 'none';
-        });
-      } else {
-        annotCanvases.forEach(ac => ac.style.pointerEvents = 'auto');
-        textLayers.forEach(tl => {
-          tl.style.pointerEvents = 'none';
-          tl.style.userSelect = 'none';
-        });
-      }
+      btn.classList.add('active'); AppState.currentTool = t;
     };
   });
 
-  document.getElementById('btn-add-manual-card').onclick = () => {
-    document.getElementById('card-input-title').value = '';
-    document.getElementById('card-input-text').value = '';
-    AppState.selectedRect = null;
-    document.getElementById('modal-card').classList.add('open');
-  };
-
-  document.getElementById('btn-save-card').onclick = async () => {
-    const type = document.getElementById('card-input-type').value;
-    const title = document.getElementById('card-input-title').value.trim() || "Research Fact";
-    const text = document.getElementById('card-input-text').value.trim();
-    if (!text) { showToast("Card content required", "error"); return; }
-
-    AppState.currentCase.boardCards.push({
-      id: "card_" + Date.now(), type, title, text,
-      pageId: AppState.currentCase.pages[AppState.currentPageIndex]?.id,
-      targetRect: AppState.selectedRect,
-      x: 10, y: 10 + (AppState.currentCase.boardCards.length * 145)
-    });
-    await dbSaveCase(AppState.currentCase);
-    document.getElementById('modal-card').classList.remove('open');
-    toggleBoardPane(true);
-    renderBoard();
-  };
-
-  document.getElementById('btn-undo').onclick = handleUndoAction;
-  document.getElementById('btn-redo').onclick = handleRedoAction;
-
-  document.getElementById('btn-search-open').onclick = () => document.getElementById('modal-search').classList.add('open');
-  document.getElementById('btn-run-search').onclick = () => runCaseSearch(document.getElementById('search-query-input').value);
-  document.getElementById('search-query-input').onkeyup = (e) => { if(e.key === 'Enter') runCaseSearch(e.target.value); };
-
-  document.getElementById('btn-export-modal').onclick = () => document.getElementById('modal-export').classList.add('open');
-  document.getElementById('btn-execute-export').onclick = exportFullDocument;
-
-  document.getElementById('btn-new-case').onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    document.getElementById('case-input-name').value = '';
-    document.getElementById('case-input-num').value = '';
-    document.getElementById('hearing-date-input').value = '';
-    document.getElementById('hearing-time-input').value = '';
-    document.getElementById('hearing-judge-input').value = '';
-    document.getElementById('hearing-court-input').value = '';
-    document.getElementById('hearing-client-input').value = '';
-    document.getElementById('hearing-adv-input').value = '';
-    document.getElementById('hearing-notes-input').value = '';
-    document.getElementById('modal-case').classList.add('open');
-    setTimeout(() => document.getElementById('case-input-name').focus(), 100);
-  };
-
-  document.getElementById('btn-save-case').onclick = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  document.getElementById('btn-new-case').onclick = () => document.getElementById('modal-case').classList.add('open');
+  document.getElementById('btn-save-case').onclick = async () => {
     const name = document.getElementById('case-input-name').value.trim() || "Untitled Case";
-    const num = document.getElementById('case-input-num').value.trim() || "";
-    
-    AppState.currentCase = {
-      id: "case_" + Date.now(),
-      name: name,
-      number: num,
-      notepads: [{ id: "np_" + Date.now(), paperTheme: 'theme-white', freeformNotes: [], noteInks: [] }],
-      docs: [], pages: [], boardCards: [], boardLinks: [], hearingHistory: []
-    };
-
-    currentNotepadIndex = 0;
-    await dbSaveCase(AppState.currentCase);
+    AppState.currentCase = { id: "case_" + Date.now(), name, number: document.getElementById('case-input-num').value.trim(), docs: [], pages: [], boardCards: [], notebooks: [] };
+    ensureNotebookStructure(); await dbSaveCase(AppState.currentCase);
     document.getElementById('modal-case').classList.remove('open');
-    updateActiveCaseBadge();
-    renderSidebarList();
-    renderBoard();
-    renderAllContinuousPages();
-    updateNotepadManagerUI();
-    showToast(`Case Created: ${name}`, "success");
+    updateActiveCaseBadge(); renderSidebarList(); renderAllContinuousPages(); renderNotebooksUI();
+    showToast("Case Created Successfully", "success");
   };
 
   document.querySelectorAll('.btn-modal-close, .modal-close').forEach(b => {
-    b.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
-    };
-  });
-
-  window.addEventListener('resize', () => {
-    if (AppState.currentCase && AppState.currentCase.pages && AppState.currentCase.pages.length > 0) {
-      renderAllContinuousPages();
-      if (isNotesDrawerOpen) initNotepadCanvasDimensions();
-    }
+    b.onclick = () => document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
   });
 }
 
