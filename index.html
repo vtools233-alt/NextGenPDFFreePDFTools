@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NextGen Legal Studio - V36 Ultimate Touch Fix</title>
+
+<!-- PDF.js & PDF-Lib CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+
+<style>
+:root {
+  --primary: #1e3a8a;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --accent: #2563eb;
+  --accent-gold: #d97706;
+  --bg-main: #1e293b;
+  --bg-panel: #ffffff;
+  --bg-board: #f8fafc;
+  --text-dark: #0f172a;
+  --text-muted: #64748b;
+  --border: #cbd5e1;
+  --border-light: #e2e8f0;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-tap-highlight-color: transparent; 
+}
+
+.legal-studio-app {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  height: 760px;
+  max-height: 92vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 15px;
+}
+
+/* Force Clickable Buttons Everywhere */
+button, input, select, textarea {
+  pointer-events: auto !important;
+  cursor: pointer;
+  z-index: 500;
+}
+
+#app-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  z-index: 999;
+  gap: 6px;
+  flex-shrink: 0;
+  position: relative;
+}
+.header-row-1 { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.brand-title { font-size: 13px; font-weight: 700; color: #fff; background: #dc2626; padding: 3px 8px; border-radius: 6px; }
+.brand-tag { font-size: 9px; background: #f59e0b; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 800; }
+.engine-badge { font-size: 9px; background: #0f172a; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 800; }
+#active-case-badge { font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 3px 8px; border-radius: 5px; }
+
+.header-row-2 {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; overflow-x: auto;
+}
+.action-cluster { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+
+#floating-tablet-bar {
+  position: absolute;
+  top: 78px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 4px 8px;
+  display: flex; align-items: center; gap: 4px;
+  z-index: 998;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 98%; overflow-x: auto;
+}
+#floating-tablet-bar button {
+  border-radius: 18px; padding: 4px 9px; background: transparent; border: none; font-size: 11px; font-weight: 600;
+}
+#floating-tablet-bar button.active { background: var(--primary) !important; color: #fff !important; }
+
+#workspace {
+  flex: 1; min-height: 0; display: flex; flex-direction: row; position: relative; overflow: hidden; background: #1e293b;
+}
+
+#pdf-pane {
+  flex: 1; min-width: 0; height: 100%; position: relative; background: #1e293b;
+  overflow-y: scroll; overflow-x: auto; padding: 65px 10px 40px 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#pages-container { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; position: relative; }
+
+.page-viewport-item {
+  position: relative; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.35); border-radius: 2px; flex-shrink: 0; overflow: hidden;
+}
+.pdf-canvas-item { display: block; width: 100%; height: 100%; }
+.annotation-canvas-item { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; }
+.textLayer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.35; z-index: 25; pointer-events: auto; }
+
+/* DRAWERS */
+#case-notes-drawer, #board-pane {
+  width: 0; flex-shrink: 0; transition: width 0.2s ease; overflow: hidden; position: absolute; right: 0; top: 0; bottom: 0; z-index: 9999; background: #fff;
+}
+#case-notes-drawer.open, #board-pane.open { width: 55% !important; min-width: 300px; box-shadow: -4px 0 15px rgba(0,0,0,0.3); }
+
+.notes-header, .board-header {
+  padding: 8px 12px; background: #f1f5f9; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 11px; color: var(--primary);
+}
+.notes-body { flex: 1; position: relative; overflow-y: auto; padding: 8px; min-height: 2000px; }
+
+#bottom-bar {
+  height: 38px; background: #fff; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 8px; z-index: 999; flex-shrink: 0;
+}
+.page-nav-controls { display: flex; align-items: center; gap: 3px; }
+#page-num-input { width: 48px; text-align: center; padding: 3px; font-weight: 700; }
+
+.modal-backdrop {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.75); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 10px;
+}
+.modal-backdrop.open { display: flex !important; }
+.modal-box { background: #fff; width: 100%; max-width: 480px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; padding: 12px; gap: 8px; }
+
+#toast-container { position: absolute; bottom: 44px; right: 8px; z-index: 20000; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.toast { background: #1e293b; color: #fff; padding: 6px 10px; border-radius: 5px; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<div class="legal-studio-app" id="main-app-container">
+  <header id="app-header">
+    <div class="header-row-1">
+      <div class="brand-title"><span>Legal Studio</span></div>
+      <span class="brand-tag">V NEXTGEN PRO</span>
+      <span class="engine-badge">Global Advocates' Choice</span>
+      <div id="active-case-badge">No Case Open</div>
+    </div>
+    
+    <div class="header-row-2">
+      <div class="action-cluster">
+        <button id="btn-toggle-cases" class="primary">Cases</button>
+        <button id="btn-new-case" class="primary">+ Case</button>
+        <button id="btn-open-pdf" class="primary">Open PDF Brief</button>
+        <input type="file" id="pdf-file-input" accept="application/pdf" multiple style="display:none;">
+        <button id="btn-insert-page-modal" class="primary" style="background:#059669;">+ Insert Page</button>
+        <input type="file" id="doc-scan-input" accept="image/*,application/pdf" capture="environment" style="display:none;">
+      </div>
+      
+      <div class="action-cluster">
+        <button id="btn-case-notes-toggle" class="primary" style="background:#854d0e;">📝 Notes</button>
+        <button id="btn-board-toggle" class="primary" style="background:#0284c7;">📋 Board</button>
+        <button id="btn-dual-view">📖 Dual View</button>
+        <button id="btn-close-file" class="warning">Close</button>
+        <button id="btn-export-modal">Export</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- FLOATING TOOLBAR -->
+  <div id="floating-tablet-bar">
+    <button id="tool-select" class="active">🔤 Select</button>
+    <button id="tool-pan">✋ Pan</button>
+    <button id="tool-highlight">Highlight</button>
+    <button id="tool-underline">Underline</button>
+    <button id="tool-pen">Pen</button>
+    <button id="tool-crop">✂️ Crop</button>
+    <button id="tool-magic">🪄 Magic Link</button>
+    <button id="tool-laser">🔴 Laser</button>
+    <button id="tool-eraser">Eraser</button>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div id="workspace">
+    <aside id="case-sidebar" style="position:absolute; left:0; top:0; bottom:0; width:280px; background:#fff; z-index:999; transform:translateX(-100%); transition:transform 0.2s;">
+      <div class="notes-header"><strong>📁 Daily Cases</strong><button id="btn-close-sidebar" class="danger">✕</button></div>
+      <div style="padding:6px;"><input type="text" id="case-search-filter" placeholder="Search case..." style="width:100%;"></div>
+      <div id="case-list-container" style="padding:6px; overflow-y:auto; max-height:85vh;"></div>
+    </aside>
+
+    <main id="pdf-pane">
+      <div id="empty-workspace-state" class="active" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#fff; text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">📁</div>
+        <strong style="font-size:14px; margin-bottom:4px;">No Case Open on Screen</strong>
+        <p style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Create a case or load a PDF to begin.</p>
+        <button class="primary" onclick="document.getElementById('modal-case').classList.add('open')">+ Create New Case</button>
+      </div>
+      <div id="pages-container"></div>
+    </main>
+
+    <!-- NOTEPAD DRAWER -->
+    <aside id="case-notes-drawer">
+      <div class="notes-header">
+        <span>📝 Notebooks</span>
+        <button id="btn-close-notes" class="danger">✕ Close</button>
+      </div>
+      <div class="notes-body" id="notes-free-canvas">
+        <p style="font-size:11px; color:#64748b;">Notepad active. Drag items here or write notes.</p>
+      </div>
+    </aside>
+
+    <!-- BOARD -->
+    <aside id="board-pane">
+      <div class="board-header">
+        <span>📋 Research Board</span>
+        <button id="btn-close-board" class="danger">✕ Close</button>
+      </div>
+      <div style="padding:10px;" id="board-canvas-area"></div>
+    </aside>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <footer id="bottom-bar">
+    <div class="page-nav-controls">
+      <button id="btn-prev-page">◀</button>
+      <input type="number" id="page-num-input" min="1" value="1">
+      <button id="btn-page-go" class="primary">Go</button>
+      <span>/ <span id="total-page-count">0</span></span>
+      <button id="btn-next-page">▶</button>
+    </div>
+    <div class="page-nav-controls">
+      <button id="btn-zoom-out">−</button>
+      <span id="zoom-val-lbl" style="font-size:11px;">100%</span>
+      <button id="btn-zoom-in">+</button>
+    </div>
+  </footer>
+
+  <!-- MODALS -->
+  <div class="modal-backdrop" id="modal-case">
+    <div class="modal-box">
+      <strong>📁 Case Setup</strong>
+      <label>Case Name</label><input type="text" id="case-input-name" placeholder="e.g. A vs B">
+      <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:8px;">
+        <button class="modal-close" onclick="document.getElementById('modal-case').classList.remove('open')">Cancel</button>
+        <button class="primary" id="btn-save-case">Save Case</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let AppState = { db: null, currentCase: null, currentPageIndex: 0, zoom: 1.0, currentTool: 'select', docs: [], pages: [] };
+const DB_NAME = "LegalStudio_V36_DB";
+
+function initDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("cases")) db.createObjectStore("cases", { keyPath: "id" });
+      if (!db.objectStoreNames.contains("blobs")) db.createObjectStore("blobs", { keyPath: "blobKey" });
+    };
+    req.onsuccess = () => { AppState.db = req.result; resolve(req.result); };
+  });
+}
+
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await initDB();
+  setupUIEvents();
+  loadLastCase();
+});
+
+function loadLastCase() {
+  const tx = AppState.db.transaction(["cases"], "readonly");
+  tx.objectStore("cases").getAll().onsuccess = (e) => {
+    const list = e.target.result || [];
+    if (list.length > 0) {
+      AppState.currentCase = list[0];
+      updateBadge();
+      renderPages();
+    }
+  };
+}
+
+function updateBadge() {
+  const b = document.getElementById('active-case-badge');
+  if (AppState.currentCase) b.innerText = AppState.currentCase.name;
+}
+
+function renderPages() {
+  const cont = document.getElementById('pages-container');
+  cont.innerHTML = '';
+  if (!AppState.currentCase || !AppState.currentCase.pages || AppState.currentCase.pages.length === 0) return;
+  document.getElementById('empty-workspace-state').classList.remove('active');
+  document.getElementById('total-page-count').innerText = AppState.currentCase.pages.length;
+  
+  // Render first page as sample
+  renderPageItem(0);
+}
+
+async function renderPageItem(idx) {
+  const page = AppState.currentCase.pages[idx];
+  const cont = document.getElementById('pages-container');
+  const wrap = document.createElement('div');
+  wrap.className = 'page-viewport-item';
+  wrap.innerHTML = `<canvas id="pdf-canvas-${idx}"></canvas>`;
+  cont.appendChild(wrap);
+
+  const docMeta = AppState.currentCase.docs.find(d => d.id === page.docId);
+  const tx = AppState.db.transaction(["blobs"], "readonly");
+  const req = tx.objectStore("blobs").get(docMeta.blobKey);
+  req.onsuccess = async () => {
+    const pdfDoc = await pdfjsLib.getDocument({ data: req.result.data }).promise;
+    const pdfPage = await pdfDoc.getPage(page.pageNum);
+    const viewport = pdfPage.getViewport({ scale: AppState.zoom });
+    const canvas = document.getElementById(`pdf-canvas-${idx}`);
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  };
+}
+
+function setupUIEvents() {
+  document.getElementById('btn-case-notes-toggle').onclick = () => {
+    document.getElementById('case-notes-drawer').classList.toggle('open');
+  };
+  document.getElementById('btn-close-notes').onclick = () => {
+    document.getElementById('case-notes-drawer').classList.remove('open');
+  };
+  document.getElementById('btn-board-toggle').onclick = () => {
+    document.getElementById('board-pane').classList.toggle('open');
+  };
+  document.getElementById('btn-close-board').onclick = () => {
+    document.getElementById('board-pane').classList.remove('open');
+  };
+  document.getElementById('btn-toggle-cases').onclick = () => {
+    document.getElementById('case-sidebar').classList.toggle('open');
+  };
+  document.getElementById('btn-close-sidebar').onclick = () => {
+    document.getElementById('case-sidebar').classList.remove('open');
+  };
+
+  document.getElementById('btn-open-pdf').onclick = () => document.getElementById('pdf-file-input').click();
+  document.getElementById('pdf-file-input').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showToast("Loading PDF...");
+    const buffer = await file.arrayBuffer();
+    const bKey = "blob_" + Date.now();
+    
+    const tx = AppState.db.transaction(["blobs"], "readwrite");
+    tx.objectStore("blobs").put({ blobKey: bKey, data: buffer });
+    
+    const pdfDoc = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const docId = "doc_" + Date.now();
+    
+    AppState.currentCase = {
+      id: "case_" + Date.now(),
+      name: file.name,
+      docs: [{ id: docId, name: file.name, blobKey: bKey }],
+      pages: []
+    };
+    
+    for (let p = 1; p <= pdfDoc.numPages; p++) {
+      AppState.currentCase.pages.push({ id: "p_" + p, kind: 'pdf', docId, pageNum: p });
+    }
+    
+    const tx2 = AppState.db.transaction(["cases"], "readwrite");
+    tx2.objectStore("cases").put(AppState.currentCase);
+    
+    updateBadge();
+    renderPages();
+    showToast("PDF Loaded!");
+  };
+
+  document.getElementById('btn-save-case').onclick = async () => {
+    const name = document.getElementById('case-input-name').value || "New Case";
+    AppState.currentCase = { id: "case_" + Date.now(), name, docs: [], pages: [] };
+    const tx = AppState.db.transaction(["cases"], "readwrite");
+    tx.objectStore("cases").put(AppState.currentCase);
+    document.getElementById('modal-case').classList.remove('open');
+    updateBadge();
+    showToast("Case Created!");
+  };
+}
+</script>
+</body>
+  </html>
