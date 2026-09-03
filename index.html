@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>PDF Reader + Notepad</title>
+
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js">
+    </script>
+
+    <style>
+        /* ---------- RESET & GLOBAL - LIGHT THEME ---------- */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #ffffff;
+            color: #1d1d1f;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ---------- TOOLBAR - LIGHT THEME ---------- */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f7;
+            border-bottom: 1px solid #d2d2d7;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 100;
+            position: relative;
+        }
+        #toolbar button {
+            background: #ffffff;
+            border: 1px solid #d2d2d7;
+            color: #1d1d1f;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+            touch-action: manipulation;
+            white-space: nowrap;
+        }
+        #toolbar button:hover {
+            background: #e8e8ed;
+            border-color: #b0b0b8;
+        }
+        #toolbar button:active {
+            background: #d2d2d7;
+        }
+        #toolbar button.active {
+            background: #007aff;
+            border-color: #007aff;
+            color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25);
+        }
+        #toolbar button.active:hover {
+            background: #0066d9;
+            border-color: #0066d9;
+        }
+        #toolbar .spacer {
+            flex: 1;
+            min-width: 10px;
+        }
+        #toolbar label {
+            font-size: 13px;
+            color: #1d1d1f;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #toolbar select {
+            background: #ffffff;
+            border: 1px solid #d2d2d7;
+            color: #1d1d1f;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+        #toolbar select:focus {
+            border-color: #007aff;
+        }
+        #file-upload {
+            display: none;
+        }
+        .file-label {
+            background: #ffffff;
+            border: 1px solid #d2d2d7;
+            color: #1d1d1f;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.15s;
+            touch-action: manipulation;
+        }
+        .file-label:hover {
+            background: #e8e8ed;
+        }
+
+        /* ---------- MAIN SPLIT LAYOUT ---------- */
+        #main-container {
+            display: flex;
+            height: calc(100vh - 52px);
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            background: #ffffff;
+        }
+
+        /* ---------- PDF CONTAINER - FULL WIDTH BY DEFAULT ---------- */
+        #pdf-container {
+            flex: 1 1 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #f5f5f7;
+            padding: 12px 16px;
+            position: relative;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            transition: flex 0.25s ease;
+        }
+        #pdf-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #pdf-container::-webkit-scrollbar-track {
+            background: #f5f5f7;
+        }
+        #pdf-container::-webkit-scrollbar-thumb {
+            background: #c6c6c8;
+            border-radius: 4px;
+        }
+        #pdf-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8ac;
+        }
+
+        /* ---------- PDF PAGE CONTAINER - LIGHT THEME ---------- */
+        .pdf-page-container {
+            position: relative;
+            min-height: 800px;
+            width: 100%;
+            display: block;
+            margin-bottom: 18px;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e5ea;
+        }
+        .pdf-page-container .pdf-canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #ffffff;
+        }
+        .pdf-page-container .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+            touch-action: none;
+            display: block;
+            background: transparent;
+        }
+        .pdf-page-container .page-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8e8e93;
+            font-size: 14px;
+            pointer-events: none;
+            background: #f5f5f7;
+            min-height: 800px;
+        }
+
+        /* ---------- NOTEPAD CONTAINER - HIDDEN BY DEFAULT ---------- */
+        #notepad-container {
+            flex: 0 0 0%;
+            height: 100%;
+            background: #ffffff;
+            border-left: 1px solid #e5e5ea;
+            display: none;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+            transition: flex 0.25s ease, display 0.25s ease;
+            overflow: hidden;
+        }
+        #notepad-container.visible {
+            display: flex;
+            flex: 1 1 45%;
+            min-width: 280px;
+        }
+        #notepad-container .notepad-header {
+            padding: 10px 16px;
+            background: #f5f5f7;
+            border-bottom: 1px solid #e5e5ea;
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1d1d1f;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #notepad-container .notepad-header span {
+            font-weight: 400;
+            font-size: 12px;
+            color: #8e8e93;
+        }
+        #notepad-textarea {
+            flex: 1;
+            width: 100%;
+            resize: none;
+            border: none;
+            outline: none;
+            padding: 20px 24px;
+            font-size: 15px;
+            line-height: 32px;
+            font-family: -apple-system, 'Segoe UI', Roboto, system-ui, sans-serif;
+            color: #1d1d1f;
+            background: #ffffff;
+            min-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            transition: background 0.2s;
+        }
+        #notepad-textarea::placeholder {
+            color: #8e8e93;
+            font-style: italic;
+        }
+        #notepad-textarea::-webkit-scrollbar {
+            width: 5px;
+        }
+        #notepad-textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #notepad-textarea::-webkit-scrollbar-thumb {
+            background: #c6c6c8;
+            border-radius: 4px;
+        }
+
+        /* ============================================================
+               NOTEPAD THEMES — LIGHT BACKGROUNDS
+               ============================================================ */
+
+        /* PLAIN (default) */
+        #notepad-textarea.theme-plain {
+            background: #ffffff;
+            color: #1d1d1f;
+            line-height: 32px;
+            padding-top: 16px;
+        }
+
+        /* RED LINED — light background with subtle red lines */
+        #notepad-textarea.theme-red-lined {
+            background: repeating-linear-gradient(#ffffff, #ffffff 31px,
+                    rgba(255, 59, 48, 0.3) 31px,
+                    rgba(255, 59, 48, 0.3) 32px);
+            line-height: 32px;
+            padding-top: 32px;
+            color: #1d1d1f;
+        }
+
+        /* PURPLE LINED — light background with subtle purple lines */
+        #notepad-textarea.theme-purple-lined {
+            background: repeating-linear-gradient(#ffffff, #ffffff 31px,
+                    rgba(175, 82, 222, 0.3) 31px,
+                    rgba(175, 82, 222, 0.3) 32px);
+            line-height: 32px;
+            padding-top: 32px;
+            color: #1d1d1f;
+        }
+
+        /* DOT GRID — light background with subtle dark dots */
+        #notepad-textarea.theme-dot-grid {
+            background-color: #ffffff;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 0);
+            background-size: 24px 24px;
+            color: #1d1d1f;
+            line-height: 32px;
+            padding-top: 16px;
+        }
+
+        /* ---------- RESIZER BAR - LIGHT THEME ---------- */
+        #resizer {
+            flex: 0 0 0%;
+            background: #e5e5ea;
+            cursor: col-resize;
+            position: relative;
+            z-index: 50;
+            pointer-events: auto !important;
+            touch-action: none !important;
+            transition: background 0.15s, flex 0.25s ease;
+            border-left: 1px solid #d2d2d7;
+            border-right: 1px solid #d2d2d7;
+            display: none;
+            width: 0;
+        }
+        #resizer.visible {
+            display: block;
+            flex: 0 0 6px;
+            width: 6px;
+        }
+        #resizer:hover,
+        #resizer.active {
+            background: #007aff;
+            border-color: #007aff;
+        }
+        #resizer::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 30px;
+            background: #c6c6c8;
+            border-radius: 2px;
+            opacity: 0.6;
+            transition: background 0.15s;
+        }
+        #resizer:hover::after,
+        #resizer.active::after {
+            background: #ffffff;
+            opacity: 1;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            #toolbar {
+                padding: 6px 10px;
+                gap: 5px;
+            }
+            #toolbar button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            .file-label {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+            #toolbar select {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            #pdf-container {
+                padding: 8px 10px;
+            }
+            .pdf-page-container {
+                min-height: 500px;
+            }
+            #notepad-textarea {
+                padding: 14px 16px;
+                font-size: 14px;
+            }
+            #notepad-container.visible {
+                flex: 1 1 50%;
+                min-width: 200px;
+            }
+        }
+        @media (max-width: 480px) {
+            #toolbar button {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            .file-label {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            .pdf-page-container {
+                min-height: 380px;
+            }
+            #notepad-textarea {
+                padding: 10px 12px;
+                font-size: 13px;
+                line-height: 28px;
+            }
+            #notepad-textarea.theme-red-lined,
+            #notepad-textarea.theme-purple-lined {
+                line-height: 28px;
+                padding-top: 28px;
+                background-size: 100% 28px;
+            }
+            #notepad-container.visible {
+                flex: 1 1 55%;
+                min-width: 160px;
+            }
+        }
+
+        /* ---------- SCROLLBAR FIX FOR FIREFOX ---------- */
+        #pdf-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c6c6c8 #f5f5f7;
+        }
+
+        /* ---------- UTILITY ---------- */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====== TOOLBAR - LIGHT THEME ====== -->
+    <div id="toolbar">
+        <button id="tool-select" class="active" data-tool="select">🔍 Select</button>
+        <button id="tool-pen" data-tool="pen">🖊 Pen</button>
+        <button id="tool-highlighter" data-tool="highlighter">🖍 Highlighter</button>
+        <button id="tool-eraser" data-tool="eraser">🧹 Eraser</button>
+
+        <span class="spacer"></span>
+
+        <!-- Toggle Notes button -->
+        <button id="toggle-notes">📝 Notes</button>
+
+        <label>
+            Theme
+            <select id="theme-select">
+                <option value="plain">Plain</option>
+                <option value="red-lined">Red Lined</option>
+                <option value="purple-lined">Purple Lined</option>
+                <option value="dot-grid">Dot Grid</option>
+            </select>
+        </label>
+
+        <label class="file-label" for="file-upload">📄 Load PDF</label>
+        <input type="file" id="file-upload" accept=".pdf" />
+    </div>
+
+    <!-- ====== MAIN SPLIT ====== -->
+    <div id="main-container">
+
+        <!-- PDF SIDE (full width by default) -->
+        <div id="pdf-container">
+            <!-- Pages injected here -->
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8e8e93;font-size:16px;text-align:center;padding:20px;">
+                <div>
+                    <div style="font-size:48px;margin-bottom:12px;">📄</div>
+                    <div>Load a PDF to get started</div>
+                    <div style="font-size:13px;color:#aeaeb2;margin-top:8px;">Pages will render as you scroll</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESIZER (hidden by default) -->
+        <div id="resizer" role="separator" aria-label="Resize panes"></div>
+
+        <!-- NOTEPAD SIDE (hidden by default) -->
+        <div id="notepad-container">
+            <div class="notepad-header">
+                <span>📝 Notepad</span>
+                <span id="word-count">0 words</span>
+            </div>
+            <textarea id="notepad-textarea" class="theme-plain" placeholder="Write your notes here…" spellcheck="true"></textarea>
+        </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ====== JAVASCRIPT ====== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ---------- PDF.js CONFIG ----------
+            const pdfjsLib = window.pdfjsLib;
+            if (pdfjsLib) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+            }
+
+            // ---------- DOM REFS ----------
+            const pdfContainer = document.getElementById('pdf-container');
+            const notepadContainer = document.getElementById('notepad-container');
+            const notepadTextarea = document.getElementById('notepad-textarea');
+            const resizer = document.getElementById('resizer');
+            const fileInput = document.getElementById('file-upload');
+            const themeSelect = document.getElementById('theme-select');
+            const wordCountEl = document.getElementById('word-count');
+            const toggleNotesBtn = document.getElementById('toggle-notes');
+
+            const toolSelect = document.getElementById('tool-select');
+            const toolPen = document.getElementById('tool-pen');
+            const toolHighlighter = document.getElementById('tool-highlighter');
+            const toolEraser = document.getElementById('tool-eraser');
+
+            // ---------- STATE ----------
+            let currentTool = 'select'; // DEFAULT: select (inactive pen)
+            let pdfDoc = null;
+            let pageData = []; // { container, pdfCanvas, overlayCanvas, pageNum, rendered, ctx, width, height, placeholder }
+            let observer = null;
+
+            // Drawing state
+            let isDrawing = false;
+            let lastX = 0,
+                lastY = 0;
+            let activeCanvas = null;
+            let activeCtx = null;
+
+            // Resizer state
+            let isResizing = false;
+            let notesVisible = false;
+
+            // ---------- TOGGLE NOTES ----------
+            function toggleNotes() {
+                notesVisible = !notesVisible;
+                if (notesVisible) {
+                    notepadContainer.classList.add('visible');
+                    resizer.classList.add('visible');
+                    // Adjust PDF flex to make room
+                    pdfContainer.style.flex = '1 1 55%';
+                    // Restore saved split if available
+                    try {
+                        const saved = localStorage.getItem('split-percent');
+                        if (saved) {
+                            const pct = parseFloat(saved);
+                            if (pct >= 18 && pct <= 82) {
+                                pdfContainer.style.flex = '0 0 ' + pct + '%';
+                            }
+                        }
+                    } catch (_) { /* ignore */ }
+                    toggleNotesBtn.textContent = '📝 Hide Notes';
+                } else {
+                    notepadContainer.classList.remove('visible');
+                    resizer.classList.remove('visible');
+                    pdfContainer.style.flex = '1 1 100%';
+                    toggleNotesBtn.textContent = '📝 Notes';
+                    // Save the current split percentage before hiding
+                    try {
+                        const flex = pdfContainer.style.flex || '1 1 100%';
+                        const match = flex.match(/(\d+(?:\.\d+)?)/);
+                        if (match) {
+                            localStorage.setItem('split-percent', match[1]);
+                        }
+                    } catch (_) { /* ignore */ }
+                }
+                // Re-render visible pages after layout change
+                setTimeout(() => {
+                    renderVisiblePages();
+                    pageData.forEach(p => {
+                        if (p.rendered) {
+                            sizeCanvas(p);
+                        }
+                    });
+                }, 300);
+            }
+
+            toggleNotesBtn.addEventListener('click', toggleNotes);
+
+            // ---------- TOOL STATE MANAGEMENT ----------
+            function setTool(tool) {
+                currentTool = tool;
+                [toolSelect, toolPen, toolHighlighter, toolEraser].forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tool === tool);
+                });
+                const cursor = (tool === 'pen' || tool === 'highlighter') ? 'crosshair' :
+                    (tool === 'eraser') ? 'not-allowed' : 'default';
+                pageData.forEach(p => {
+                    if (p.overlayCanvas) {
+                        p.overlayCanvas.style.cursor = cursor;
+                    }
+                });
+                if (tool === 'eraser') {
+                    clearAllDrawings();
+                    setTool('select');
+                }
+            }
+
+            function clearAllDrawings() {
+                pageData.forEach(p => {
+                    if (p.ctx && p.overlayCanvas) {
+                        p.ctx.clearRect(0, 0, p.overlayCanvas.width, p.overlayCanvas.height);
+                    }
+                });
+                saveDrawingsToStorage();
+            }
+
+            // ---------- TOOLBAR EVENTS ----------
+            toolSelect.addEventListener('click', () => setTool('select'));
+            toolPen.addEventListener('click', () => setTool('pen'));
+            toolHighlighter.addEventListener('click', () => setTool('highlighter'));
+            toolEraser.addEventListener('click', () => setTool('eraser'));
+
+            // Force default: 'select' (pen inactive)
+            setTool('select');
+
+            // ---------- NOTEPAD THEME ENGINE (LIGHT THEME) ----------
+            function applyTheme(theme) {
+                notepadTextarea.classList.remove(
+                    'theme-plain',
+                    'theme-red-lined',
+                    'theme-purple-lined',
+                    'theme-dot-grid'
+                );
+                if (theme === 'red-lined') {
+                    notepadTextarea.classList.add('theme-red-lined');
+                } else if (theme === 'purple-lined') {
+                    notepadTextarea.classList.add('theme-purple-lined');
+                } else if (theme === 'dot-grid') {
+                    notepadTextarea.classList.add('theme-dot-grid');
+                } else {
+                    notepadTextarea.classList.add('theme-plain');
+                }
+                try {
+                    localStorage.setItem('notepad-theme', theme);
+                } catch (_) { /* ignore */ }
+            }
+
+            themeSelect.addEventListener('change', function() {
+                applyTheme(this.value);
+                saveNotepadContent();
+            });
+
+            // Load saved theme
+            (function loadTheme() {
+                try {
+                    const saved = localStorage.getItem('notepad-theme');
+                    if (saved && ['plain', 'red-lined', 'purple-lined', 'dot-grid'].includes(saved)) {
+                        themeSelect.value = saved;
+                        applyTheme(saved);
+                    } else {
+                        applyTheme('plain');
+                    }
+                } catch (_) {
+                    applyTheme('plain');
+                }
+            })();
+
+            // ---------- NOTEPAD CONTENT SAVE/LOAD ----------
+            function saveNotepadContent() {
+                try {
+                    const content = notepadTextarea.value;
+                    localStorage.setItem('notepad-content', content);
+                    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+                    wordCountEl.textContent = words + ' words';
+                } catch (_) { /* ignore */ }
+            }
+
+            function loadNotepadContent() {
+                try {
+                    const saved = localStorage.getItem('notepad-content');
+                    if (saved !== null) {
+                        notepadTextarea.value = saved;
+                        const words = saved.trim() ? saved.trim().split(/\s+/).length : 0;
+                        wordCountEl.textContent = words + ' words';
+                    }
+                } catch (_) { /* ignore */ }
+            }
+
+            notepadTextarea.addEventListener('input', saveNotepadContent);
+            loadNotepadContent();
+
+            // ---------- DRAWING STORAGE ----------
+            function saveDrawingsToStorage() {
+                try {
+                    const data = {};
+                    pageData.forEach(p => {
+                        if (p.overlayCanvas) {
+                            const url = p.overlayCanvas.toDataURL('image/png');
+                            data['page_' + p.pageNum] = url;
+                        }
+                    });
+                    localStorage.setItem('pdf-drawings', JSON.stringify(data));
+                } catch (_) { /* ignore */ }
+            }
+
+            function loadDrawingsFromStorage() {
+                try {
+                    const raw = localStorage.getItem('pdf-drawings');
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    pageData.forEach(p => {
+                        const key = 'page_' + p.pageNum;
+                        if (data[key] && p.overlayCanvas) {
+                            const img = new Image();
+                            img.onload = function() {
+                                if (p.ctx) {
+                                    p.ctx.clearRect(0, 0, p.overlayCanvas.width, p.overlayCanvas.height);
+                                    p.ctx.drawImage(img, 0, 0, p.overlayCanvas.width, p.overlayCanvas.height);
+                                }
+                            };
+                            img.src = data[key];
+                        }
+                    });
+                } catch (_) { /* ignore */ }
+            }
+
+            // ---------- PDF RENDERING ENGINE ----------
+            async function loadPDF(arrayBuffer) {
+                try {
+                    pdfContainer.innerHTML = '';
+                    pageData = [];
+                    if (observer) {
+                        observer.disconnect();
+                        observer = null;
+                    }
+
+                    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const numPages = pdfDoc.numPages;
+
+                    for (let i = 1; i <= numPages; i++) {
+                        const container = document.createElement('div');
+                        container.className = 'pdf-page-container';
+                        container.dataset.page = i;
+
+                        const pdfCanvas = document.createElement('canvas');
+                        pdfCanvas.className = 'pdf-canvas';
+
+                        const overlayCanvas = document.createElement('canvas');
+                        overlayCanvas.className = 'drawing-canvas';
+                        overlayCanvas.style.pointerEvents = 'auto';
+                        overlayCanvas.style.touchAction = 'none';
+
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'page-placeholder';
+                        placeholder.textContent = 'Loading page ' + i + '…';
+                        placeholder.style.minHeight = '800px';
+
+                        container.appendChild(pdfCanvas);
+                        container.appendChild(overlayCanvas);
+                        container.appendChild(placeholder);
+                        pdfContainer.appendChild(container);
+
+                        const ctx = overlayCanvas.getContext('2d');
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+
+                        pageData.push({
+                            container: container,
+                            pdfCanvas: pdfCanvas,
+                            overlayCanvas: overlayCanvas,
+                            pageNum: i,
+                            rendered: false,
+                            ctx: ctx,
+                            width: 0,
+                            height: 0,
+                            placeholder: placeholder
+                        });
+                    }
+
+                    setupObserver();
+
+                    setTimeout(() => {
+                        renderVisiblePages();
+                    }, 80);
+
+                    setTimeout(() => {
+                        loadDrawingsFromStorage();
+                    }, 500);
+
+                    try {
+                        const base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer)));
+                        localStorage.setItem('pdf-data', base64);
+                    } catch (_) { /* ignore */ }
+
+                } catch (err) {
+                    console.error('PDF load error:', err);
+                    pdfContainer.innerHTML =
+                        '<div style="padding:40px;text-align:center;color:#ff3b30;">Failed to load PDF: ' + err
+                        .message +
+                        '</div>';
+                }
+            }
+
+            // ---------- INTERSECTION OBSERVER ----------
+            function setupObserver() {
+                if (observer) {
+                    observer.disconnect();
+                }
+                observer = new IntersectionObserver((entries) => {
+                    let needsRender = false;
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const pageNum = parseInt(entry.target.dataset.page);
+                            const p = pageData.find(pd => pd.pageNum === pageNum);
+                            if (p && !p.rendered) {
+                                renderPage(p);
+                                needsRender = true;
+                            }
+                        }
+                    });
+                    if (needsRender) {
+                        setTimeout(() => {
+                            pageData.forEach(p => {
+                                if (p.rendered) {
+                                    sizeCanvas(p);
+                                }
+                            });
+                        }, 100);
+                    }
+                }, {
+                    root: pdfContainer,
+                    rootMargin: '600px 0px',
+                    threshold: 0.01
+                });
+
+                pageData.forEach(p => {
+                    observer.observe(p.container);
+                });
+            }
+
+            // ---------- RENDER VISIBLE PAGES ----------
+            function renderVisiblePages() {
+                const containerRect = pdfContainer.getBoundingClientRect();
+                const scrollTop = pdfContainer.scrollTop;
+                const viewportHeight = pdfContainer.clientHeight;
+
+                pageData.forEach(p => {
+                    const el = p.container;
+                    const elRect = el.getBoundingClientRect();
+                    const elTop = elRect.top - containerRect.top + scrollTop;
+                    const elBottom = elTop + elRect.height;
+
+                    if (elBottom > scrollTop - 600 && elTop < scrollTop + viewportHeight + 600) {
+                        if (!p.rendered) {
+                            renderPage(p);
+                        }
+                    }
+                });
+
+                setTimeout(() => {
+                    pageData.forEach(p => {
+                        if (p.rendered) {
+                            sizeCanvas(p);
+                        }
+                    });
+                }, 150);
+            }
+
+            // ---------- RENDER A SINGLE PAGE ----------
+            async function renderPage(p) {
+                if (p.rendered) return;
+                try {
+                    const page = await pdfDoc.getPage(p.pageNum);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const width = viewport.width;
+                    const height = viewport.height;
+
+                    const pdfCanvas = p.pdfCanvas;
+                    const overlayCanvas = p.overlayCanvas;
+
+                    pdfCanvas.width = width;
+                    pdfCanvas.height = height;
+                    overlayCanvas.width = width;
+                    overlayCanvas.height = height;
+
+                    p.width = width;
+                    p.height = height;
+
+                    const ctx = pdfCanvas.getContext('2d');
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+                    await page.render(renderContext).promise;
+
+                    if (p.placeholder) {
+                        p.placeholder.style.display = 'none';
+                    }
+
+                    p.rendered = true;
+                    setupDrawingEvents(p);
+                    sizeCanvas(p);
+
+                } catch (err) {
+                    console.error('Error rendering page ' + p.pageNum, err);
+                    if (p.placeholder) {
+                        p.placeholder.textContent = 'Error loading page ' + p.pageNum;
+                    }
+                }
+            }
+
+            // ---------- SIZE CANVAS TO MATCH CONTAINER ----------
+            function sizeCanvas(p) {
+                const container = p.container;
+                const rect = container.getBoundingClientRect();
+                const cssWidth = rect.width - 2;
+                if (cssWidth <= 0) return;
+
+                const aspect = p.height / p.width;
+                const cssHeight = cssWidth * aspect;
+
+                const pdfCanvas = p.pdfCanvas;
+                const overlayCanvas = p.overlayCanvas;
+
+                pdfCanvas.style.width = cssWidth + 'px';
+                pdfCanvas.style.height = cssHeight + 'px';
+                overlayCanvas.style.width = cssWidth + 'px';
+                overlayCanvas.style.height = cssHeight + 'px';
+            }
+
+            // ---------- DRAWING EVENT SETUP ----------
+            function setupDrawingEvents(p) {
+                let canvas = p.overlayCanvas;
+                let ctx = p.ctx;
+
+                const newCanvas = canvas.cloneNode(true);
+                canvas.parentNode.replaceChild(newCanvas, canvas);
+                p.overlayCanvas = newCanvas;
+                p.ctx = newCanvas.getContext('2d');
+                p.ctx.lineCap = 'round';
+                p.ctx.lineJoin = 'round';
+                newCanvas.width = p.width;
+                newCanvas.height = p.height;
+                canvas = newCanvas;
+                ctx = p.ctx;
+
+                // Pointer events
+                canvas.addEventListener('pointerdown', function(e) {
+                    if (currentTool !== 'pen' && currentTool !== 'highlighter') return;
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    const clientX = e.clientX;
+                    const clientY = e.clientY;
+
+                    isDrawing = true;
+                    activeCanvas = canvas;
+                    activeCtx = ctx;
+
+                    lastX = (clientX - rect.left) * scaleX;
+                    lastY = (clientY - rect.top) * scaleY;
+
+                    const color = currentTool === 'pen' ? '#1d1d1f' : 'rgba(255, 204, 0, 0.5)';
+                    const size = currentTool === 'pen' ? 3 : 12;
+                    ctx.beginPath();
+                    ctx.arc(lastX, lastY, size / 2, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+
+                    canvas.setPointerCapture(e.pointerId);
+                });
+
+                canvas.addEventListener('pointermove', function(e) {
+                    if (!isDrawing || activeCanvas !== canvas) return;
+                    if (currentTool !== 'pen' && currentTool !== 'highlighter') return;
+                    e.preventDefault();
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    const clientX = e.clientX;
+                    const clientY = e.clientY;
+
+                    const curX = (clientX - rect.left) * scaleX;
+                    const curY = (clientY - rect.top) * scaleY;
+
+                    const color = currentTool === 'pen' ? '#1d1d1f' : 'rgba(255, 204, 0, 0.5)';
+                    const size = currentTool === 'pen' ? 3 : 12;
+
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                    ctx.lineTo(curX, curY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = size;
+                    ctx.stroke();
+
+                    lastX = curX;
+                    lastY = curY;
+                });
+
+                canvas.addEventListener('pointerup', function(e) {
+                    if (isDrawing && activeCanvas === canvas) {
+                        isDrawing = false;
+                        activeCanvas = null;
+                        activeCtx = null;
+                        saveDrawingsToStorage();
+                    }
+                });
+
+                canvas.addEventListener('pointerleave', function(e) {
+                    if (isDrawing && activeCanvas === canvas) {
+                        isDrawing = false;
+                        activeCanvas = null;
+                        activeCtx = null;
+                        saveDrawingsToStorage();
+                    }
+                });
+
+                // Touch events
+                canvas.addEventListener('touchstart', function(e) {
+                    if (currentTool !== 'pen' && currentTool !== 'highlighter') return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    if (!touch) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    isDrawing = true;
+                    activeCanvas = canvas;
+                    activeCtx = ctx;
+
+                    lastX = (touch.clientX - rect.left) * scaleX;
+                    lastY = (touch.clientY - rect.top) * scaleY;
+
+                    const color = currentTool === 'pen' ? '#1d1d1f' : 'rgba(255, 204, 0, 0.5)';
+                    const size = currentTool === 'pen' ? 3 : 12;
+                    ctx.beginPath();
+                    ctx.arc(lastX, lastY, size / 2, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }, { passive: false });
+
+                canvas.addEventListener('touchmove', function(e) {
+                    if (!isDrawing || activeCanvas !== canvas) return;
+                    if (currentTool !== 'pen' && currentTool !== 'highlighter') return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    if (!touch) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    const curX = (touch.clientX - rect.left) * scaleX;
+                    const curY = (touch.clientY - rect.top) * scaleY;
+
+                    const color = currentTool === 'pen' ? '#1d1d1f' : 'rgba(255, 204, 0, 0.5)';
+                    const size = currentTool === 'pen' ? 3 : 12;
+
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                    ctx.lineTo(curX, curY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = size;
+                    ctx.stroke();
+
+                    lastX = curX;
+                    lastY = curY;
+                }, { passive: false });
+
+                canvas.addEventListener('touchend', function(e) {
+                    if (isDrawing && activeCanvas === canvas) {
+                        isDrawing = false;
+                        activeCanvas = null;
+                        activeCtx = null;
+                        saveDrawingsToStorage();
+                    }
+                });
+
+                canvas.addEventListener('touchcancel', function(e) {
+                    if (isDrawing && activeCanvas === canvas) {
+                        isDrawing = false;
+                        activeCanvas = null;
+                        activeCtx = null;
+                        saveDrawingsToStorage();
+                    }
+                });
+
+                const cursor = (currentTool === 'pen' || currentTool === 'highlighter') ? 'crosshair' : 'default';
+                canvas.style.cursor = cursor;
+            }
+
+            // ---------- RESIZER (TOUCH + PENCIL SUPPORT) ----------
+            function setupResizer() {
+                const mainContainer = document.getElementById('main-container');
+
+                function getClientX(e) {
+                    if (e.touches && e.touches.length > 0) {
+                        return e.touches[0].clientX;
+                    }
+                    if (e.changedTouches && e.changedTouches.length > 0) {
+                        return e.changedTouches[0].clientX;
+                    }
+                    return e.clientX;
+                }
+
+                function startResize(e) {
+                    if (!notesVisible) return;
+                    isResizing = true;
+                    resizer.classList.add('active');
+                    e.preventDefault();
+                    if (e.pointerId !== undefined) {
+                        resizer.setPointerCapture(e.pointerId);
+                    }
+                }
+
+                function moveResize(e) {
+                    if (!isResizing || !notesVisible) return;
+                    e.preventDefault();
+
+                    requestAnimationFrame(function() {
+                        const containerRect = mainContainer.getBoundingClientRect();
+                        const clientX = getClientX(e);
+                        const x = clientX - containerRect.left;
+                        const percent = (x / containerRect.width) * 100;
+                        const clamped = Math.max(18, Math.min(82, percent));
+
+                        const pdfEl = document.getElementById('pdf-container');
+                        const noteEl = document.getElementById('notepad-container');
+                        if (pdfEl && noteEl && notesVisible) {
+                            pdfEl.style.flex = '0 0 ' + clamped + '%';
+                            noteEl.style.flex = '1';
+                        }
+                    });
+                }
+
+                function endResize(e) {
+                    if (isResizing) {
+                        isResizing = false;
+                        resizer.classList.remove('active');
+                        if (e.pointerId !== undefined) {
+                            resizer.releasePointerCapture(e.pointerId);
+                        }
+                        if (notesVisible) {
+                            try {
+                                const pdfEl = document.getElementById('pdf-container');
+                                if (pdfEl) {
+                                    const flex = pdfEl.style.flex || '0 0 55%';
+                                    const match = flex.match(/(\d+(?:\.\d+)?)/);
+                                    if (match) {
+                                        localStorage.setItem('split-percent', match[1]);
+                                    }
+                                }
+                            } catch (_) { /* ignore */ }
+                        }
+                    }
+                }
+
+                resizer.addEventListener('pointerdown', startResize);
+                document.addEventListener('pointermove', moveResize);
+                document.addEventListener('pointerup', endResize);
+                document.addEventListener('pointercancel', endResize);
+
+                resizer.addEventListener('touchstart', function(e) {
+                    startResize(e);
+                }, { passive: false });
+                document.addEventListener('touchmove', function(e) {
+                    moveResize(e);
+                }, { passive: false });
+                document.addEventListener('touchend', function(e) {
+                    endResize(e);
+                }, { passive: false });
+                document.addEventListener('touchcancel', function(e) {
+                    endResize(e);
+                }, { passive: false });
+
+                // Restore saved split if notes are visible
+                try {
+                    const saved = localStorage.getItem('split-percent');
+                    if (saved) {
+                        const pct = parseFloat(saved);
+                        if (pct >= 18 && pct <= 82) {
+                            // Will be applied when notes are toggled on
+                            window._savedSplit = pct;
+                        }
+                    }
+                } catch (_) { /* ignore */ }
+            }
+
+            // Override toggleNotes to apply saved split
+            const originalToggle = toggleNotes;
+            toggleNotes = function() {
+                notesVisible = !notesVisible;
+                if (notesVisible) {
+                    notepadContainer.classList.add('visible');
+                    resizer.classList.add('visible');
+                    let pct = 55;
+                    if (window._savedSplit) {
+                        pct = window._savedSplit;
+                    } else {
+                        try {
+                            const saved = localStorage.getItem('split-percent');
+                            if (saved) {
+                                const v = parseFloat(saved);
+                                if (v >= 18 && v <= 82) pct = v;
+                            }
+                        } catch (_) { /* ignore */ }
+                    }
+                    pdfContainer.style.flex = '0 0 ' + pct + '%';
+                    toggleNotesBtn.textContent = '📝 Hide Notes';
+                } else {
+                    notepadContainer.classList.remove('visible');
+                    resizer.classList.remove('visible');
+                    pdfContainer.style.flex = '1 1 100%';
+                    toggleNotesBtn.textContent = '📝 Notes';
+                    try {
+                        const flex = pdfContainer.style.flex || '1 1 100%';
+                        const match = flex.match(/(\d+(?:\.\d+)?)/);
+                        if (match) {
+                            localStorage.setItem('split-percent', match[1]);
+                        }
+                    } catch (_) { /* ignore */ }
+                }
+                setTimeout(() => {
+                    renderVisiblePages();
+                    pageData.forEach(p => {
+                        if (p.rendered) {
+                            sizeCanvas(p);
+                        }
+                    });
+                }, 300);
+            };
+            toggleNotesBtn.addEventListener('click', toggleNotes);
+
+            // ---------- FILE INPUT ----------
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const arrayBuffer = ev.target.result;
+                    loadPDF(arrayBuffer);
+                };
+                reader.readAsArrayBuffer(file);
+                fileInput.value = '';
+            });
+
+            // ---------- RESTORE PDF FROM STORAGE ----------
+            (function restorePDF() {
+                try {
+                    const base64 = localStorage.getItem('pdf-data');
+                    if (base64) {
+                        const binary = atob(base64);
+                        const bytes = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) {
+                            bytes[i] = binary.charCodeAt(i);
+                        }
+                        loadPDF(bytes.buffer);
+                    }
+                } catch (_) { /* ignore */ }
+            })();
+
+            // ---------- WINDOW RESIZE ----------
+            let resizeTimeout = null;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    pageData.forEach(p => {
+                        if (p.rendered) {
+                            sizeCanvas(p);
+                        }
+                    });
+                    renderVisiblePages();
+                }, 250);
+            });
+
+            // ---------- SCROLL ----------
+            pdfContainer.addEventListener('scroll', function() {
+                if (!pdfContainer._scrollTimer) {
+                    pdfContainer._scrollTimer = setTimeout(function() {
+                        renderVisiblePages();
+                        pdfContainer._scrollTimer = null;
+                    }, 80);
+                }
+            });
+
+            // ---------- INIT ----------
+            setupResizer();
+
+            // Ensure notepad starts hidden
+            notepadContainer.classList.remove('visible');
+            resizer.classList.remove('visible');
+            pdfContainer.style.flex = '1 1 100%';
+            toggleNotesBtn.textContent = '📝 Notes';
+
+            setTimeout(function() {
+                pageData.forEach(p => {
+                    if (p.rendered) {
+                        sizeCanvas(p);
+                    }
+                });
+                renderVisiblePages();
+            }, 400);
+
+            setTimeout(function() {
+                pageData.forEach(p => {
+                    if (p.rendered) {
+                        sizeCanvas(p);
+                    }
+                });
+                renderVisiblePages();
+            }, 1200);
+
+            console.log('✅ App initialized. Light theme, tool default: select');
+            console.log('✅ Notepad hidden by default. Toggle with Notes button.');
+            console.log('✅ Notepad themes: red-lined, purple-lined, dot-grid (light backgrounds)');
+            console.log('✅ PDF pages: IntersectionObserver with rootMargin: 600px');
+            console.log('✅ Resizer: pointer-events + touch-action enforced');
+
+            window.__debug = {
+                pageData: pageData,
+                pdfDoc: pdfDoc,
+                currentTool: currentTool,
+                setTool: setTool,
+                clearAllDrawings: clearAllDrawings,
+                renderVisiblePages: renderVisiblePages,
+                toggleNotes: toggleNotes
+            };
+
+        })();
+    </script>
+
+</body>
+</html>
