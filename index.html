@@ -1,0 +1,4393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Viewer & Workspace</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+    </script>
+    <style>
+        /* ===== CSS – पिछले कोड के समान (कोई बदलाव नहीं) ===== */
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary-accent: #2563eb;
+            --primary-accent-hover: #1d4ed8;
+            --active-bg: #eff6ff;
+            --active-border: #3b82f6;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --toolbar-height: 55px;
+            --link-color: #2563eb;
+            --link-highlight: rgba(37, 99, 235, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            touch-action: none;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #top-toolbar {
+            position: relative;
+            width: 100%;
+            height: var(--toolbar-height);
+            z-index: 1000;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-x: auto;
+            overflow-y: hidden;
+            gap: 6px;
+            white-space: nowrap;
+            padding: 0 10px;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #top-toolbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-divider {
+            height: 28px;
+            width: 1px;
+            background-color: var(--border-color);
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            border-color: var(--primary-accent);
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-accent-hover);
+            border-color: var(--primary-accent-hover);
+        }
+
+        .btn-success {
+            background-color: #16a34a;
+            color: #ffffff;
+            border-color: #16a34a;
+        }
+        .btn-success:hover {
+            background-color: #15803d;
+            border-color: #15803d;
+        }
+
+        #doc-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 2px;
+            flex-shrink: 0;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+            flex-shrink: 0;
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+        }
+
+        input[type="range"] {
+            width: 60px;
+            accent-color: var(--primary-accent);
+            cursor: pointer;
+            flex-shrink: 0;
+            height: 4px;
+        }
+
+        #main-workspace {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            flex: 1;
+            height: calc(100vh - var(--toolbar-height));
+            overflow: hidden;
+            position: relative;
+            touch-action: none;
+            background-color: #f1f5f9;
+        }
+
+        #global-drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+            touch-action: none;
+        }
+
+        #left-resizer {
+            width: 4px;
+            height: 100%;
+            background-color: #2563eb;
+            cursor: col-resize;
+            flex-shrink: 0;
+            user-select: none;
+            touch-action: none;
+            z-index: 35;
+            position: relative;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+        }
+        #left-resizer:hover,
+        #left-resizer.active {
+            background-color: #1d4ed8;
+            opacity: 1;
+            width: 6px;
+        }
+        #left-resizer::after {
+            content: '⤏';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: #ffffff;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        #left-resizer:hover::after,
+        #left-resizer.active::after {
+            opacity: 1;
+        }
+
+        #pdf-view-wrapper {
+            flex: 1 1 100%;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            background-color: #f1f5f9;
+            position: relative;
+            display: block;
+            padding: 24px 0 80px 0;
+            box-sizing: border-box;
+            min-width: 0;
+            touch-action: pan-x pan-y;
+            will-change: width, flex-basis, margin-left;
+            transition: width 0.08s ease-out, flex-basis 0.08s ease-out, margin-left 0.08s ease-out;
+        }
+
+        #pdf-container {
+            width: 100%;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            margin: 0 auto;
+            transform-origin: top center;
+            will-change: transform;
+            transition: transform 0.08s ease-out;
+        }
+
+        #notepad-pane {
+            display: none;
+            width: 0%;
+            flex: 0 0 0%;
+            height: 100%;
+            background-color: #ffffff;
+            border-left: none;
+            flex-direction: column;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
+            z-index: 20;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            min-width: 0;
+            background-color: #f1f5f9;
+            will-change: width, flex-basis;
+            transition: width 0.08s ease-out, flex-basis 0.08s ease-out;
+        }
+
+        #notepad-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+            background-color: #e2e8f0;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #notepad-pages {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            padding-bottom: 40px;
+        }
+
+        .notepad-page-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            min-height: 300px;
+            flex-shrink: 0;
+            transition: box-shadow 0.2s ease;
+        }
+        .notepad-page-wrapper:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .notepad-page-wrapper .page-header {
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background-color: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .notepad-page-wrapper .page-header .page-label {
+            color: var(--text-muted);
+        }
+        .notepad-page-wrapper .page-header .page-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .notepad-page-wrapper .page-header .page-actions button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-muted);
+        }
+        .notepad-page-wrapper .page-header .page-actions button:hover {
+            background-color: #e2e8f0;
+        }
+
+        .notepad-page-content {
+            padding: 24px 28px;
+            min-height: 260px;
+            outline: none;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #1e293b;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border-radius: 0 0 8px 8px;
+            position: relative;
+            z-index: 1;
+        }
+        .notepad-page-content:empty::before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .notepad-page-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        .notepad-page-markers .notepad-link-marker,
+        .notepad-page-markers .notepad-scan-container {
+            pointer-events: auto;
+            position: absolute;
+        }
+
+        .notepad-link-marker {
+            position: absolute;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #fff;
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            z-index: 10;
+            will-change: transform, left, top;
+        }
+        .notepad-link-marker:hover {
+            transform: translate(-50%, -50%) scale(1.18);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+        }
+        .notepad-link-marker:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(0.92);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .notepad-link-marker .link-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .notepad-link-marker:hover .link-tooltip {
+            display: block;
+        }
+        .notepad-link-marker .link-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #1e293b;
+        }
+        .notepad-link-marker.type-line {
+            background: #2563eb;
+        }
+        .notepad-link-marker.type-highlight {
+            background: #eab308;
+        }
+        .notepad-link-marker.type-underline {
+            background: #22c55e;
+        }
+        .notepad-link-marker.type-scan {
+            background: #8b5cf6;
+        }
+        .notepad-link-marker.type-linkpoint {
+            background: #ec4899;
+        }
+        .notepad-link-marker.type-line::after {
+            content: '✏️';
+            font-size: 11px;
+            line-height: 1;
+        }
+        .notepad-link-marker.type-highlight::after {
+            content: '🟡';
+            font-size: 11px;
+            line-height: 1;
+        }
+        .notepad-link-marker.type-underline::after {
+            content: '⏺️';
+            font-size: 11px;
+            line-height: 1;
+        }
+        .notepad-link-marker.type-scan::after {
+            content: '📷';
+            font-size: 11px;
+            line-height: 1;
+        }
+        .notepad-link-marker.type-linkpoint::after {
+            content: '🔗';
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .notepad-scan-container {
+            position: absolute;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transform: translate(-50%, -50%);
+            user-select: none;
+            touch-action: none;
+            z-index: 10;
+        }
+        .notepad-scan-container img {
+            max-height: 120px;
+            max-width: 200px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            box-shadow: var(--shadow-sm);
+            display: block;
+            pointer-events: none;
+            transition: max-height 0.2s, max-width 0.2s;
+        }
+        .notepad-scan-container .scan-resize-controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            pointer-events: auto;
+        }
+        .notepad-scan-container .scan-resize-controls button {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+        .notepad-scan-container .scan-resize-controls button:hover {
+            background: #f1f5f9;
+        }
+        .notepad-scan-container .notepad-link-marker {
+            position: relative;
+            transform: none;
+            flex-shrink: 0;
+        }
+        .notepad-scan-container .notepad-link-marker:hover {
+            transform: scale(1.18);
+        }
+        .notepad-scan-container .notepad-link-marker:active {
+            transform: scale(0.92);
+        }
+
+        .marker-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 99999;
+            opacity: 0.9;
+            transform: translate(-50%, -50%) scale(1.25) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            transition: none;
+        }
+        .marker-ghost .link-tooltip {
+            display: none !important;
+        }
+
+        /* ===== BACKGROUND STYLES ===== */
+        .notepad-page-content.bg-red-lined {
+            background-color: #ffffff;
+            background-image: linear-gradient(#f1f5f9 1px, transparent 1px);
+            background-size: 100% 32px;
+            line-height: 32px !important;
+            padding-left: 20px !important;
+            border-left: 3px solid #f87171 !important;
+        }
+        .notepad-page-content.bg-purple-lined {
+            background-color: #ffffff;
+            background-image: linear-gradient(#f3e8ff 1px, transparent 1px);
+            background-size: 100% 32px;
+            line-height: 32px !important;
+            padding-left: 20px !important;
+            border-left: 3px solid #c084fc !important;
+        }
+        .notepad-page-content.bg-dot-grid {
+            background-color: #ffffff;
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            line-height: 24px !important;
+            padding-left: 16px !important;
+        }
+        .notepad-page-content.bg-light-yellow-blank {
+            background-color: #fffde7 !important;
+            background-image: none !important;
+            padding-left: 8px !important;
+            line-height: 1.8;
+            border-left: none !important;
+        }
+        .notepad-page-content.bg-yellow-lined {
+            background-color: #fef9c3 !important;
+            background-image: linear-gradient(#d1d5db 1px, transparent 1px) !important;
+            background-size: 100% 32px !important;
+            line-height: 32px !important;
+            padding-left: 20px !important;
+            border-left: 3px solid #f59e0b !important;
+        }
+        .notepad-page-content.bg-white-blank {
+            background-color: #ffffff !important;
+            background-image: none !important;
+            padding-left: 8px !important;
+            line-height: 1.8;
+            border-left: none !important;
+        }
+
+        /* ---- NOTEPAD HEADER ---- */
+        #notepad-header {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #ffffff;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 4px;
+            z-index: 5;
+        }
+        #notepad-header .left-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        #notepad-header h4 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+        }
+        #notepad-pad-number {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 12px;
+        }
+        #notepad-pad-counter {
+            font-weight: 400;
+            color: #64748b;
+            font-size: 11px;
+        }
+        #btn-add-pad {
+            padding: 2px 6px;
+            font-size: 14px;
+            line-height: 1;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        #btn-add-pad:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        .notepad-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .notepad-nav-btn {
+            padding: 2px 6px;
+            font-size: 12px;
+            line-height: 1;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        .notepad-nav-btn:hover {
+            background-color: #f1f5f9;
+        }
+        .notepad-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+        #notepad-page-select {
+            padding: 2px 4px;
+            font-size: 11px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: var(--text-main);
+            max-width: 80px;
+        }
+        #btn-notepad-list {
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        #btn-notepad-list:hover {
+            background-color: #f1f5f9;
+        }
+
+        #resizer {
+            width: 4px;
+            height: 100%;
+            background-color: var(--border-color);
+            cursor: col-resize;
+            flex-shrink: 0;
+            user-select: none;
+            touch-action: none;
+            z-index: 30;
+            display: none;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+        #resizer:hover,
+        #resizer.active {
+            background-color: var(--primary-accent);
+        }
+        #resizer::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background-color: #94a3b8;
+            border-radius: 1px;
+        }
+        #resizer:hover::after,
+        #resizer.active::after {
+            background-color: #ffffff;
+        }
+
+        /* ---- PDF styles ---- */
+        .pdf-page-card {
+            position: relative;
+            background-color: #ffffff;
+            box-shadow: var(--shadow-md);
+            border-radius: 4px;
+            min-height: 850px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 auto;
+            flex-shrink: 0;
+            transition: box-shadow 0.2s ease;
+        }
+        .pdf-page-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .page-number-indicator {
+            position: absolute;
+            top: -22px;
+            left: 0;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            width: 100%;
+            height: 100%;
+        }
+        .pdf-canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        .pdf-link-highlight {
+            position: absolute;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 5;
+            background-color: var(--link-highlight);
+            border: 2px solid var(--primary-accent);
+            transition: opacity 0.4s ease;
+            opacity: 0;
+            box-shadow: 0 0 16px rgba(37, 99, 235, 0.25);
+        }
+        .pdf-link-highlight.active {
+            opacity: 1;
+        }
+        .pdf-link-marker {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            z-index: 6;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #ffffff;
+            pointer-events: auto;
+            transform: translate(-50%, -50%);
+            background: #2563eb;
+        }
+        .pdf-link-marker:hover {
+            transform: translate(-50%, -50%) scale(1.25);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        .pdf-link-marker .link-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .pdf-link-marker:hover .link-tooltip {
+            display: block;
+        }
+        .pdf-link-marker .link-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #1e293b;
+        }
+        .pdf-link-marker.type-line {
+            background: #2563eb;
+        }
+        .pdf-link-marker.type-highlight {
+            background: #eab308;
+        }
+        .pdf-link-marker.type-underline {
+            background: #22c55e;
+        }
+        .pdf-link-marker.type-scan {
+            background: #8b5cf6;
+        }
+        .pdf-link-marker.type-linkpoint {
+            background: #ec4899;
+        }
+
+        .page-text-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            outline: none;
+            padding: 32px 28px;
+            box-sizing: border-box;
+            font-size: 16px;
+            line-height: 32px;
+            color: #0f172a;
+            white-space: pre-wrap;
+            word-break: break-word;
+            cursor: text;
+            pointer-events: auto;
+        }
+        .page-text-layer.block-events {
+            pointer-events: none !important;
+        }
+
+        /* ---- Text Annotations (Cursor) ---- */
+        .pdf-text-annotation {
+            position: absolute;
+            z-index: 7;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--primary-accent);
+            border-radius: 4px;
+            padding: 4px 8px;
+            min-width: 40px;
+            min-height: 24px;
+            font-size: 14px;
+            color: #0f172a;
+            outline: none;
+            cursor: move;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            word-break: break-word;
+            pointer-events: auto;
+            resize: both;
+            overflow: auto;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+        .pdf-text-annotation:focus {
+            border-color: var(--primary-accent-hover);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+        .pdf-text-annotation .delete-text-annotation {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 18px;
+            height: 18px;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 50%;
+            border: none;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .pdf-text-annotation:hover .delete-text-annotation {
+            display: flex;
+        }
+
+        /* ---- Tool icon buttons ---- */
+        .tool-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .tool-icon-btn:hover {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+        }
+        .tool-icon-btn.active {
+            border-color: var(--primary-accent);
+            background-color: var(--active-bg);
+            color: var(--primary-accent);
+        }
+        .tool-icon-btn .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 100;
+            font-weight: 400;
+        }
+        .tool-icon-btn:hover .tooltip {
+            display: block;
+        }
+        .tool-icon-btn .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #1e293b;
+        }
+        .tool-group-box {
+            display: flex;
+            background: #f1f5f9;
+            padding: 2px 4px;
+            border-radius: 6px;
+            gap: 1px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            align-items: center;
+        }
+        .tool-group-box .tool-icon-btn {
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+        }
+        .tool-group-box .tool-divider {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color);
+            flex-shrink: 0;
+            margin: 0 2px;
+        }
+
+        #empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            text-align: center;
+            background: #ffffff;
+            padding: 40px 60px;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+        }
+        #empty-state svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-muted);
+        }
+        #empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        #empty-state p {
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 300px;
+        }
+
+        #mode-status {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-accent);
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+        #mode-status.visible {
+            opacity: 1;
+        }
+
+        /* ---- Modal ---- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8fafc;
+        }
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .modal-close-btn:hover {
+            color: var(--text-main);
+            background-color: #e2e8f0;
+        }
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .modal-section h4 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        .modal-action-btn {
+            padding: 12px;
+            font-size: 14px;
+            justify-content: center;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        .template-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .template-option:hover {
+            border-color: var(--primary-accent);
+            background-color: var(--active-bg);
+        }
+        .template-preview {
+            width: 100%;
+            height: 60px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .template-option span {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-main);
+            text-align: center;
+        }
+        .bg-template-white {
+            background-color: #ffffff;
+        }
+        .bg-template-lined-white {
+            background-color: #ffffff;
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 100% 16px;
+            border-left: 2px solid #f87171 !important;
+        }
+        .bg-template-dot-grid {
+            background-color: #ffffff;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 12px 12px;
+        }
+        .bg-template-yellow-blank {
+            background-color: #fef9c3;
+        }
+        .bg-template-yellow-lined {
+            background-color: #fef9c3;
+            background-image: linear-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 100% 16px;
+            border-left: 2px solid #f87171 !important;
+        }
+
+        .page-template-white {
+            background-color: #ffffff;
+        }
+        .page-template-lined-white {
+            background-color: #ffffff;
+            background-image: linear-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 100% 32px;
+            border-left: 3px solid #f87171 !important;
+        }
+        .page-template-dot-grid {
+            background-color: #ffffff;
+            background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        .page-template-yellow-blank {
+            background-color: #fef9c3;
+        }
+        .page-template-yellow-lined {
+            background-color: #fef9c3;
+            background-image: linear-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 100% 32px;
+            border-left: 3px solid #f87171 !important;
+        }
+        .page-template-white .canvas-wrapper,
+        .page-template-lined-white .canvas-wrapper,
+        .page-template-dot-grid .canvas-wrapper,
+        .page-template-yellow-blank .canvas-wrapper,
+        .page-template-yellow-lined .canvas-wrapper {
+            background: transparent;
+        }
+
+        /* ---- Notepad Page List Modal ---- */
+        .notepad-page-list-modal .modal-body {
+            padding: 10px 0;
+        }
+        .notepad-page-list-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notepad-page-list-item:hover {
+            background-color: var(--active-bg);
+        }
+        .notepad-page-list-item .page-label {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .notepad-page-list-item .page-preview {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .notepad-page-list-item .page-badge {
+            font-size: 11px;
+            background: var(--primary-accent);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .notepad-page-list-item.current {
+            background-color: var(--active-bg);
+            border-left: 3px solid var(--primary-accent);
+        }
+        #notepad-list-modal .modal-content {
+            max-width: 600px;
+        }
+        .btn-delete-page {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .btn-delete-page:hover {
+            background-color: #fee2e2;
+        }
+
+        /* ---- Cursor tool: floating keyboard input ---- */
+        .cursor-text-input {
+            position: fixed;
+            z-index: 500;
+            background: #ffffff;
+            border: 2px solid var(--primary-accent);
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            max-width: 400px;
+            display: none;
+        }
+        .cursor-text-input input {
+            border: none;
+            outline: none;
+            font-size: 16px;
+            width: 100%;
+            padding: 4px 0;
+            color: #0f172a;
+            background: transparent;
+            font-family: inherit;
+        }
+        .cursor-text-input .cursor-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 6px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 6px;
+        }
+        .cursor-text-input .cursor-actions button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .cursor-text-input .cursor-actions button:hover {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+        }
+        .cursor-text-input .cursor-actions .btn-apply {
+            color: var(--primary-accent);
+            font-weight: 600;
+        }
+        .cursor-text-input .cursor-actions .btn-apply:hover {
+            background-color: var(--active-bg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP TOOLBAR -->
+    <header id="top-toolbar">
+        <div class="toolbar-section">
+            <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" />
+            <button class="btn btn-primary" id="btn-open-pdf">Open PDF</button>
+            <input type="file" id="case-plus-input" accept="application/pdf" multiple style="display: none;" />
+            <button class="btn" id="btn-case-plus">Case +</button>
+            <span id="doc-info">No file selected</span>
+            <button class="btn" id="btn-add-page">+ Page</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- TOOL ICONS GROUP -->
+        <div class="toolbar-section">
+            <div class="tool-group-box" id="toolGroup">
+                <button class="tool-icon-btn active" data-tool="pointer" title="Pointer">🖱️<span class="tooltip">Pointer</span></button>
+                <button class="tool-icon-btn" data-tool="pen" title="Pen">✏️<span class="tooltip">Pen</span></button>
+                <!-- Highlighter now works as LINK highlighter (draw and link) -->
+                <button class="tool-icon-btn" data-tool="highlighter" title="Highlighter (Link)">🟡<span class="tooltip">Highlighter</span></button>
+                <button class="tool-icon-btn" data-tool="eraser" title="Eraser">🧹<span class="tooltip">Eraser</span></button>
+                <button class="tool-icon-btn" data-tool="whitener" title="Whitener">⬜<span class="tooltip">Whitener</span></button>
+                <div class="tool-divider"></div>
+                <button class="tool-icon-btn" data-tool="cursor" title="Cursor (Type)">⌨️<span class="tooltip">Cursor</span></button>
+                <div class="tool-divider"></div>
+                <button class="tool-icon-btn" data-tool="line" title="Line (Link)">📏<span class="tooltip">Line</span></button>
+                <button class="tool-icon-btn" data-tool="underline" title="Underline (Link)">⏺️<span class="tooltip">Underline</span></button>
+                <button class="tool-icon-btn" data-tool="scan" title="Scan (Link)">📷<span class="tooltip">Scan</span></button>
+                <button class="tool-icon-btn" data-tool="linkpoint" title="Link Point">🔗<span class="tooltip">Link Point</span></button>
+            </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-section">
+            <div class="color-picker-wrapper">
+                <span class="control-label">Color:</span>
+                <input type="color" id="picker-color" value="#2563eb" />
+            </div>
+            <div class="color-picker-wrapper">
+                <span class="control-label">Size:</span>
+                <input type="range" id="slider-size" min="1" max="25" value="3" />
+            </div>
+            <button class="btn" id="btn-clear-page">Clear</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-section">
+            <button class="btn btn-tool" id="btn-zoom-out" style="padding:4px 8px;">−</button>
+            <span id="zoom-label" class="control-label" style="min-width:40px;text-align:center;font-size:12px;">135%</span>
+            <button class="btn btn-tool" id="btn-zoom-in" style="padding:4px 8px;">+</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-section">
+            <button class="btn" id="btn-toggle-notepad" style="padding:4px 10px;font-size:12px;">📒 Notepad</button>
+            <button class="btn" id="btn-export-pdf" style="padding:4px 10px;font-size:12px;">💾 Save</button>
+        </div>
+    </header>
+
+    <div id="mode-status"></div>
+
+    <div id="main-workspace">
+        <canvas id="global-drawing-canvas"></canvas>
+
+        <!-- LEFT RESIZER -->
+        <div id="left-resizer" title="Drag left/right to adjust PDF margin"></div>
+
+        <main id="pdf-view-wrapper">
+            <div id="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                <h3>No Document Loaded</h3>
+                <p>Click "Open PDF" to load a file, "Case +" to append documents, or "+ Page" to insert custom page templates.</p>
+            </div>
+            <div id="pdf-container"></div>
+        </main>
+
+        <div id="resizer" title="Drag to resize workspace"></div>
+
+        <aside id="notepad-pane">
+            <div id="notepad-header">
+                <div class="left-group">
+                    <h4>📒 Notepad</h4>
+                    <button class="notepad-nav-btn" id="notepad-prev" title="Previous">◀</button>
+                    <button class="notepad-nav-btn" id="notepad-next" title="Next">▶</button>
+                    <select id="notepad-page-select" title="Jump"></select>
+                    <button id="btn-notepad-list" title="All pages">📋</button>
+                    <span id="notepad-pad-number">— Pad 01</span>
+                    <span id="notepad-pad-counter">(Total: 1)</span>
+                    <button id="btn-add-pad" class="btn btn-tool" style="padding:2px 6px;font-size:14px;line-height:1;" onclick="addNewNotepadPage()">+</button>
+                </div>
+                <div class="notepad-controls">
+                    <select id="notepad-bg-select" class="btn" style="padding:2px 6px;font-size:11px;">
+                        <option value="bg-red-lined">Red Lined</option>
+                        <option value="bg-purple-lined">Purple Lined</option>
+                        <option value="bg-dot-grid">Dot Grid</option>
+                        <option value="bg-light-yellow-blank">Light Yellow</option>
+                        <option value="bg-yellow-lined">Yellow Lined</option>
+                        <option value="bg-white-blank">White</option>
+                    </select>
+                    <button class="btn btn-tool" id="btn-close-notepad" style="padding:2px 6px;">✕</button>
+                </div>
+            </div>
+            <div id="notepad-scroll-container">
+                <div id="notepad-pages"></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- CURSOR TEXT INPUT (floating) -->
+    <div class="cursor-text-input" id="cursorInput">
+        <input type="text" id="cursorText" placeholder="Type here…" />
+        <div class="cursor-actions">
+            <button class="btn-cancel" id="cursorCancel">Cancel</button>
+            <button class="btn-apply" id="cursorApply">✔ Apply</button>
+        </div>
+    </div>
+
+    <!-- ADD PAGE MODAL -->
+    <div id="add-page-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Insert New Page</h3>
+                <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4>FROM CAMERA / PHOTO</h4>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary modal-action-btn" id="btn-trigger-camera" style="flex:1;">📷 Camera</button>
+                        <button class="btn modal-action-btn" id="btn-trigger-gallery" style="flex:1;">🖼️ Gallery</button>
+                    </div>
+                    <input type="file" id="camera-only-input" accept="image/*" capture="environment" style="display:none;">
+                    <input type="file" id="gallery-only-input" accept="image/*" style="display:none;">
+                </div>
+                <div class="modal-section">
+                    <h4>Custom Page Templates</h4>
+                    <div class="template-grid">
+                        <button class="template-option" data-template="white"><div class="template-preview bg-template-white"></div><span>Plain White</span></button>
+                        <button class="template-option" data-template="lined-white"><div class="template-preview bg-template-lined-white"></div><span>Lined White</span></button>
+                        <button class="template-option" data-template="dot-grid"><div class="template-preview bg-template-dot-grid"></div><span>Dot Grid</span></button>
+                        <button class="template-option" data-template="yellow-blank"><div class="template-preview bg-template-yellow-blank"></div><span>Yellow Blank</span></button>
+                        <button class="template-option" data-template="yellow-lined"><div class="template-preview bg-template-yellow-lined"></div><span>Yellow Lined</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notepad Page List Modal -->
+    <div id="notepad-list-modal" class="modal-overlay notepad-page-list-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 All Notepad Pages</h3>
+                <button class="modal-close-btn" id="notepad-list-close">&times;</button>
+            </div>
+            <div class="modal-body" id="notepad-list-body"></div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // ================================================================
+        // STATE (बिना बदलाव)
+        // ================================================================
+        let loadedDocs = [];
+        let totalPages = 0;
+        let currentScale = 1.35;
+        let currentTool = 'select';
+        let penColor = '#1e293b';
+        let highlighterColor = 'rgba(250, 204, 21, 0.4)';
+        let strokeWidth = 3;
+        let intersectionObserver = null;
+
+        let globalStrokes = [];
+        let activeStroke = null;
+        let isDrawing = false;
+
+        let linkData = [];
+        let linkIdCounter = 0;
+
+        let activeToolMode = 'pointer';
+        let pendingLinkSource = null;
+        let waitingForDrop = false;
+        let linkPointStart = null;
+
+        let scanSelectionStart = null;
+        let scanSelectionEnd = null;
+        let isScanSelecting = false;
+        let underlineStartX = 0,
+            underlineStartY = 0,
+            underlineEndX = 0;
+        let dragState = null;
+
+        let isResizing = false;
+        let resizeRafId = null;
+        let isPinching = false;
+        let initialPinchDistance = 0;
+        let initialPinchScale = 1.35;
+        let pinchRafId = null;
+        let zoomDebounceTimer = null;
+        let isZoomFinalizing = false;
+        const activePointerMap = new Map();
+
+        let isLeftResizing = false;
+        let leftResizeStartX = 0;
+        let leftResizeStartMargin = 0;
+        let leftMarginPx = 0;
+
+        // ---- Text Annotations (Cursor only) ----
+        let textAnnotations = [];
+        let textIdCounter = 0;
+        let isCursorActive = false;
+
+        // ---- Cursor input ----
+        const cursorInput = document.getElementById('cursorInput');
+        const cursorText = document.getElementById('cursorText');
+        const cursorApply = document.getElementById('cursorApply');
+        const cursorCancel = document.getElementById('cursorCancel');
+        let cursorTargetPage = null;
+        let cursorTargetX = 0,
+            cursorTargetY = 0;
+        let cursorPending = false;
+
+        // ---- DOM REFS ----
+        const fileInput = document.getElementById('pdf-file-input');
+        const btnOpenPdf = document.getElementById('btn-open-pdf');
+        const casePlusInput = document.getElementById('case-plus-input');
+        const btnCasePlus = document.getElementById('btn-case-plus');
+        const btnAddPage = document.getElementById('btn-add-page');
+        const btnTriggerCamera = document.getElementById('btn-trigger-camera');
+        const btnTriggerGallery = document.getElementById('btn-trigger-gallery');
+        const cameraOnlyInput = document.getElementById('camera-only-input');
+        const galleryOnlyInput = document.getElementById('gallery-only-input');
+        const addPageModal = document.getElementById('add-page-modal');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const docInfo = document.getElementById('doc-info');
+        const mainWorkspace = document.getElementById('main-workspace');
+        const globalCanvas = document.getElementById('global-drawing-canvas');
+        const globalCtx = globalCanvas.getContext('2d');
+        const pdfContainer = document.getElementById('pdf-container');
+        const emptyState = document.getElementById('empty-state');
+        const pdfViewWrapper = document.getElementById('pdf-view-wrapper');
+        const notepadPane = document.getElementById('notepad-pane');
+        const notepadScrollContainer = document.getElementById('notepad-scroll-container');
+        const notepadPagesContainer = document.getElementById('notepad-pages');
+        const resizer = document.getElementById('resizer');
+        const leftResizer = document.getElementById('left-resizer');
+        const btnToggleNotepad = document.getElementById('btn-toggle-notepad');
+        const btnCloseNotepad = document.getElementById('btn-close-notepad');
+        const notepadBgSelect = document.getElementById('notepad-bg-select');
+        const pickerColor = document.getElementById('picker-color');
+        const sliderSize = document.getElementById('slider-size');
+        const btnClearPage = document.getElementById('btn-clear-page');
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        const zoomLabel = document.getElementById('zoom-label');
+        const btnExportPdf = document.getElementById('btn-export-pdf');
+        const modeStatus = document.getElementById('mode-status');
+
+        const notepadPrevBtn = document.getElementById('notepad-prev');
+        const notepadNextBtn = document.getElementById('notepad-next');
+        const notepadPageSelect = document.getElementById('notepad-page-select');
+        const btnNotepadList = document.getElementById('btn-notepad-list');
+        const notepadListModal = document.getElementById('notepad-list-modal');
+        const notepadListClose = document.getElementById('notepad-list-close');
+        const notepadListBody = document.getElementById('notepad-list-body');
+
+        // ---- Tool buttons ----
+        const toolButtons = document.querySelectorAll('.tool-icon-btn[data-tool]');
+
+        // ================================================================
+        // NOTEPAD DATA
+        // ================================================================
+        let notepadPagesData = [];
+        let currentNotepadIndex = 0;
+        notepadPagesData.push({ content: '', background: 'bg-red-lined', scrollTop: 0 });
+
+        // ================================================================
+        // COORDINATE HELPERS
+        // ================================================================
+        function getWorkspaceRect() { return mainWorkspace.getBoundingClientRect(); }
+
+        function getPdfCanvasWrapper(pageNum) {
+            const card = pdfContainer.querySelector(`.pdf-page-card[data-page-num="${pageNum}"]`);
+            if (!card) return null;
+            return card.querySelector('.canvas-wrapper');
+        }
+
+        function getContainerFromPoint(globalX, globalY) {
+            const wsRect = getWorkspaceRect();
+            const viewportX = globalX + wsRect.left;
+            const viewportY = globalY + wsRect.top;
+            const elements = document.elementsFromPoint(viewportX, viewportY);
+            for (let el of elements) {
+                const card = el.closest('.pdf-page-card');
+                if (card) {
+                    const wrapper = card.querySelector('.canvas-wrapper');
+                    if (wrapper) {
+                        const wrapperRect = wrapper.getBoundingClientRect();
+                        return {
+                            type: 'pdf',
+                            pageNum: parseInt(card.dataset.pageNum, 10),
+                            element: card,
+                            wrapper,
+                            wrapperRect,
+                            offsetX: wrapperRect.left - wsRect.left,
+                            offsetY: wrapperRect.top - wsRect.top,
+                            width: wrapperRect.width,
+                            height: wrapperRect.height
+                        };
+                    }
+                    const rect = card.getBoundingClientRect();
+                    return {
+                        type: 'pdf',
+                        pageNum: parseInt(card.dataset.pageNum, 10),
+                        element: card,
+                        wrapper: null,
+                        offsetX: rect.left - wsRect.left,
+                        offsetY: rect.top - wsRect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            }
+            const notepadRect = notepadScrollContainer.getBoundingClientRect();
+            if (notepadPane.style.display !== 'none') {
+                const nOffsetX = notepadRect.left - wsRect.left;
+                const nOffsetY = notepadRect.top - wsRect.top;
+                if (globalX >= nOffsetX && globalX <= nOffsetX + notepadRect.width &&
+                    globalY >= nOffsetY && globalY <= nOffsetY + notepadRect.height) {
+                    const wrappers = notepadPagesContainer.querySelectorAll('.notepad-page-wrapper');
+                    for (let wrapper of wrappers) {
+                        const rect = wrapper.getBoundingClientRect();
+                        const pageIndex = parseInt(wrapper.dataset.pageIndex, 10);
+                        if (globalX + wsRect.left >= rect.left && globalX + wsRect.left <= rect.right &&
+                            globalY + wsRect.top >= rect.top && globalY + wsRect.top <= rect.bottom) {
+                            return {
+                                type: 'notepad',
+                                element: wrapper,
+                                offsetX: rect.left - wsRect.left,
+                                offsetY: rect.top - wsRect.top,
+                                width: rect.width,
+                                height: rect.height,
+                                pageIndex: pageIndex
+                            };
+                        }
+                    }
+                    return {
+                        type: 'notepad',
+                        element: notepadScrollContainer,
+                        offsetX: nOffsetX,
+                        offsetY: nOffsetY,
+                        width: notepadRect.width,
+                        height: notepadRect.height,
+                        pageIndex: currentNotepadIndex
+                    };
+                }
+            }
+            return null;
+        }
+
+        function globalToContainer(globalX, globalY, containerInfo) {
+            if (containerInfo.type === 'pdf') {
+                return { x: globalX - containerInfo.offsetX, y: globalY - containerInfo.offsetY };
+            } else if (containerInfo.type === 'notepad') {
+                const scrollX = containerInfo.element.scrollLeft || 0;
+                const scrollY = containerInfo.element.scrollTop || 0;
+                if (containerInfo.element.classList.contains('notepad-page-wrapper')) {
+                    const content = containerInfo.element.querySelector('.notepad-page-content');
+                    if (content) {
+                        const contentRect = content.getBoundingClientRect();
+                        const wsRect = getWorkspaceRect();
+                        const offsetX = contentRect.left - wsRect.left;
+                        const offsetY = contentRect.top - wsRect.top;
+                        return { x: globalX - offsetX, y: globalY - offsetY };
+                    }
+                }
+                return { x: globalX - containerInfo.offsetX + scrollX, y: globalY - containerInfo.offsetY + scrollY };
+            }
+            return { x: globalX, y: globalY };
+        }
+
+        function containerToGlobal(containerX, containerY, containerInfo) {
+            if (containerInfo.type === 'pdf') {
+                return { x: containerX + containerInfo.offsetX, y: containerY + containerInfo.offsetY };
+            } else if (containerInfo.type === 'notepad') {
+                const scrollX = containerInfo.element.scrollLeft || 0;
+                const scrollY = containerInfo.element.scrollTop || 0;
+                if (containerInfo.element.classList.contains('notepad-page-wrapper')) {
+                    const content = containerInfo.element.querySelector('.notepad-page-content');
+                    if (content) {
+                        const contentRect = content.getBoundingClientRect();
+                        const wsRect = getWorkspaceRect();
+                        const offsetX = contentRect.left - wsRect.left;
+                        const offsetY = contentRect.top - wsRect.top;
+                        return { x: containerX + offsetX, y: containerY + offsetY };
+                    }
+                }
+                return { x: containerX + containerInfo.offsetX - scrollX, y: containerY + containerInfo.offsetY - scrollY };
+            }
+            return { x: containerX, y: containerY };
+        }
+
+        // ================================================================
+        // NOTEPAD RENDER ENGINE (FIXED)
+        // ================================================================
+        function renderNotepadPages() {
+            notepadPagesContainer.innerHTML = '';
+            notepadPagesData.forEach((pageData, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'notepad-page-wrapper';
+                wrapper.dataset.pageIndex = idx;
+                const header = document.createElement('div');
+                header.className = 'page-header';
+                const label = document.createElement('span');
+                label.className = 'page-label';
+                label.textContent = `Pad ${String(idx+1).padStart(2, '0')}`;
+                const actions = document.createElement('span');
+                actions.className = 'page-actions';
+                if (notepadPagesData.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn-delete-page';
+                    delBtn.innerHTML = '✕';
+                    delBtn.title = 'Delete this page';
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteNotepadPage(idx);
+                    });
+                    actions.appendChild(delBtn);
+                }
+                header.appendChild(label);
+                header.appendChild(actions);
+                const content = document.createElement('div');
+                content.className = `notepad-page-content ${pageData.background}`;
+                content.contentEditable = 'true';
+                content.setAttribute('spellcheck', 'false');
+                content.setAttribute('placeholder', 'Type your notes here…');
+                content.innerHTML = pageData.content || '';
+                const markers = document.createElement('div');
+                markers.className = 'notepad-page-markers';
+                markers.id = `notepad-markers-${idx}`;
+                wrapper.appendChild(header);
+                wrapper.appendChild(content);
+                wrapper.appendChild(markers);
+                notepadPagesContainer.appendChild(wrapper);
+            });
+
+            reinsertNotepadMarkers();
+
+            const currentPageData = notepadPagesData[currentNotepadIndex];
+            if (currentPageData && currentPageData.scrollTop) {
+                const wrapper = notepadPagesContainer.querySelector(`.notepad-page-wrapper[data-page-index="${currentNotepadIndex}"]`);
+                if (wrapper) {
+                    const content = wrapper.querySelector('.notepad-page-content');
+                    if (content) content.scrollTop = currentPageData.scrollTop;
+                }
+            }
+            updateNotepadMarkersVisibility();
+            updateNotepadHeader();
+            updateNotepadNav();
+            scrollToNotepadPage(currentNotepadIndex);
+            if (notepadPagesData.length > 0) {
+                notepadBgSelect.value = notepadPagesData[0].background || 'bg-red-lined';
+            }
+        }
+
+        function reinsertNotepadMarkers() {
+            linkData.forEach(link => {
+                if (link.sourceType === 'notepad' && link.sourceNotepadIndex !== undefined) {
+                    insertNotepadMarker(link.id, link.sourceX, link.sourceY, link.type, link.sourceNotepadIndex);
+                }
+                if (link.targetType === 'notepad' && link.targetNotepadIndex !== undefined) {
+                    if (link.type === 'scan' && link.imageData) {
+                        insertNotepadScanImage(link.id, link.targetX, link.targetY, link.imageData, link.targetNotepadIndex);
+                    } else {
+                        insertNotepadMarker(link.id, link.targetX, link.targetY, link.type, link.targetNotepadIndex);
+                    }
+                }
+            });
+        }
+
+        function getNotepadPageWrapper(index) {
+            return notepadPagesContainer.querySelector(`.notepad-page-wrapper[data-page-index="${index}"]`);
+        }
+
+        function getNotepadPageContent(index) {
+            const wrapper = getNotepadPageWrapper(index);
+            if (!wrapper) return null;
+            return wrapper.querySelector('.notepad-page-content');
+        }
+
+        function getNotepadPageMarkers(index) {
+            const wrapper = getNotepadPageWrapper(index);
+            if (!wrapper) return null;
+            return wrapper.querySelector('.notepad-page-markers');
+        }
+
+        function saveCurrentPageContent() {
+            const content = getNotepadPageContent(currentNotepadIndex);
+            if (content) {
+                notepadPagesData[currentNotepadIndex].content = content.innerHTML;
+                notepadPagesData[currentNotepadIndex].scrollTop = content.scrollTop || 0;
+            }
+        }
+
+        function scrollToNotepadPage(index) {
+            const wrapper = getNotepadPageWrapper(index);
+            if (!wrapper) return;
+            const containerRect = notepadScrollContainer.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const scrollOffset = wrapperRect.top - containerRect.top + notepadScrollContainer.scrollTop - 20;
+            notepadScrollContainer.scrollTo({ top: scrollOffset, behavior: 'smooth' });
+        }
+
+        // ================================================================
+        // NOTEPAD NAVIGATION
+        // ================================================================
+        function switchNotepadPage(index) {
+            if (index < 0 || index >= notepadPagesData.length || index === currentNotepadIndex) return;
+            saveCurrentPageContent();
+            currentNotepadIndex = index;
+            updateNotepadMarkersVisibility();
+            updateNotepadHeader();
+            updateNotepadNav();
+            scrollToNotepadPage(index);
+            redrawGlobalStrokes();
+        }
+
+        function addNewNotepadPage() {
+            saveCurrentPageContent();
+            const newBg = notepadBgSelect.value || 'bg-red-lined';
+            notepadPagesData.push({ content: '', background: newBg, scrollTop: 0 });
+            const newIndex = notepadPagesData.length - 1;
+            renderNotepadPages();
+            switchNotepadPage(newIndex);
+        }
+
+        function deleteNotepadPage(index) {
+            if (notepadPagesData.length <= 1) { updateModeStatus('Cannot delete the last page'); return; }
+            const toRemove = [];
+            linkData.forEach((link, i) => {
+                if (link.sourceType === 'notepad' && link.sourceNotepadIndex === index) toRemove.push(i);
+                if (link.targetType === 'notepad' && link.targetNotepadIndex === index) toRemove.push(i);
+            });
+            toRemove.sort((a, b) => b - a);
+            toRemove.forEach(i => {
+                const link = linkData[i];
+                const overlay = notepadPagesContainer;
+                const markerEl = overlay.querySelector(`.notepad-link-marker[data-link-id="${link.id}"]`);
+                if (markerEl) markerEl.remove();
+                const scanEl = overlay.querySelector(`.notepad-scan-container[data-link-id="${link.id}"]`);
+                if (scanEl) scanEl.remove();
+                linkData.splice(i, 1);
+            });
+            saveCurrentPageContent();
+            notepadPagesData.splice(index, 1);
+            let newIndex = index;
+            if (newIndex >= notepadPagesData.length) newIndex = notepadPagesData.length - 1;
+            if (currentNotepadIndex >= notepadPagesData.length) currentNotepadIndex = notepadPagesData.length - 1;
+            renderNotepadPages();
+            switchNotepadPage(newIndex);
+            redrawGlobalStrokes();
+            updateModeStatus(`Page ${index+1} deleted`);
+        }
+
+        function updateNotepadHeader() {
+            const padNumberSpan = document.getElementById('notepad-pad-number');
+            const counterSpan = document.getElementById('notepad-pad-counter');
+            if (padNumberSpan) {
+                const displayNum = currentNotepadIndex + 1;
+                padNumberSpan.textContent = `— Pad ${String(displayNum).padStart(2, '0')}`;
+            }
+            if (counterSpan) {
+                counterSpan.textContent = `(Total: ${notepadPagesData.length})`;
+            }
+        }
+
+        function updateNotepadNav() {
+            if (notepadPrevBtn) {
+                notepadPrevBtn.disabled = (currentNotepadIndex <= 0);
+            }
+            if (notepadNextBtn) {
+                notepadNextBtn.disabled = (currentNotepadIndex >= notepadPagesData.length - 1);
+            }
+            if (notepadPageSelect) {
+                notepadPageSelect.innerHTML = '';
+                for (let i = 0; i < notepadPagesData.length; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = `Pad ${String(i+1).padStart(2, '0')}`;
+                    if (i === currentNotepadIndex) opt.selected = true;
+                    notepadPageSelect.appendChild(opt);
+                }
+            }
+        }
+
+        function prevNotepadPage() {
+            if (currentNotepadIndex > 0) switchNotepadPage(currentNotepadIndex - 1);
+        }
+
+        function nextNotepadPage() {
+            if (currentNotepadIndex < notepadPagesData.length - 1) switchNotepadPage(currentNotepadIndex + 1);
+        }
+
+        function goToNotepadPage(index) {
+            const idx = parseInt(index, 10);
+            if (!isNaN(idx) && idx >= 0 && idx < notepadPagesData.length && idx !== currentNotepadIndex) {
+                switchNotepadPage(idx);
+            }
+        }
+
+        function showNotepadPageList() {
+            const body = notepadListBody;
+            if (!body) return;
+            body.innerHTML = '';
+            notepadPagesData.forEach((page, idx) => {
+                const div = document.createElement('div');
+                div.className = 'notepad-page-list-item' + (idx === currentNotepadIndex ? ' current' : '');
+                const label = document.createElement('span');
+                label.className = 'page-label';
+                label.textContent = `Pad ${String(idx+1).padStart(2, '0')}`;
+                const preview = document.createElement('span');
+                preview.className = 'page-preview';
+                const content = page.content || '';
+                const text = content.replace(/<[^>]+>/g, '').trim();
+                preview.textContent = text.length > 60 ? text.substring(0, 60) + '…' : text || '(empty)';
+                const badge = document.createElement('span');
+                badge.className = 'page-badge';
+                if (idx === currentNotepadIndex) badge.textContent = '● Current';
+                else badge.textContent = `#${idx+1}`;
+                div.appendChild(label);
+                div.appendChild(preview);
+                div.appendChild(badge);
+                div.addEventListener('click', function() {
+                    if (idx !== currentNotepadIndex) switchNotepadPage(idx);
+                    notepadListModal.style.display = 'none';
+                });
+                body.appendChild(div);
+            });
+            notepadListModal.style.display = 'flex';
+        }
+
+        function updateNotepadMarkersVisibility() {
+            const wrappers = notepadPagesContainer.querySelectorAll('.notepad-page-wrapper');
+            wrappers.forEach((wrapper, idx) => {
+                const markers = wrapper.querySelector('.notepad-page-markers');
+                if (!markers) return;
+                if (idx === currentNotepadIndex) {
+                    markers.style.display = '';
+                    const items = markers.querySelectorAll('.notepad-link-marker, .notepad-scan-container');
+                    items.forEach(el => { applyScrollOffsetToMarker(el); });
+                } else {
+                    markers.style.display = 'none';
+                }
+            });
+        }
+
+        function applyScrollOffsetToMarker(el) {
+            const contentX = parseFloat(el.dataset.contentX);
+            const contentY = parseFloat(el.dataset.contentY);
+            if (isNaN(contentX) || isNaN(contentY)) return;
+            el.style.left = contentX + 'px';
+            el.style.top = contentY + 'px';
+        }
+
+        function updateAllOverlayMarkers() {
+            const markersContainer = getNotepadPageMarkers(currentNotepadIndex);
+            if (!markersContainer) return;
+            const items = markersContainer.querySelectorAll('.notepad-link-marker, .notepad-scan-container');
+            items.forEach(el => { applyScrollOffsetToMarker(el); });
+        }
+
+        function updateMarkerPosition(linkId) {
+            const link = linkData.find(l => l.id === linkId);
+            if (!link) return;
+            const pageIndex = link.sourceType === 'notepad' ? link.sourceNotepadIndex : link.targetNotepadIndex;
+            if (pageIndex === undefined) return;
+            const markersContainer = getNotepadPageMarkers(pageIndex);
+            if (!markersContainer) return;
+            let el = markersContainer.querySelector(`.notepad-link-marker[data-link-id="${linkId}"]`);
+            if (!el) el = markersContainer.querySelector(`.notepad-scan-container[data-link-id="${linkId}"]`);
+            if (!el) return;
+            const contentX = parseFloat(el.dataset.contentX);
+            const contentY = parseFloat(el.dataset.contentY);
+            if (!isNaN(contentX) && !isNaN(contentY)) {
+                if (link.sourceType === 'notepad') { link.sourceX = contentX;
+                    link.sourceY = contentY; }
+                if (link.targetType === 'notepad') { link.targetX = contentX;
+                    link.targetY = contentY; }
+            }
+        }
+
+        function updateAllMarkerPositions() {
+            linkData.forEach(link => {
+                if (link.sourceType === 'notepad' || link.targetType === 'notepad') updateMarkerPosition(link.id);
+            });
+        }
+
+        // ---- DRAGGING ----
+        let notepadDragState = null;
+
+        function onNotepadMarkerPointerDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const marker = this.closest('.notepad-link-marker, .notepad-scan-container');
+            if (!marker) return;
+            const linkId = parseInt(marker.dataset.linkId, 10);
+            const rect = marker.getBoundingClientRect();
+            const containerRect = marker.closest('.notepad-page-markers').getBoundingClientRect();
+            const offsetX = e.clientX - (rect.left + rect.width / 2);
+            const offsetY = e.clientY - (rect.top + rect.height / 2);
+            const ghost = marker.cloneNode(true);
+            ghost.className = marker.className + ' marker-ghost';
+            ghost.style.position = 'fixed';
+            ghost.style.pointerEvents = 'none';
+            ghost.style.zIndex = '99999';
+            ghost.style.left = e.clientX + 'px';
+            ghost.style.top = e.clientY + 'px';
+            ghost.style.width = rect.width + 'px';
+            ghost.style.height = rect.height + 'px';
+            ghost.style.transform = 'translate(-50%, -50%) scale(1.25)';
+            ghost.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35)';
+            const tooltip = ghost.querySelector('.link-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+            document.body.appendChild(ghost);
+            const pageIndex = parseInt(marker.closest('.notepad-page-wrapper').dataset.pageIndex, 10);
+            notepadDragState = {
+                marker: marker,
+                linkId: linkId,
+                ghost: ghost,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                containerRect: containerRect,
+                startContentX: parseFloat(marker.dataset.contentX) || 0,
+                startContentY: parseFloat(marker.dataset.contentY) || 0,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                pageIndex: pageIndex
+            };
+            marker.style.opacity = '0.4';
+            marker.style.transform = marker.classList.contains('notepad-scan-container') ?
+                'translate(-50%, -50%) scale(0.92)' :
+                'translate(-50%, -50%) scale(0.92)';
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'grabbing';
+            if (e.pointerId !== undefined && marker.setPointerCapture) {
+                try { marker.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+        }
+
+        function onNotepadMarkerPointerMove(e) {
+            if (!notepadDragState) return;
+            e.preventDefault();
+            const state = notepadDragState;
+            const ghost = state.ghost;
+            if (ghost) { ghost.style.left = e.clientX + 'px';
+                ghost.style.top = e.clientY + 'px'; }
+            const markerParent = state.marker.parentElement;
+            if (!markerParent) return;
+            const parentRect = markerParent.getBoundingClientRect();
+            const contentX = (e.clientX - parentRect.left);
+            const contentY = (e.clientY - parentRect.top);
+            state.marker.dataset.contentX = contentX;
+            state.marker.dataset.contentY = contentY;
+            state.marker.style.left = contentX + 'px';
+            state.marker.style.top = contentY + 'px';
+        }
+
+        function onNotepadMarkerPointerUp(e) {
+            if (!notepadDragState) return;
+            const state = notepadDragState;
+            const marker = state.marker;
+            const linkId = state.linkId;
+            const ghost = state.ghost;
+            if (ghost && ghost.parentNode) ghost.remove();
+            marker.style.opacity = '1';
+            marker.style.transform = marker.classList.contains('notepad-scan-container') ?
+                'translate(-50%, -50%)' :
+                'translate(-50%, -50%)';
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            const link = linkData.find(l => l.id === linkId);
+            if (link) {
+                const contentX = parseFloat(marker.dataset.contentX);
+                const contentY = parseFloat(marker.dataset.contentY);
+                if (!isNaN(contentX) && !isNaN(contentY)) {
+                    if (link.sourceType === 'notepad') { link.sourceX = contentX;
+                        link.sourceY = contentY; }
+                    if (link.targetType === 'notepad') { link.targetX = contentX;
+                        link.targetY = contentY; }
+                }
+            }
+            redrawGlobalStrokes();
+            notepadDragState = null;
+        }
+
+        document.addEventListener('pointermove', onNotepadMarkerPointerMove);
+        document.addEventListener('pointerup', onNotepadMarkerPointerUp);
+        document.addEventListener('pointercancel', onNotepadMarkerPointerUp);
+
+        // ---- JUMP ----
+        function jumpToLink(linkId) {
+            const link = linkData.find(l => l.id === linkId);
+            if (!link) return;
+            if (link.sourceType === 'pdf') jumpToPdf(link.sourcePageNum, link.sourceX, link.sourceY, link.sourceBounds);
+            else if (link.targetType === 'pdf') jumpToPdf(link.targetPageNum, link.targetX, link.targetY, link.targetBounds);
+            else if (link.sourceType === 'notepad') jumpToNotepad(link.sourceNotepadIndex, link.sourceScrollY);
+            else if (link.targetType === 'notepad') jumpToNotepad(link.targetNotepadIndex, link.targetScrollY);
+        }
+
+        function jumpToPdf(pageNum, x, y, bounds) {
+            const wrapper = getPdfCanvasWrapper(pageNum);
+            if (!wrapper) {
+                const card = pdfContainer.querySelector(`.pdf-page-card[data-page-num="${pageNum}"]`);
+                if (card) {
+                    const wrapperRect = pdfViewWrapper.getBoundingClientRect();
+                    const cardRect = card.getBoundingClientRect();
+                    pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (cardRect.top - wrapperRect.top) - 60,
+                        behavior: 'smooth' });
+                    setTimeout(() => jumpToPdf(pageNum, x, y, bounds), 400);
+                }
+                return;
+            }
+            let targetY = y;
+            if (bounds) targetY = (bounds.y1 + bounds.y2) / 2;
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const viewWrapperRect = pdfViewWrapper.getBoundingClientRect();
+            pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (wrapperRect.top + targetY - viewWrapperRect.top) -
+                    80, behavior: 'smooth' });
+            setTimeout(() => { showPdfHighlight(pageNum, bounds ? bounds : { x1: x - 30, y1: y - 15, x2: x + 30, y2: y +
+                    15 }); }, 400);
+        }
+
+        function showPdfHighlight(pageNum, bounds) {
+            document.querySelectorAll('.pdf-link-highlight').forEach(el => el.remove());
+            const wrapper = getPdfCanvasWrapper(pageNum);
+            if (!wrapper) return;
+            let x1 = bounds.x1,
+                y1 = bounds.y1,
+                x2 = bounds.x2,
+                y2 = bounds.y2;
+            if (!bounds.x2) { x1 = bounds.x1 - 20;
+                y1 = bounds.y1 - 10;
+                x2 = bounds.x1 + 20;
+                y2 = bounds.y1 + 10; }
+            const left = Math.min(x1, x2),
+                top = Math.min(y1, y2);
+            const width = Math.abs(x2 - x1),
+                height = Math.abs(y2 - y1);
+            const highlight = document.createElement('div');
+            highlight.className = 'pdf-link-highlight active';
+            highlight.style.left = left + 'px';
+            highlight.style.top = top + 'px';
+            highlight.style.width = width + 'px';
+            highlight.style.height = height + 'px';
+            wrapper.appendChild(highlight);
+            setTimeout(() => { highlight.classList.remove('active');
+                setTimeout(() => highlight.remove(), 500); }, 3000);
+        }
+
+        function jumpToNotepad(index, scrollY) {
+            if (index < 0 || index >= notepadPagesData.length) return;
+            switchNotepadPage(index);
+            setTimeout(() => {
+                const content = getNotepadPageContent(index);
+                if (content) {
+                    content.scrollTop = scrollY || 0;
+                    content.focus();
+                }
+            }, 100);
+        }
+
+        // ================================================================
+        // MODE MANAGEMENT (UPDATED: highlighter is now a LINK mode)
+        // ================================================================
+        function cancelPendingLink() {
+            if (waitingForDrop) {
+                waitingForDrop = false;
+                pendingLinkSource = null;
+                scanSelectionStart = null;
+                scanSelectionEnd = null;
+                isScanSelecting = false;
+                linkPointStart = null;
+                underlineStartX = underlineStartY = underlineEndX = 0;
+                updateGlobalCanvasPointerEvents();
+                updateModeStatus('Cancelled');
+                redrawGlobalStrokes();
+            }
+        }
+
+        let activeToolName = 'pointer';
+
+        function setToolMode(mode) {
+            cancelPendingLink();
+            if (cursorPending) hideCursorInput();
+
+            activeToolName = mode;
+            activeToolMode = mode;
+
+            toolButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tool === mode);
+            });
+
+            globalCanvas.style.pointerEvents = 'auto';
+            globalCanvas.style.cursor = 'crosshair';
+
+            // --- POINTER ---
+            if (mode === 'pointer') {
+                globalCanvas.style.pointerEvents = 'none';
+                document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.remove('block-events');
+                    el.style.pointerEvents = 'auto'; });
+                updateModeStatus('🖱️ Pointer mode');
+                isCursorActive = false;
+                return;
+            }
+
+            // --- CURSOR ---
+            if (mode === 'cursor') {
+                isCursorActive = true;
+                document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events');
+                    el.style.pointerEvents = 'none'; });
+                updateModeStatus('⌨️ Click on PDF to type text');
+                globalCanvas.style.pointerEvents = 'auto';
+                globalCanvas.style.cursor = 'text';
+                return;
+            }
+
+            isCursorActive = false;
+
+            // --- DRAWING TOOLS (pen, eraser, whitener only) ---
+            if (mode === 'pen' || mode === 'eraser' || mode === 'whitener') {
+                if (mode === 'pen' || mode === 'whitener') setTool('pen');
+                else if (mode === 'eraser') setTool('eraser');
+                globalCanvas.style.pointerEvents = 'auto';
+                globalCanvas.style.cursor = 'crosshair';
+                document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events');
+                    el.style.pointerEvents = 'none'; });
+                const labels = { pen: '✏️ Pen', eraser: '🧹 Eraser', whitener: '⬜ Whitener' };
+                updateModeStatus(labels[mode] || mode);
+                return;
+            }
+
+            // --- LINK MODES (line, underline, highlighter, scan, linkpoint) ---
+            if (['line', 'underline', 'highlighter', 'scan', 'linkpoint'].includes(mode)) {
+                // For highlighter, we set tool to 'pen' but the drawing will use highlighter color and width
+                if (mode === 'highlighter') {
+                    setTool('pen'); // this just sets currentTool, but startLinkStroke will override
+                } else if (mode === 'line' || mode === 'underline') {
+                    setTool('pen');
+                } else if (mode === 'scan') {
+                    setTool('pen');
+                } else if (mode === 'linkpoint') {
+                    setTool('select');
+                }
+                globalCanvas.style.pointerEvents = 'auto';
+                globalCanvas.style.cursor = 'crosshair';
+                document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events');
+                    el.style.pointerEvents = 'none'; });
+                updateModeStatus(getModeLabel(mode));
+                return;
+            }
+        }
+
+        function getModeLabel(mode) {
+            const map = {
+                'line': '📏 Line: Draw on PDF, then tap on Notepad',
+                'underline': '⏺️ Underline: Draw horizontal line on PDF, then tap on Notepad',
+                'highlighter': '🟡 Highlighter: Draw highlight on PDF, then tap on Notepad',
+                'scan': '📷 Scan: Select area on PDF, then tap on Notepad',
+                'linkpoint': '🔗 Link Point: Tap on PDF, then tap on Notepad',
+                'pointer': '🖱️ Pointer mode',
+                'pen': '✏️ Pen',
+                'eraser': '🧹 Eraser',
+                'whitener': '⬜ Whitener',
+                'cursor': '⌨️ Cursor'
+            };
+            return map[mode] || mode;
+        }
+
+        function updateModeStatus(text) {
+            modeStatus.textContent = text;
+            modeStatus.classList.add('visible');
+            clearTimeout(modeStatus._timeout);
+            modeStatus._timeout = setTimeout(() => modeStatus.classList.remove('visible'), 3000);
+        }
+
+        function updateGlobalCanvasPointerEvents() {
+            if (waitingForDrop) { globalCanvas.style.pointerEvents = 'none'; return; }
+            if (activeToolMode === 'pointer') { globalCanvas.style.pointerEvents = 'none'; } else { globalCanvas.style
+                    .pointerEvents = 'auto'; }
+        }
+
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const tool = this.dataset.tool;
+                setToolMode(tool);
+            });
+        });
+
+        // ---- Cursor input ----
+        function showCursorInput(x, y, pageNum) {
+            cursorTargetPage = pageNum;
+            cursorTargetX = x;
+            cursorTargetY = y;
+            cursorInput.style.display = 'block';
+            cursorInput.style.left = (x + 10) + 'px';
+            cursorInput.style.top = (y - 30) + 'px';
+            cursorText.value = '';
+            cursorText.focus();
+            cursorPending = true;
+        }
+
+        function hideCursorInput() {
+            cursorInput.style.display = 'none';
+            cursorPending = false;
+        }
+
+        function applyCursorText() {
+            const text = cursorText.value.trim();
+            if (text && cursorTargetPage !== null) {
+                createTextAnnotation(cursorTargetPage, cursorTargetX, cursorTargetY, text);
+                updateModeStatus('✅ Text added');
+            }
+            hideCursorInput();
+            cursorTargetPage = null;
+        }
+
+        cursorApply.addEventListener('click', applyCursorText);
+        cursorCancel.addEventListener('click', function() {
+            hideCursorInput();
+            cursorTargetPage = null;
+        });
+        cursorText.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyCursorText();
+            }
+            if (e.key === 'Escape') {
+                hideCursorInput();
+                cursorTargetPage = null;
+            }
+        });
+
+        // ---- Text Annotations (Cursor only) ----
+        function createTextAnnotation(pageNum, x, y, text) {
+            const wrapper = getPdfCanvasWrapper(pageNum);
+            if (!wrapper) return;
+
+            const id = ++textIdCounter;
+            const div = document.createElement('div');
+            div.className = 'pdf-text-annotation';
+            div.contentEditable = 'true';
+            div.dataset.id = id;
+            div.dataset.pageNum = pageNum;
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+            div.style.width = '120px';
+            div.style.minHeight = '30px';
+            div.textContent = text || 'Type here…';
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-text-annotation';
+            delBtn.textContent = '×';
+            delBtn.title = 'Delete this note';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteTextAnnotation(id);
+            });
+            div.appendChild(delBtn);
+
+            let dragState = null;
+            div.addEventListener('pointerdown', (e) => {
+                if (e.target === delBtn) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = div.getBoundingClientRect();
+                dragState = {
+                    element: div,
+                    offsetX: e.clientX - rect.left,
+                    offsetY: e.clientY - rect.top,
+                    id: id
+                };
+                div.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+                if (e.pointerId !== undefined && div.setPointerCapture) {
+                    try { div.setPointerCapture(e.pointerId); } catch (_) {}
+                }
+            });
+
+            div.addEventListener('pointermove', (e) => {
+                if (!dragState || dragState.id !== id) return;
+                e.preventDefault();
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const wsRect = getWorkspaceRect();
+                let left = e.clientX - wsRect.left - dragState.offsetX;
+                let top = e.clientY - wsRect.top - dragState.offsetY;
+                left = Math.max(0, Math.min(left, wrapperRect.width - div.offsetWidth));
+                top = Math.max(0, Math.min(top, wrapperRect.height - div.offsetHeight));
+                div.style.left = left + 'px';
+                div.style.top = top + 'px';
+                const ann = textAnnotations.find(a => a.id === id);
+                if (ann) { ann.x = left;
+                    ann.y = top; }
+            });
+
+            div.addEventListener('pointerup', (e) => {
+                if (dragState && dragState.id === id) {
+                    dragState = null;
+                    div.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                    if (e.pointerId !== undefined && div.releasePointerCapture) {
+                        try { div.releasePointerCapture(e.pointerId); } catch (_) {}
+                    }
+                }
+            });
+            div.addEventListener('pointercancel', (e) => {
+                if (dragState && dragState.id === id) {
+                    dragState = null;
+                    div.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            div.addEventListener('blur', function() {
+                const annData = textAnnotations.find(a => a.id === id);
+                if (annData) {
+                    annData.text = this.textContent;
+                    annData.width = this.offsetWidth;
+                    annData.height = this.offsetHeight;
+                }
+            });
+
+            wrapper.appendChild(div);
+
+            textAnnotations.push({
+                id: id,
+                pageNum: pageNum,
+                x: x,
+                y: y,
+                text: text || 'Type here…',
+                width: 120,
+                height: 30,
+                element: div
+            });
+
+            setTimeout(() => {
+                div.focus();
+                const range = document.createRange();
+                range.selectNodeContents(div);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }, 50);
+
+            return div;
+        }
+
+        function deleteTextAnnotation(id) {
+            const idx = textAnnotations.findIndex(a => a.id === id);
+            if (idx === -1) return;
+            const ann = textAnnotations[idx];
+            if (ann.element && ann.element.parentNode) {
+                ann.element.parentNode.removeChild(ann.element);
+            }
+            textAnnotations.splice(idx, 1);
+        }
+
+        function renderTextAnnotationsForPage(pageNum) {
+            const wrapper = getPdfCanvasWrapper(pageNum);
+            if (!wrapper) return;
+            const existing = wrapper.querySelectorAll('.pdf-text-annotation');
+            existing.forEach(el => {
+                const id = parseInt(el.dataset.id, 10);
+                const found = textAnnotations.some(a => a.id === id);
+                if (!found) el.remove();
+            });
+            textAnnotations.filter(a => a.pageNum === pageNum).forEach(ann => {
+                if (ann.element && ann.element.parentNode === wrapper) return;
+                const div = document.createElement('div');
+                div.className = 'pdf-text-annotation';
+                div.contentEditable = 'true';
+                div.dataset.id = ann.id;
+                div.dataset.pageNum = ann.pageNum;
+                div.style.left = ann.x + 'px';
+                div.style.top = ann.y + 'px';
+                div.style.width = (ann.width || 120) + 'px';
+                div.style.minHeight = (ann.height || 30) + 'px';
+                div.textContent = ann.text || 'Type here…';
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-text-annotation';
+                delBtn.textContent = '×';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteTextAnnotation(ann.id);
+                });
+                div.appendChild(delBtn);
+
+                let dragState = null;
+                div.addEventListener('pointerdown', (e) => {
+                    if (e.target === delBtn) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = div.getBoundingClientRect();
+                    dragState = {
+                        element: div,
+                        offsetX: e.clientX - rect.left,
+                        offsetY: e.clientY - rect.top,
+                        id: ann.id
+                    };
+                    div.style.cursor = 'grabbing';
+                    document.body.style.userSelect = 'none';
+                    if (e.pointerId !== undefined && div.setPointerCapture) {
+                        try { div.setPointerCapture(e.pointerId); } catch (_) {}
+                    }
+                });
+                div.addEventListener('pointermove', (e) => {
+                    if (!dragState || dragState.id !== ann.id) return;
+                    e.preventDefault();
+                    const wrapperRect = wrapper.getBoundingClientRect();
+                    const wsRect = getWorkspaceRect();
+                    let left = e.clientX - wsRect.left - dragState.offsetX;
+                    let top = e.clientY - wsRect.top - dragState.offsetY;
+                    left = Math.max(0, Math.min(left, wrapperRect.width - div.offsetWidth));
+                    top = Math.max(0, Math.min(top, wrapperRect.height - div.offsetHeight));
+                    div.style.left = left + 'px';
+                    div.style.top = top + 'px';
+                    const annData = textAnnotations.find(a => a.id === ann.id);
+                    if (annData) { annData.x = left;
+                        annData.y = top; }
+                });
+                div.addEventListener('pointerup', (e) => {
+                    if (dragState && dragState.id === ann.id) {
+                        dragState = null;
+                        div.style.cursor = 'move';
+                        document.body.style.userSelect = '';
+                        if (e.pointerId !== undefined && div.releasePointerCapture) {
+                            try { div.releasePointerCapture(e.pointerId); } catch (_) {}
+                        }
+                    }
+                });
+                div.addEventListener('pointercancel', (e) => {
+                    if (dragState && dragState.id === ann.id) {
+                        dragState = null;
+                        div.style.cursor = 'move';
+                        document.body.style.userSelect = '';
+                    }
+                });
+                div.addEventListener('blur', function() {
+                    const annData = textAnnotations.find(a => a.id === ann.id);
+                    if (annData) {
+                        annData.text = this.textContent;
+                        annData.width = this.offsetWidth;
+                        annData.height = this.offsetHeight;
+                    }
+                });
+
+                wrapper.appendChild(div);
+                ann.element = div;
+            });
+        }
+
+        // ---- Cursor click handler ----
+        function handleCursorClick(e) {
+            if (!isCursorActive) return;
+            if (isPinching) return;
+            e.preventDefault();
+
+            if (cursorPending) {
+                hideCursorInput();
+            }
+
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== 'pdf') return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+
+            const wrapper = getPdfCanvasWrapper(containerInfo.pageNum);
+            if (!wrapper) return;
+            const inputX = localPoint.x;
+            const inputY = localPoint.y;
+            showCursorInput(inputX, inputY, containerInfo.pageNum);
+            cursorInput.style.left = (clientX + 10) + 'px';
+            cursorInput.style.top = (clientY - 10) + 'px';
+        }
+
+        // ================================================================
+        // LINK & MARKER INSERT FUNCTIONS
+        // ================================================================
+        function insertPdfMarker(linkId, x, y, pageNum, type) {
+            const wrapper = getPdfCanvasWrapper(pageNum);
+            if (!wrapper) return;
+            const existing = wrapper.querySelector(`.pdf-link-marker[data-link-id="${linkId}"]`);
+            if (existing) existing.remove();
+            const marker = document.createElement('div');
+            marker.className = `pdf-link-marker type-${type}`;
+            marker.dataset.linkId = linkId;
+            marker.style.left = x + 'px';
+            marker.style.top = y + 'px';
+            const tooltip = document.createElement('span');
+            tooltip.className = 'link-tooltip';
+            const labels = { line: '✏️ Line', highlight: '🟡 Highlight', underline: '⏺️ Underline', scan: '📷 Scan',
+                linkpoint: '🔗 Link Point' };
+            tooltip.textContent = 'Jump to Notepad (' + (labels[type] || type) + ')';
+            marker.appendChild(tooltip);
+            marker.addEventListener('click', function(e) { e.stopPropagation();
+                jumpToLink(parseInt(this.dataset.linkId, 10)); });
+            wrapper.appendChild(marker);
+        }
+
+        function insertNotepadMarker(linkId, x, y, type, notepadIndex) {
+            const markersContainer = getNotepadPageMarkers(notepadIndex);
+            if (!markersContainer) return;
+            const existing = markersContainer.querySelector(`.notepad-link-marker[data-link-id="${linkId}"]`);
+            if (existing) existing.remove();
+
+            const marker = document.createElement('div');
+            marker.className = `notepad-link-marker type-${type}`;
+            marker.dataset.linkId = linkId;
+            marker.dataset.notepadPage = notepadIndex;
+            marker.style.left = x + 'px';
+            marker.style.top = y + 'px';
+
+            const tooltip = document.createElement('span');
+            tooltip.className = 'link-tooltip';
+            const labels = { line: '✏️ Line', highlight: '🟡 Highlight', underline: '⏺️ Underline', scan: '📷 Scan',
+                linkpoint: '🔗 Link Point' };
+            tooltip.textContent = 'Jump to PDF (' + (labels[type] || type) + ')';
+            marker.appendChild(tooltip);
+
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                jumpToLink(parseInt(this.dataset.linkId, 10));
+            });
+            marker.addEventListener('pointerdown', onNotepadMarkerPointerDown);
+
+            markersContainer.appendChild(marker);
+            marker.dataset.contentX = x;
+            marker.dataset.contentY = y;
+            if (notepadIndex !== currentNotepadIndex) {
+                marker.style.display = 'none';
+            }
+            return marker;
+        }
+
+        function insertNotepadScanImage(linkId, x, y, imageData, notepadIndex) {
+            const markersContainer = getNotepadPageMarkers(notepadIndex);
+            if (!markersContainer) return;
+            const existing = markersContainer.querySelector(`.notepad-scan-container[data-link-id="${linkId}"]`);
+            if (existing) existing.remove();
+
+            const container = document.createElement('div');
+            container.className = 'notepad-scan-container';
+            container.dataset.linkId = linkId;
+            container.dataset.notepadPage = notepadIndex;
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+
+            const img = document.createElement('img');
+            img.src = imageData;
+            img.alt = 'Scan';
+            img.style.maxHeight = '120px';
+            img.style.maxWidth = '200px';
+
+            const controls = document.createElement('div');
+            controls.className = 'scan-resize-controls';
+            const btnSmall = document.createElement('button');
+            btnSmall.textContent = 'A-';
+            btnSmall.title = 'Smaller';
+            btnSmall.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let currentMaxH = parseFloat(img.style.maxHeight) || 120;
+                let currentMaxW = parseFloat(img.style.maxWidth) || 200;
+                currentMaxH = Math.max(40, currentMaxH - 20);
+                currentMaxW = Math.max(80, currentMaxW - 30);
+                img.style.maxHeight = currentMaxH + 'px';
+                img.style.maxWidth = currentMaxW + 'px';
+            });
+            const btnLarge = document.createElement('button');
+            btnLarge.textContent = 'A+';
+            btnLarge.title = 'Larger';
+            btnLarge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let currentMaxH = parseFloat(img.style.maxHeight) || 120;
+                let currentMaxW = parseFloat(img.style.maxWidth) || 200;
+                currentMaxH = Math.min(400, currentMaxH + 20);
+                currentMaxW = Math.min(600, currentMaxW + 30);
+                img.style.maxHeight = currentMaxH + 'px';
+                img.style.maxWidth = currentMaxW + 'px';
+            });
+            const btnReset = document.createElement('button');
+            btnReset.textContent = '⟲';
+            btnReset.title = 'Reset size';
+            btnReset.addEventListener('click', (e) => {
+                e.stopPropagation();
+                img.style.maxHeight = '120px';
+                img.style.maxWidth = '200px';
+            });
+            controls.appendChild(btnSmall);
+            controls.appendChild(btnLarge);
+            controls.appendChild(btnReset);
+
+            const marker = document.createElement('div');
+            marker.className = `notepad-link-marker type-scan`;
+            marker.dataset.linkId = linkId;
+            const tooltip = document.createElement('span');
+            tooltip.className = 'link-tooltip';
+            tooltip.textContent = 'Jump to PDF (Scan)';
+            marker.appendChild(tooltip);
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                jumpToLink(parseInt(this.dataset.linkId, 10));
+            });
+            marker.addEventListener('pointerdown', onNotepadMarkerPointerDown);
+
+            container.appendChild(img);
+            container.appendChild(controls);
+            container.appendChild(marker);
+            markersContainer.appendChild(container);
+            container.dataset.contentX = x;
+            container.dataset.contentY = y;
+            if (notepadIndex !== currentNotepadIndex) {
+                container.style.display = 'none';
+            }
+            return container;
+        }
+
+        // ================================================================
+        // DRAWING SYSTEM (UPDATED: highlighter is now a LINK mode, so removed from drawing)
+        // ================================================================
+        function redrawGlobalStrokes() {
+            const wsRect = getWorkspaceRect();
+            globalCanvas.width = wsRect.width;
+            globalCanvas.height = wsRect.height;
+            globalCtx.clearRect(0, 0, globalCanvas.width, globalCanvas.height);
+
+            globalStrokes.forEach(stroke => {
+                if (!stroke.points || stroke.points.length < 2) return;
+                let containerInfo = null;
+                if (stroke.container === 'pdf') {
+                    const wrapper = getPdfCanvasWrapper(stroke.pageNum);
+                    if (!wrapper) return;
+                    const rect = wrapper.getBoundingClientRect();
+                    containerInfo = { type: 'pdf', pageNum: stroke.pageNum, element: wrapper,
+                        offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+                } else if (stroke.container === 'notepad') {
+                    if (notepadPane.style.display === 'none') return;
+                    const wrapper = getNotepadPageWrapper(stroke.pageIndex || currentNotepadIndex);
+                    if (!wrapper) return;
+                    const wrapperRect = wrapper.getBoundingClientRect();
+                    containerInfo = { type: 'notepad', element: wrapper,
+                        offsetX: wrapperRect.left - wsRect.left, offsetY: wrapperRect.top - wsRect.top };
+                } else return;
+                const globalPoints = stroke.points.map(p => containerToGlobal(p.x, p.y, containerInfo));
+                globalCtx.save();
+                globalCtx.beginPath();
+                globalCtx.moveTo(globalPoints[0].x, globalPoints[0].y);
+                for (let i = 1; i < globalPoints.length; i++) globalCtx.lineTo(globalPoints[i].x, globalPoints[i].y);
+                globalCtx.setLineDash([]);
+                if (stroke.tool === 'pen' || stroke.tool === 'whitener') {
+                    globalCtx.globalCompositeOperation = 'source-over';
+                    globalCtx.strokeStyle = (stroke.tool === 'whitener') ? '#ffffff' : stroke.color;
+                    globalCtx.lineWidth = stroke.width;
+                    globalCtx.lineCap = 'round';
+                    globalCtx.lineJoin = 'round';
+                } else if (stroke.tool === 'eraser') {
+                    globalCtx.globalCompositeOperation = 'destination-out';
+                    globalCtx.lineWidth = stroke.width * 6;
+                    globalCtx.lineCap = 'round';
+                    globalCtx.lineJoin = 'round';
+                } // highlighter is now handled in link strokes
+                globalCtx.stroke();
+                globalCtx.restore();
+            });
+
+            // ---- Link lines: only if the notepad side is the current page ----
+            linkData.forEach(link => {
+                let sourceGlobal = null,
+                    targetGlobal = null;
+
+                if (link.sourceType === 'pdf') {
+                    const wrapper = getPdfCanvasWrapper(link.sourcePageNum);
+                    if (wrapper) {
+                        const rect = wrapper.getBoundingClientRect();
+                        const ci = { type: 'pdf', pageNum: link.sourcePageNum, element: wrapper,
+                            offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+                        let cx = link.sourceX,
+                            cy = link.sourceY;
+                        if (link.sourceBounds) { cx = (link.sourceBounds.x1 + link.sourceBounds.x2) / 2;
+                            cy = (link.sourceBounds.y1 + link.sourceBounds.y2) / 2; }
+                        sourceGlobal = containerToGlobal(cx, cy, ci);
+                    }
+                } else if (link.sourceType === 'notepad') {
+                    if (link.sourceNotepadIndex === currentNotepadIndex && notepadPane.style.display !== 'none') {
+                        const wrapper = getNotepadPageWrapper(link.sourceNotepadIndex);
+                        if (wrapper) {
+                            const rect = wrapper.getBoundingClientRect();
+                            const ci = { type: 'notepad', element: wrapper,
+                                offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+                            let cx = link.sourceX,
+                                cy = link.sourceY;
+                            if (link.sourceBounds) { cx = (link.sourceBounds.x1 + link.sourceBounds.x2) / 2;
+                                cy = (link.sourceBounds.y1 + link.sourceBounds.y2) / 2; }
+                            sourceGlobal = containerToGlobal(cx, cy, ci);
+                        }
+                    }
+                }
+
+                if (link.targetType === 'pdf') {
+                    const wrapper = getPdfCanvasWrapper(link.targetPageNum);
+                    if (wrapper) {
+                        const rect = wrapper.getBoundingClientRect();
+                        const ci = { type: 'pdf', pageNum: link.targetPageNum, element: wrapper,
+                            offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+                        let cx = link.targetX,
+                            cy = link.targetY;
+                        if (link.targetBounds) { cx = (link.targetBounds.x1 + link.targetBounds.x2) / 2;
+                            cy = (link.targetBounds.y1 + link.targetBounds.y2) / 2; }
+                        targetGlobal = containerToGlobal(cx, cy, ci);
+                    }
+                } else if (link.targetType === 'notepad') {
+                    if (link.targetNotepadIndex === currentNotepadIndex && notepadPane.style.display !== 'none') {
+                        const wrapper = getNotepadPageWrapper(link.targetNotepadIndex);
+                        if (wrapper) {
+                            const rect = wrapper.getBoundingClientRect();
+                            const ci = { type: 'notepad', element: wrapper,
+                                offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+                            let cx = link.targetX,
+                                cy = link.targetY;
+                            if (link.targetBounds) { cx = (link.targetBounds.x1 + link.targetBounds.x2) / 2;
+                                cy = (link.targetBounds.y1 + link.targetBounds.y2) / 2; }
+                            targetGlobal = containerToGlobal(cx, cy, ci);
+                        }
+                    }
+                }
+
+                if (sourceGlobal && targetGlobal) {
+                    globalCtx.save();
+                    globalCtx.setLineDash([6, 6]);
+                    globalCtx.lineDashOffset = 0;
+                    globalCtx.strokeStyle = '#94a3b8';
+                    globalCtx.lineWidth = 1.5;
+                    globalCtx.globalCompositeOperation = 'source-over';
+                    globalCtx.globalAlpha = 0.4;
+                    globalCtx.beginPath();
+                    globalCtx.moveTo(sourceGlobal.x, sourceGlobal.y);
+                    globalCtx.lineTo(targetGlobal.x, targetGlobal.y);
+                    globalCtx.stroke();
+                    globalCtx.restore();
+                }
+            });
+        }
+
+        // ---- POINTER MODE DRAWING (for pen, eraser, whitener) ----
+        function startGlobalStroke(e) {
+            if (!['pen', 'eraser', 'whitener'].includes(activeToolMode) && activeToolMode !== 'pointer') return;
+            if (isPinching) return;
+            if (e.touches && e.touches.length > 1) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo) return;
+            isDrawing = true;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            let tool = currentTool;
+            if (activeToolMode === 'whitener') tool = 'whitener';
+            else if (activeToolMode === 'pen') tool = 'pen';
+            else if (activeToolMode === 'eraser') tool = 'eraser';
+            else return;
+            const color = (tool === 'whitener') ? '#ffffff' : penColor;
+            activeStroke = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                tool: tool,
+                color: color,
+                width: strokeWidth,
+                container: containerInfo.type,
+                pageNum: containerInfo.type === 'pdf' ? containerInfo.pageNum : undefined,
+                pageIndex: containerInfo.type === 'notepad' ? containerInfo.pageIndex : undefined,
+                points: [localPoint],
+                containerInfo: containerInfo
+            };
+            globalStrokes.push(activeStroke);
+        }
+
+        function drawGlobalStroke(e) {
+            if (!['pen', 'eraser', 'whitener'].includes(activeToolMode) && activeToolMode !== 'pointer') return;
+            if (!isDrawing || !activeStroke) return;
+            if (e.touches && e.touches.length > 1) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== activeStroke.container ||
+                (containerInfo.type === 'pdf' && containerInfo.pageNum !== activeStroke.pageNum) ||
+                (containerInfo.type === 'notepad' && containerInfo.pageIndex !== activeStroke.pageIndex)) return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            activeStroke.points.push(localPoint);
+            const lastPoint = activeStroke.points[activeStroke.points.length - 2];
+            const lastGlobal = containerToGlobal(lastPoint.x, lastPoint.y, containerInfo);
+            const currGlobal = containerToGlobal(localPoint.x, localPoint.y, containerInfo);
+            globalCtx.save();
+            globalCtx.beginPath();
+            globalCtx.moveTo(lastGlobal.x, lastGlobal.y);
+            globalCtx.lineTo(currGlobal.x, currGlobal.y);
+            globalCtx.setLineDash([]);
+            if (activeStroke.tool === 'pen' || activeStroke.tool === 'whitener') {
+                globalCtx.globalCompositeOperation = 'source-over';
+                globalCtx.strokeStyle = (activeStroke.tool === 'whitener') ? '#ffffff' : penColor;
+                globalCtx.lineWidth = strokeWidth;
+                globalCtx.lineCap = 'round';
+                globalCtx.lineJoin = 'round';
+            } else if (activeStroke.tool === 'eraser') {
+                globalCtx.globalCompositeOperation = 'destination-out';
+                globalCtx.lineWidth = strokeWidth * 6;
+                globalCtx.lineCap = 'round';
+                globalCtx.lineJoin = 'round';
+            }
+            globalCtx.stroke();
+            globalCtx.restore();
+        }
+
+        function stopGlobalStroke(e) {
+            if (!['pen', 'eraser', 'whitener'].includes(activeToolMode) && activeToolMode !== 'pointer') return;
+            if (isDrawing) { isDrawing = false;
+                activeStroke = null; }
+        }
+
+        // ---- LINK MODES (line, underline, highlighter) ----
+        function startLinkStroke(e) {
+            if (activeToolMode === 'pointer' || activeToolMode === 'scan' || activeToolMode === 'linkpoint' || waitingForDrop)
+                return;
+            if (!['line', 'underline', 'highlighter'].includes(activeToolMode)) return;
+            if (isPinching) return;
+            if (e.touches && e.touches.length > 1) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== 'pdf') return;
+            isDrawing = true;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            if (activeToolMode === 'underline') {
+                underlineStartX = localPoint.x;
+                underlineStartY = localPoint.y;
+                underlineEndX = localPoint.x;
+                const tool = 'pen';
+                const color = penColor;
+                const width = strokeWidth;
+                activeStroke = {
+                    id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    tool,
+                    color,
+                    width,
+                    container: containerInfo.type,
+                    pageNum: containerInfo.pageNum,
+                    points: [{ x: underlineStartX, y: underlineStartY }, { x: underlineStartX, y: underlineStartY }],
+                    containerInfo,
+                    mode: 'underline'
+                };
+                globalCtx.save();
+                globalCtx.beginPath();
+                globalCtx.moveTo(underlineStartX, underlineStartY);
+                globalCtx.lineTo(underlineStartX, underlineStartY);
+                globalCtx.strokeStyle = penColor;
+                globalCtx.lineWidth = strokeWidth;
+                globalCtx.lineCap = 'round';
+                globalCtx.stroke();
+                globalCtx.restore();
+                return;
+            }
+
+            // For line and highlighter
+            const tool = (activeToolMode === 'highlighter') ? 'highlighter' : 'pen';
+            const color = (tool === 'highlighter') ? highlighterColor : penColor;
+            const width = (tool === 'highlighter') ? strokeWidth : strokeWidth;
+            activeStroke = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                tool: tool,
+                color: color,
+                width: (tool === 'highlighter') ? strokeWidth : strokeWidth, // will be multiplied in drawing
+                container: containerInfo.type,
+                pageNum: containerInfo.pageNum,
+                points: [localPoint],
+                containerInfo,
+                mode: activeToolMode
+            };
+            // For highlighter, we need to set a flag to use thick stroke in draw
+            globalCtx.save();
+            globalCtx.beginPath();
+            globalCtx.moveTo(localPoint.x, localPoint.y);
+            // just a dot to start
+            globalCtx.strokeStyle = color;
+            globalCtx.lineWidth = (tool === 'highlighter') ? strokeWidth * 4 : strokeWidth;
+            globalCtx.lineCap = (tool === 'highlighter') ? 'square' : 'round';
+            globalCtx.stroke();
+            globalCtx.restore();
+        }
+
+        function drawLinkStroke(e) {
+            if (!isDrawing || !activeStroke) return;
+            if (activeToolMode === 'underline' && activeStroke.mode === 'underline') {
+                if (e.touches && e.touches.length > 1) return;
+                e.preventDefault();
+                const wsRect = getWorkspaceRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const globalX = clientX - wsRect.left;
+                const globalY = clientY - wsRect.top;
+                const containerInfo = getContainerFromPoint(globalX, globalY);
+                if (!containerInfo || containerInfo.type !== 'pdf' || containerInfo.pageNum !== activeStroke.pageNum) return;
+                const localPoint = globalToContainer(globalX, globalY, containerInfo);
+                underlineEndX = localPoint.x;
+                redrawGlobalStrokes();
+                globalCtx.save();
+                globalCtx.beginPath();
+                globalCtx.moveTo(underlineStartX, underlineStartY);
+                globalCtx.lineTo(underlineEndX, underlineStartY);
+                globalCtx.strokeStyle = penColor;
+                globalCtx.lineWidth = strokeWidth;
+                globalCtx.lineCap = 'round';
+                globalCtx.stroke();
+                globalCtx.restore();
+                return;
+            }
+            if (activeToolMode === 'pointer' || activeToolMode === 'scan' || activeToolMode === 'linkpoint' || waitingForDrop)
+                return;
+            if (e.touches && e.touches.length > 1) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== activeStroke.container || containerInfo.pageNum !== activeStroke
+                .pageNum) return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            activeStroke.points.push(localPoint);
+            const lastPoint = activeStroke.points[activeStroke.points.length - 2];
+            const lastGlobal = containerToGlobal(lastPoint.x, lastPoint.y, containerInfo);
+            const currGlobal = containerToGlobal(localPoint.x, localPoint.y, containerInfo);
+            globalCtx.save();
+            globalCtx.beginPath();
+            globalCtx.moveTo(lastGlobal.x, lastGlobal.y);
+            globalCtx.lineTo(currGlobal.x, currGlobal.y);
+            globalCtx.setLineDash([]);
+            if (activeStroke.tool === 'pen') {
+                globalCtx.globalCompositeOperation = 'source-over';
+                globalCtx.strokeStyle = penColor;
+                globalCtx.lineWidth = strokeWidth;
+                globalCtx.lineCap = 'round';
+                globalCtx.lineJoin = 'round';
+            } else if (activeStroke.tool === 'highlighter') {
+                globalCtx.globalCompositeOperation = 'source-over';
+                globalCtx.strokeStyle = highlighterColor;
+                globalCtx.lineWidth = strokeWidth * 4;
+                globalCtx.lineCap = 'square';
+                globalCtx.lineJoin = 'miter';
+            }
+            globalCtx.stroke();
+            globalCtx.restore();
+        }
+
+        function stopLinkStroke(e) {
+            if (!isDrawing || !activeStroke) return;
+            isDrawing = false;
+            if (activeToolMode === 'underline' && activeStroke.mode === 'underline') {
+                if (underlineStartX !== underlineEndX) {
+                    const stroke = {
+                        id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                        tool: 'pen',
+                        color: penColor,
+                        width: strokeWidth,
+                        container: activeStroke.container,
+                        pageNum: activeStroke.pageNum,
+                        points: [{ x: underlineStartX, y: underlineStartY }, { x: underlineEndX, y: underlineStartY }],
+                        containerInfo: activeStroke.containerInfo,
+                        mode: 'underline'
+                    };
+                    globalStrokes.push(stroke);
+                    pendingLinkSource = {
+                        type: 'underline',
+                        container: stroke.container,
+                        pageNum: stroke.pageNum,
+                        points: stroke.points.slice(),
+                        color: penColor,
+                        containerInfo: stroke.containerInfo,
+                        bounds: { x1: Math.min(underlineStartX, underlineEndX), y1: underlineStartY - 5,
+                            x2: Math.max(underlineStartX, underlineEndX), y2: underlineStartY + 5 }
+                    };
+                    waitingForDrop = true;
+                    globalCanvas.style.pointerEvents = 'none';
+                    updateModeStatus('✋ Now tap on Notepad to drop the underline link');
+                    redrawGlobalStrokes();
+                } else { redrawGlobalStrokes(); }
+                activeStroke = null;
+                underlineStartX = underlineStartY = underlineEndX = 0;
+                return;
+            }
+            if (activeStroke.points.length > 1) {
+                const linkType = activeToolMode; // 'line' or 'highlighter'
+                const color = (linkType === 'highlighter') ? highlighterColor : penColor;
+                const bounds = null; // for line we don't have bounds
+                pendingLinkSource = {
+                    type: linkType,
+                    container: activeStroke.container,
+                    pageNum: activeStroke.pageNum,
+                    points: activeStroke.points.slice(),
+                    color: color,
+                    containerInfo: activeStroke.containerInfo,
+                    bounds: null
+                };
+                waitingForDrop = true;
+                globalStrokes.push(activeStroke);
+                globalCanvas.style.pointerEvents = 'none';
+                updateModeStatus('✋ Now tap on Notepad to drop the link');
+            }
+            activeStroke = null;
+        }
+
+        // ---- LINK POINT ----
+        function handleLinkPointClick(e) {
+            if (activeToolMode !== 'linkpoint' || waitingForDrop) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo) return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            if (!linkPointStart) {
+                let sourceScrollY = 0;
+                if (containerInfo.type === 'notepad') {
+                    const content = getNotepadPageContent(containerInfo.pageIndex);
+                    sourceScrollY = content ? content.scrollTop : 0;
+                }
+                linkPointStart = {
+                    container: containerInfo.type,
+                    pageNum: containerInfo.type === 'pdf' ? containerInfo.pageNum : undefined,
+                    pageIndex: containerInfo.type === 'notepad' ? containerInfo.pageIndex : undefined,
+                    x: localPoint.x,
+                    y: localPoint.y,
+                    containerInfo: containerInfo,
+                    scrollY: sourceScrollY
+                };
+                updateModeStatus('📍 Now tap on the other side (PDF or Notepad) to link');
+                if (containerInfo.type === 'pdf') { showPdfHighlight(containerInfo.pageNum, { x1: localPoint.x - 15,
+                        y1: localPoint.y - 10, x2: localPoint.x + 15, y2: localPoint.y + 10 }); }
+                return;
+            }
+            const source = linkPointStart;
+            const target = {
+                container: containerInfo.type,
+                pageNum: containerInfo.type === 'pdf' ? containerInfo.pageNum : undefined,
+                pageIndex: containerInfo.type === 'notepad' ? containerInfo.pageIndex : undefined,
+                x: localPoint.x,
+                y: localPoint.y,
+                containerInfo: containerInfo,
+                scrollY: 0
+            };
+            if (source.container === target.container && source.pageNum === target.pageNum) {
+                linkPointStart = null;
+                updateModeStatus('❌ Same container, try again');
+                return;
+            }
+
+            let sourceScrollY = source.scrollY || 0;
+            let targetScrollY = 0;
+            if (target.container === 'notepad') {
+                const content = getNotepadPageContent(target.pageIndex);
+                targetScrollY = content ? content.scrollTop : 0;
+            }
+
+            const linkId = ++linkIdCounter;
+            const linkEntry = {
+                id: linkId,
+                type: 'linkpoint',
+                sourceType: source.container,
+                sourcePageNum: source.pageNum,
+                sourceNotepadIndex: source.pageIndex,
+                sourceX: source.x,
+                sourceY: source.y,
+                sourceScrollY: sourceScrollY,
+                targetType: target.container,
+                targetPageNum: target.pageNum,
+                targetNotepadIndex: target.pageIndex,
+                targetX: target.x,
+                targetY: target.y,
+                targetScrollY: targetScrollY,
+                sourceBounds: null,
+                targetBounds: null,
+                color: penColor,
+                created: Date.now()
+            };
+            linkData.push(linkEntry);
+            if (source.container === 'pdf') insertPdfMarker(linkId, source.x, source.y, source.pageNum, 'linkpoint');
+            else insertNotepadMarker(linkId, source.x, source.y, 'linkpoint', source.pageIndex);
+            if (target.container === 'pdf') insertPdfMarker(linkId, target.x, target.y, target.pageNum, 'linkpoint');
+            else insertNotepadMarker(linkId, target.x, target.y, 'linkpoint', target.pageIndex);
+            linkPointStart = null;
+            redrawGlobalStrokes();
+            updateModeStatus('✅ Link created!');
+        }
+
+        // ---- SCAN ----
+        function handleScanPointerDown(e) {
+            if (activeToolMode !== 'scan' || waitingForDrop) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== 'pdf') return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            scanSelectionStart = { globalX, globalY, containerInfo, localX: localPoint.x, localY: localPoint.y };
+            isScanSelecting = true;
+        }
+
+        function handleScanPointerMove(e) {
+            if (!isScanSelecting || !scanSelectionStart) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = scanSelectionStart.containerInfo;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            scanSelectionEnd = { globalX, globalY, containerInfo, localX: localPoint.x, localY: localPoint.y };
+            redrawGlobalStrokes();
+            const start = scanSelectionStart,
+                end = scanSelectionEnd;
+            const g1 = containerToGlobal(start.localX, start.localY, start.containerInfo);
+            const g2 = containerToGlobal(end.localX, end.localY, end.containerInfo);
+            const left = Math.min(g1.x, g2.x),
+                top = Math.min(g1.y, g2.y);
+            const width = Math.abs(g2.x - g1.x),
+                height = Math.abs(g2.y - g1.y);
+            globalCtx.save();
+            globalCtx.fillStyle = 'rgba(37,99,235,0.08)';
+            globalCtx.strokeStyle = '#2563eb';
+            globalCtx.lineWidth = 1.5;
+            globalCtx.setLineDash([4, 4]);
+            globalCtx.fillRect(left, top, width, height);
+            globalCtx.strokeRect(left, top, width, height);
+            globalCtx.restore();
+        }
+
+        function handleScanPointerUp(e) {
+            if (!isScanSelecting || !scanSelectionStart || !scanSelectionEnd) {
+                isScanSelecting = false;
+                scanSelectionStart = null;
+                scanSelectionEnd = null;
+                redrawGlobalStrokes();
+                return;
+            }
+            e.preventDefault();
+            const start = scanSelectionStart,
+                end = scanSelectionEnd;
+            const dx = Math.abs(end.localX - start.localX);
+            const dy = Math.abs(end.localY - start.localY);
+            if (dx > 5 && dy > 5) {
+                const wrapper = start.containerInfo.wrapper;
+                if (wrapper) {
+                    const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+                    if (pdfCanvas) {
+                        const minX = Math.min(start.localX, end.localX);
+                        const minY = Math.min(start.localY, end.localY);
+                        const width = Math.abs(end.localX - start.localX);
+                        const height = Math.abs(end.localY - start.localY);
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = width;
+                        tempCanvas.height = height;
+                        const ctx = tempCanvas.getContext('2d');
+                        ctx.drawImage(pdfCanvas, minX, minY, width, height, 0, 0, width, height);
+                        const imageData = tempCanvas.toDataURL('image/png');
+                        pendingLinkSource = {
+                            type: 'scan',
+                            container: 'pdf',
+                            pageNum: start.containerInfo.pageNum,
+                            bounds: { x1: minX, y1: minY, x2: minX + width, y2: minY + height },
+                            imageData,
+                            containerInfo: start.containerInfo,
+                            color: '#8b5cf6'
+                        };
+                        waitingForDrop = true;
+                        globalCanvas.style.pointerEvents = 'none';
+                        updateModeStatus('📷 Scan captured! Tap on Notepad to drop image');
+                    }
+                }
+            }
+            isScanSelecting = false;
+            scanSelectionStart = null;
+            scanSelectionEnd = null;
+            redrawGlobalStrokes();
+        }
+
+        // ---- DROP ----
+        function handleNotepadDrop(e) {
+            if (!waitingForDrop || !pendingLinkSource) return;
+            e.preventDefault();
+            const wsRect = getWorkspaceRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const globalX = clientX - wsRect.left;
+            const globalY = clientY - wsRect.top;
+            const containerInfo = getContainerFromPoint(globalX, globalY);
+            if (!containerInfo || containerInfo.type !== 'notepad') return;
+            const localPoint = globalToContainer(globalX, globalY, containerInfo);
+            const source = pendingLinkSource;
+            const linkType = source.type;
+            const notepadIdx = containerInfo.pageIndex !== undefined ? containerInfo.pageIndex : currentNotepadIndex;
+
+            const targetContent = getNotepadPageContent(notepadIdx);
+            const targetScrollY = targetContent ? targetContent.scrollTop : 0;
+
+            const linkId = ++linkIdCounter;
+            const linkEntry = {
+                id: linkId,
+                type: linkType,
+                sourceType: 'pdf',
+                sourcePageNum: source.pageNum,
+                sourceX: (source.bounds) ? (source.bounds.x1 + source.bounds.x2) / 2 : source.points[0].x,
+                sourceY: (source.bounds) ? (source.bounds.y1 + source.bounds.y2) / 2 : source.points[0].y,
+                sourceBounds: source.bounds || null,
+                sourceScrollY: 0,
+                targetType: 'notepad',
+                targetPageNum: undefined,
+                targetNotepadIndex: notepadIdx,
+                targetX: localPoint.x,
+                targetY: localPoint.y,
+                targetBounds: null,
+                targetScrollY: targetScrollY,
+                color: source.color || penColor,
+                imageData: source.imageData || null,
+                created: Date.now()
+            };
+            linkData.push(linkEntry);
+            insertPdfMarker(linkId, linkEntry.sourceX, linkEntry.sourceY, source.pageNum, linkType);
+            if (linkType === 'scan' && source.imageData) {
+                insertNotepadScanImage(linkId, localPoint.x, localPoint.y, source.imageData, notepadIdx);
+            } else {
+                insertNotepadMarker(linkId, localPoint.x, localPoint.y, linkType, notepadIdx);
+            }
+            waitingForDrop = false;
+            pendingLinkSource = null;
+            updateGlobalCanvasPointerEvents();
+            updateModeStatus('✅ Link placed at exact position!');
+            redrawGlobalStrokes();
+        }
+
+        // ---- GLOBAL EVENTS ----
+        function onPointerDown(e) {
+            if (isPinching) return;
+            if (e.touches && e.touches.length > 1) return;
+            if (isCursorActive) {
+                handleCursorClick(e);
+                return;
+            }
+            // Drawing tools: pen, eraser, whitener (and pointer)
+            if (activeToolMode === 'pointer' || ['pen', 'eraser', 'whitener'].includes(activeToolMode)) {
+                startGlobalStroke(e);
+            } else if (['line', 'underline', 'highlighter'].includes(activeToolMode)) {
+                startLinkStroke(e);
+            } else if (activeToolMode === 'scan') {
+                handleScanPointerDown(e);
+            } else if (activeToolMode === 'linkpoint') {
+                handleLinkPointClick(e);
+            }
+        }
+
+        function onPointerMove(e) {
+            if (isPinching) return;
+            if (e.touches && e.touches.length > 1) return;
+            if (isCursorActive) return;
+            if (activeToolMode === 'pointer' || ['pen', 'eraser', 'whitener'].includes(activeToolMode)) {
+                drawGlobalStroke(e);
+            } else if (['line', 'underline', 'highlighter'].includes(activeToolMode)) {
+                drawLinkStroke(e);
+            } else if (activeToolMode === 'scan') {
+                handleScanPointerMove(e);
+            }
+        }
+
+        function onPointerUp(e) {
+            if (isCursorActive) return;
+            if (activeToolMode === 'pointer' || ['pen', 'eraser', 'whitener'].includes(activeToolMode)) {
+                stopGlobalStroke(e);
+            } else if (['line', 'underline', 'highlighter'].includes(activeToolMode)) {
+                stopLinkStroke(e);
+            } else if (activeToolMode === 'scan') {
+                handleScanPointerUp(e);
+            }
+        }
+
+        globalCanvas.addEventListener('pointerdown', onPointerDown);
+        globalCanvas.addEventListener('pointermove', onPointerMove);
+        globalCanvas.addEventListener('pointerup', onPointerUp);
+        globalCanvas.addEventListener('pointercancel', onPointerUp);
+        globalCanvas.addEventListener('pointerleave', function(e) {
+            if (isCursorActive) return;
+            if (activeToolMode === 'pointer' || ['pen', 'eraser', 'whitener'].includes(activeToolMode)) {
+                stopGlobalStroke(e);
+            } else if (['line', 'underline', 'highlighter'].includes(activeToolMode)) {
+                stopLinkStroke(e);
+            }
+        });
+
+        globalCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        globalCanvas.addEventListener('touchmove', onPointerMove, { passive: false });
+        globalCanvas.addEventListener('touchend', onPointerUp);
+        globalCanvas.addEventListener('touchcancel', onPointerUp);
+
+        notepadScrollContainer.addEventListener('pointerdown', function(e) {
+            if (waitingForDrop) handleNotepadDrop(e);
+        });
+        notepadScrollContainer.addEventListener('touchstart', function(e) {
+            if (waitingForDrop) handleNotepadDrop(e);
+        }, { passive: false });
+
+        document.addEventListener('pointerdown', function(e) {
+            if (waitingForDrop) {
+                const rect = notepadScrollContainer.getBoundingClientRect();
+                const x = e.clientX,
+                    y = e.clientY;
+                if (!(x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) {
+                    cancelPendingLink();
+                }
+            }
+        });
+
+        // ================================================================
+        // TOOL SELECTION
+        // ================================================================
+        function setTool(tool) {
+            currentTool = tool;
+        }
+
+        pickerColor.addEventListener('input', (e) => {
+            penColor = e.target.value;
+            const hex = e.target.value;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            highlighterColor = `rgba(${r},${g},${b},0.35)`;
+        });
+
+        sliderSize.addEventListener('input', (e) => { strokeWidth = parseInt(e.target.value, 10); });
+
+        // ================================================================
+        // LEFT RESIZER DRAG
+        // ================================================================
+        function startLeftResizing(e) {
+            isLeftResizing = true;
+            leftResizer.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            leftResizeStartX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+            leftResizeStartMargin = leftMarginPx;
+            if (e.pointerId && leftResizer.setPointerCapture) {
+                try { leftResizer.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+        }
+
+        function handleLeftResizeMove(e) {
+            if (!isLeftResizing) return;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            if (clientX === undefined) return;
+            const deltaX = clientX - leftResizeStartX;
+            let newMargin = leftResizeStartMargin + deltaX;
+            const wsWidth = mainWorkspace.getBoundingClientRect().width || window.innerWidth;
+            const maxMargin = wsWidth * 0.4;
+            newMargin = Math.max(0, Math.min(newMargin, maxMargin));
+            leftMarginPx = newMargin;
+            applyLeftMargin(newMargin);
+        }
+
+        function stopLeftResizing(e) {
+            if (isLeftResizing) {
+                isLeftResizing = false;
+                leftResizer.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                if (e && e.pointerId && leftResizer.releasePointerCapture) {
+                    try { leftResizer.releasePointerCapture(e.pointerId); } catch (_) {}
+                }
+                resizeGlobalCanvas();
+            }
+        }
+
+        function applyLeftMargin(marginPx) {
+            pdfViewWrapper.style.marginLeft = marginPx + 'px';
+            resizeGlobalCanvas();
+        }
+
+        leftResizer.addEventListener('pointerdown', startLeftResizing);
+        leftResizer.addEventListener('touchstart', startLeftResizing, { passive: false });
+        window.addEventListener('pointermove', handleLeftResizeMove);
+        window.addEventListener('touchmove', handleLeftResizeMove, { passive: false });
+        window.addEventListener('pointerup', stopLeftResizing);
+        window.addEventListener('pointercancel', stopLeftResizing);
+        window.addEventListener('touchend', stopLeftResizing);
+        window.addEventListener('touchcancel', stopLeftResizing);
+
+        // ================================================================
+        // RIGHT RESIZER DRAG
+        // ================================================================
+        function startResizing(e) {
+            isResizing = true;
+            resizer.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            if (e.pointerId && resizer.setPointerCapture) { try { resizer.setPointerCapture(e.pointerId); } catch (_) {} }
+        }
+
+        function handleResizeMove(e) {
+            if (!isResizing) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            if (clientX === undefined) return;
+            const windowWidth = window.innerWidth;
+            let pdfWidthPct = (clientX / windowWidth) * 100;
+            updateWorkspaceWidths(pdfWidthPct);
+        }
+
+        function stopResizing(e) {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                if (e && e.pointerId && resizer.releasePointerCapture) { try { resizer.releasePointerCapture(e
+                        .pointerId); } catch (_) {} }
+                resizeGlobalCanvas();
+            }
+        }
+
+        function updateWorkspaceWidths(pdfRatioPct) {
+            const isOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+            if (!isOpen) return;
+            if (resizeRafId) cancelAnimationFrame(resizeRafId);
+            resizeRafId = requestAnimationFrame(() => {
+                const clamped = Math.max(15, Math.min(85, pdfRatioPct));
+                const notepadPct = 100 - clamped;
+                pdfViewWrapper.style.width = clamped + '%';
+                pdfViewWrapper.style.flex = '0 0 ' + clamped + '%';
+                notepadPane.style.width = notepadPct + '%';
+                notepadPane.style.flex = '0 0 ' + notepadPct + '%';
+                resizeGlobalCanvas();
+                setTimeout(updateAllOverlayMarkers, 50);
+            });
+        }
+
+        resizer.addEventListener('pointerdown', startResizing);
+        window.addEventListener('pointermove', handleResizeMove);
+        window.addEventListener('pointerup', stopResizing);
+        window.addEventListener('pointercancel', stopResizing);
+        resizer.addEventListener('touchstart', startResizing, { passive: false });
+        window.addEventListener('touchmove', handleResizeMove, { passive: false });
+        window.addEventListener('touchend', stopResizing);
+        window.addEventListener('touchcancel', stopResizing);
+
+        // ================================================================
+        // SMOOTH PINCH-TO-ZOOM
+        // ================================================================
+        function handleWorkspaceTouchStart(e) {
+            if (e.touches && e.touches.length === 2) {
+                isPinching = true;
+                isZoomFinalizing = false;
+                if (isDrawing) { isDrawing = false; if (activeStroke) { activeStroke = null; } }
+                const t1 = e.touches[0],
+                    t2 = e.touches[1];
+                initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                initialPinchScale = currentScale;
+                if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer);
+                    zoomDebounceTimer = null; }
+                pdfContainer.style.willChange = 'transform';
+                pdfViewWrapper.style.willChange = 'width, flex-basis, margin-left';
+                notepadPane.style.willChange = 'width, flex-basis';
+            }
+        }
+
+        function handleWorkspaceTouchMove(e) {
+            if (isPinching && e.touches && e.touches.length === 2) {
+                e.preventDefault();
+                const t1 = e.touches[0],
+                    t2 = e.touches[1];
+                const currentDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                if (initialPinchDistance > 0) {
+                    const factor = currentDistance / initialPinchDistance;
+                    const newScale = Math.min(Math.max(initialPinchScale * factor, 0.5), 3.0);
+                    applyZoomTransformSmooth(newScale);
+                    if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); }
+                    zoomDebounceTimer = setTimeout(() => {}, 150);
+                }
+            }
+        }
+
+        function handleWorkspaceTouchEnd(e) {
+            if (isPinching && (!e.touches || e.touches.length < 2)) {
+                isPinching = false;
+                if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer);
+                    zoomDebounceTimer = null; }
+                finalizeZoomSmooth();
+            }
+        }
+
+        function applyZoomTransformSmooth(newScale) {
+            const clampedScale = Math.min(Math.max(newScale, 0.5), 3.0);
+            if (Math.abs(clampedScale - currentScale) < 0.003) return;
+
+            const baseScale = 1.35;
+            const scaleFactor = clampedScale / baseScale;
+
+            pdfContainer.style.transition = 'transform 0.05s ease-out';
+            pdfContainer.style.transform = `scale(${scaleFactor})`;
+            pdfContainer.style.transformOrigin = 'top center';
+
+            zoomLabel.textContent = Math.round(clampedScale * 100) + '%';
+
+            const isNotepadOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+            if (isNotepadOpen) {
+                const pdfRatio = 30 + (clampedScale - 0.5) * (50 / 2.5);
+                const clampedPdfRatio = Math.max(30, Math.min(80, pdfRatio));
+                const notepadPct = 100 - clampedPdfRatio;
+
+                pdfViewWrapper.style.transition = 'width 0.08s ease-out, flex-basis 0.08s ease-out';
+                pdfViewWrapper.style.width = clampedPdfRatio + '%';
+                pdfViewWrapper.style.flex = '0 0 ' + clampedPdfRatio + '%';
+
+                notepadPane.style.transition = 'width 0.08s ease-out, flex-basis 0.08s ease-out';
+                notepadPane.style.width = notepadPct + '%';
+                notepadPane.style.flex = '0 0 ' + notepadPct + '%';
+            } else {
+                pdfViewWrapper.style.width = '100%';
+                pdfViewWrapper.style.flex = '1 1 100%';
+            }
+
+            currentScale = clampedScale;
+            redrawGlobalStrokes();
+            setTimeout(updateAllOverlayMarkers, 50);
+        }
+
+        function finalizeZoomSmooth() {
+            if (isZoomFinalizing) return;
+            isZoomFinalizing = true;
+
+            pdfContainer.style.transition = 'none';
+            pdfViewWrapper.style.transition = 'none';
+            notepadPane.style.transition = 'none';
+
+            pdfContainer.style.transform = '';
+            pdfContainer.style.transformOrigin = '';
+            pdfContainer.style.willChange = '';
+
+            pdfViewWrapper.style.willChange = '';
+            notepadPane.style.willChange = '';
+
+            const isNotepadOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+            if (!isNotepadOpen) {
+                pdfViewWrapper.style.width = '100%';
+                pdfViewWrapper.style.flex = '1 1 100%';
+            }
+
+            const cards = document.querySelectorAll('.pdf-page-card');
+            cards.forEach(card => {
+                if (card.dataset.isPdfPage === 'true') {
+                    card.dataset.rendered = 'false';
+                    const rect = card.getBoundingClientRect();
+                    if (rect.top < window.innerHeight * 2 && rect.bottom > -window.innerHeight) {
+                        renderSinglePage(card);
+                    }
+                } else {
+                    const dims = getStandardPageDimensions();
+                    card.style.width = dims.width + 'px';
+                    card.style.height = dims.height + 'px';
+                    card.style.minHeight = dims.height + 'px';
+                }
+            });
+
+            setTimeout(() => {
+                updateAllMarkerPositions();
+                updateAllOverlayMarkers();
+                redrawGlobalStrokes();
+                resizeGlobalCanvas();
+                document.querySelectorAll('.pdf-page-card').forEach(card => {
+                    const pageNum = parseInt(card.dataset.pageNum, 10);
+                    if (!isNaN(pageNum)) renderTextAnnotationsForPage(pageNum);
+                });
+                isZoomFinalizing = false;
+            }, 80);
+        }
+
+        btnZoomIn.addEventListener('click', () => {
+            const newScale = Math.min(currentScale + 0.15, 3.0);
+            applyZoomTransformSmooth(newScale);
+            setTimeout(() => finalizeZoomSmooth(), 120);
+        });
+        btnZoomOut.addEventListener('click', () => {
+            const newScale = Math.max(currentScale - 0.15, 0.5);
+            applyZoomTransformSmooth(newScale);
+            setTimeout(() => finalizeZoomSmooth(), 120);
+        });
+
+        mainWorkspace.addEventListener('touchstart', handleWorkspaceTouchStart, { passive: false });
+        mainWorkspace.addEventListener('touchmove', handleWorkspaceTouchMove, { passive: false });
+        mainWorkspace.addEventListener('touchend', handleWorkspaceTouchEnd);
+        mainWorkspace.addEventListener('touchcancel', handleWorkspaceTouchEnd);
+
+        mainWorkspace.addEventListener('pointerdown', (e) => {
+            activePointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (activePointerMap.size === 2) {
+                isPinching = true;
+                isZoomFinalizing = false;
+                if (isDrawing) { isDrawing = false; if (activeStroke) { activeStroke = null; } }
+                const pts = Array.from(activePointerMap.values());
+                initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                initialPinchScale = currentScale;
+                if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer);
+                    zoomDebounceTimer = null; }
+                pdfContainer.style.willChange = 'transform';
+                pdfViewWrapper.style.willChange = 'width, flex-basis, margin-left';
+                notepadPane.style.willChange = 'width, flex-basis';
+            }
+        });
+
+        mainWorkspace.addEventListener('pointermove', (e) => {
+            if (activePointerMap.has(e.pointerId)) {
+                activePointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            }
+            if (isPinching && activePointerMap.size === 2) {
+                const pts = Array.from(activePointerMap.values());
+                const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                if (initialPinchDistance > 0) {
+                    const factor = dist / initialPinchDistance;
+                    const newScale = Math.min(Math.max(initialPinchScale * factor, 0.5), 3.0);
+                    applyZoomTransformSmooth(newScale);
+                    if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); }
+                    zoomDebounceTimer = setTimeout(() => {}, 150);
+                }
+            }
+        });
+
+        const releasePointer = (e) => {
+            activePointerMap.delete(e.pointerId);
+            if (activePointerMap.size < 2 && isPinching) {
+                isPinching = false;
+                if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer);
+                    zoomDebounceTimer = null; }
+                finalizeZoomSmooth();
+            }
+        };
+        mainWorkspace.addEventListener('pointerup', releasePointer);
+        mainWorkspace.addEventListener('pointercancel', releasePointer);
+
+        // ================================================================
+        // NOTEPAD TOGGLE (50/50)
+        // ================================================================
+        function hideNotepad() {
+            notepadPane.style.display = 'none';
+            notepadPane.style.width = '0%';
+            notepadPane.style.flex = '0 0 0%';
+            resizer.style.display = 'none';
+            pdfViewWrapper.style.width = '100%';
+            pdfViewWrapper.style.flex = '1 1 100%';
+            btnToggleNotepad.classList.remove('active');
+            pdfContainer.style.transform = '';
+            pdfContainer.style.transformOrigin = '';
+            pdfContainer.style.transition = 'none';
+            pdfContainer.style.willChange = '';
+            resizeGlobalCanvas();
+        }
+
+        function showNotepad() {
+            notepadPane.style.display = 'flex';
+            const pdfRatio = 50;
+            const notepadPct = 50;
+            pdfViewWrapper.style.width = pdfRatio + '%';
+            pdfViewWrapper.style.flex = '0 0 ' + pdfRatio + '%';
+            notepadPane.style.width = notepadPct + '%';
+            notepadPane.style.flex = '0 0 ' + notepadPct + '%';
+            resizer.style.display = 'block';
+            btnToggleNotepad.classList.add('active');
+            resizeGlobalCanvas();
+            setTimeout(updateAllOverlayMarkers, 80);
+        }
+
+        btnToggleNotepad.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = notepadPane.style.display === 'none' || getComputedStyle(notepadPane).display === 'none';
+            if (isHidden) showNotepad();
+            else hideNotepad();
+        });
+
+        btnCloseNotepad.addEventListener('click', (e) => { e.stopPropagation();
+            hideNotepad(); });
+
+        notepadBgSelect.addEventListener('change', function() {
+            const newBg = this.value;
+            if (currentNotepadIndex >= 0 && currentNotepadIndex < notepadPagesData.length) {
+                notepadPagesData[currentNotepadIndex].background = newBg;
+                const content = getNotepadPageContent(currentNotepadIndex);
+                if (content) {
+                    content.className = content.className.split(' ').filter(c => !c.startsWith('bg-')).join(' ');
+                    content.classList.add(newBg);
+                }
+            }
+        });
+
+        notepadPagesContainer.addEventListener('blur', function(e) {
+            const target = e.target;
+            if (target.classList.contains('notepad-page-content')) {
+                const wrapper = target.closest('.notepad-page-wrapper');
+                if (wrapper) {
+                    const idx = parseInt(wrapper.dataset.pageIndex, 10);
+                    if (!isNaN(idx) && idx >= 0 && idx < notepadPagesData.length) {
+                        notepadPagesData[idx].content = target.innerHTML;
+                    }
+                }
+            }
+        }, true);
+
+        let scrollTimeoutId = null;
+        notepadScrollContainer.addEventListener('scroll', function() {
+            if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
+            scrollTimeoutId = setTimeout(() => {
+                const wrappers = notepadPagesContainer.querySelectorAll('.notepad-page-wrapper');
+                const containerRect = notepadScrollContainer.getBoundingClientRect();
+                let closestIdx = currentNotepadIndex;
+                let closestDist = Infinity;
+                wrappers.forEach((wrapper, idx) => {
+                    const rect = wrapper.getBoundingClientRect();
+                    const center = rect.top + rect.height / 2;
+                    const containerCenter = containerRect.top + containerRect.height / 2;
+                    const dist = Math.abs(center - containerCenter);
+                    if (dist < closestDist) { closestDist = dist;
+                        closestIdx = idx; }
+                });
+                if (closestIdx !== currentNotepadIndex && closestIdx < notepadPagesData.length) {
+                    saveCurrentPageContent();
+                    currentNotepadIndex = closestIdx;
+                    updateNotepadMarkersVisibility();
+                    updateNotepadHeader();
+                    updateNotepadNav();
+                    redrawGlobalStrokes();
+                }
+                updateAllOverlayMarkers();
+            }, 50);
+        });
+
+        // ================================================================
+        // MOUSE WHEEL ZOOM
+        // ================================================================
+        mainWorkspace.addEventListener('wheel', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = -e.deltaY * 0.01;
+                let newScale = currentScale + delta;
+                newScale = Math.min(Math.max(newScale, 0.5), 3.0);
+                applyZoomTransformSmooth(newScale);
+                if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+                zoomDebounceTimer = setTimeout(() => {
+                    finalizeZoomSmooth();
+                }, 150);
+            }
+        }, { passive: false });
+
+        // ================================================================
+        // MULTI-DOCUMENT ENGINE
+        // ================================================================
+        function updateDocSummaryLabel() {
+            if (loadedDocs.length === 0) {
+                docInfo.textContent = totalPages > 0 ? `Custom Workspace (${totalPages} ${totalPages===1?'page':'pages'})` :
+                    'No file selected';
+            } else if (loadedDocs.length === 1) {
+                docInfo.textContent = `${loadedDocs[0].fileName} (${totalPages} ${totalPages===1?'page':'pages'})`;
+            } else {
+                docInfo.textContent = `${loadedDocs.length} Cases (${totalPages} pages total)`;
+            }
+        }
+
+        function updateAllPageIndicators() {
+            const cards = pdfContainer.querySelectorAll('.pdf-page-card');
+            totalPages = cards.length;
+            cards.forEach((card, index) => {
+                const pageNum = index + 1;
+                card.dataset.pageNum = pageNum;
+                const indicator = card.querySelector('.page-number-indicator');
+                if (indicator) indicator.textContent = `PAGE ${pageNum} OF ${totalPages}`;
+            });
+        }
+
+        function getCurrentlyActivePageNode() {
+            const cards = Array.from(pdfContainer.querySelectorAll('.pdf-page-card'));
+            if (!cards.length) return null;
+            const wrapperRect = pdfViewWrapper.getBoundingClientRect();
+            const wrapperCenter = wrapperRect.top + wrapperRect.height / 2;
+            let closest = cards[0],
+                minDist = Infinity;
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const center = rect.top + rect.height / 2;
+                const dist = Math.abs(center - wrapperCenter);
+                if (dist < minDist) { minDist = dist;
+                    closest = card; }
+            });
+            return closest;
+        }
+
+        function initIntersectionObserver() {
+            if (intersectionObserver) intersectionObserver.disconnect();
+            intersectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pageCard = entry.target;
+                        if (pageCard.dataset.isPdfPage === 'true' && pageCard.dataset.rendered !== 'true') {
+                            renderSinglePage(pageCard);
+                        }
+                    }
+                });
+            }, { root: pdfViewWrapper, rootMargin: '600px 0px', threshold: 0.01 });
+        }
+
+        function appendPageCardsForRange(docIndex, start, end) {
+            if (!intersectionObserver) initIntersectionObserver();
+            for (let i = start; i <= end; i++) {
+                const pageCard = document.createElement('div');
+                pageCard.className = 'pdf-page-card';
+                pageCard.dataset.docIndex = docIndex;
+                pageCard.dataset.internalPageNum = i;
+                pageCard.dataset.isPdfPage = 'true';
+                pageCard.style.minHeight = '850px';
+                const indicator = document.createElement('div');
+                indicator.className = 'page-number-indicator';
+                const wrapper = document.createElement('div');
+                wrapper.className = 'canvas-wrapper';
+                const pdfCanvas = document.createElement('canvas');
+                pdfCanvas.className = 'pdf-canvas';
+                wrapper.appendChild(pdfCanvas);
+                pageCard.appendChild(indicator);
+                pageCard.appendChild(wrapper);
+                pdfContainer.appendChild(pageCard);
+                intersectionObserver.observe(pageCard);
+            }
+            updateAllPageIndicators();
+            redrawGlobalStrokes();
+        }
+
+        function renderSinglePage(pageCard) {
+            if (pageCard.dataset.isPdfPage !== 'true' || pageCard.dataset.rendering === 'true') return;
+            const docIndex = parseInt(pageCard.dataset.docIndex, 10);
+            const pageNum = parseInt(pageCard.dataset.internalPageNum, 10);
+            const docEntry = loadedDocs[docIndex];
+            if (!docEntry || !docEntry.pdfDoc) return;
+            pageCard.dataset.rendering = 'true';
+            docEntry.pdfDoc.getPage(pageNum).then(page => {
+                const viewport = page.getViewport({ scale: currentScale });
+                const pdfCanvas = pageCard.querySelector('.pdf-canvas');
+                const wrapper = pageCard.querySelector('.canvas-wrapper');
+                const ctx = pdfCanvas.getContext('2d');
+                pdfCanvas.width = viewport.width;
+                pdfCanvas.height = viewport.height;
+                wrapper.style.width = viewport.width + 'px';
+                wrapper.style.height = viewport.height + 'px';
+                pageCard.style.width = viewport.width + 'px';
+                pageCard.style.height = viewport.height + 'px';
+                pageCard.style.minHeight = viewport.height + 'px';
+                page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+                    pageCard.dataset.rendered = 'true';
+                    pageCard.dataset.rendering = 'false';
+                    redrawGlobalStrokes();
+                    linkData.forEach(link => {
+                        if (link.sourceType === 'pdf' && link.sourcePageNum === parseInt(pageCard.dataset
+                            .pageNum, 10)) {
+                            let cx = link.sourceX,
+                                cy = link.sourceY;
+                            if (link.sourceBounds) { cx = (link.sourceBounds.x1 + link.sourceBounds
+                                .x2) / 2;
+                                cy = (link.sourceBounds.y1 + link.sourceBounds.y2) / 2; }
+                            insertPdfMarker(link.id, cx, cy, link.sourcePageNum, link.type);
+                        }
+                        if (link.targetType === 'pdf' && link.targetPageNum === parseInt(pageCard.dataset
+                            .pageNum, 10)) {
+                            let cx = link.targetX,
+                                cy = link.targetY;
+                            if (link.targetBounds) { cx = (link.targetBounds.x1 + link.targetBounds
+                                .x2) / 2;
+                                cy = (link.targetBounds.y1 + link.targetBounds.y2) / 2; }
+                            insertPdfMarker(link.id, cx, cy, link.targetPageNum, link.type);
+                        }
+                    });
+                    renderTextAnnotationsForPage(parseInt(pageCard.dataset.pageNum, 10));
+                }).catch(() => { pageCard.dataset.rendering = 'false'; });
+            }).catch(() => { pageCard.dataset.rendering = 'false'; });
+        }
+
+        function getStandardPageDimensions() {
+            const existing = pdfContainer.querySelector('.pdf-page-card');
+            if (existing && existing.offsetWidth > 0) {
+                return { width: existing.offsetWidth, height: existing.offsetHeight || Math.round(existing.offsetWidth *
+                        1.3) };
+            }
+            return { width: Math.round(612 * currentScale), height: Math.round(792 * currentScale) };
+        }
+
+        function createPageTextLayer() {
+            const textLayer = document.createElement('div');
+            textLayer.className = 'page-text-layer';
+            textLayer.contentEditable = 'true';
+            textLayer.setAttribute('spellcheck', 'false');
+            textLayer.setAttribute('placeholder', 'Tap here to type notes...');
+            return textLayer;
+        }
+
+        function insertPageCardInPlace(pageCard) {
+            const activeCard = getCurrentlyActivePageNode();
+            if (activeCard && activeCard.parentNode === pdfContainer) {
+                activeCard.insertAdjacentElement('afterend', pageCard);
+            } else {
+                pdfContainer.appendChild(pageCard);
+            }
+            updateAllPageIndicators();
+            updateDocSummaryLabel();
+            closeModal();
+            redrawGlobalStrokes();
+            const wrapperRect = pdfViewWrapper.getBoundingClientRect();
+            const cardRect = pageCard.getBoundingClientRect();
+            pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (cardRect.top - wrapperRect.top),
+                behavior: 'smooth' });
+        }
+
+        // ================================================================
+        // MODAL HANDLERS
+        // ================================================================
+        btnAddPage.addEventListener('click', () => { addPageModal.style.display = 'flex'; });
+
+        function closeModal() { addPageModal.style.display = 'none'; }
+        btnCloseModal.addEventListener('click', closeModal);
+        addPageModal.addEventListener('click', (e) => { if (e.target === addPageModal) closeModal(); });
+
+        btnTriggerCamera.addEventListener('click', () => { cameraOnlyInput.value = '';
+            cameraOnlyInput.click(); });
+        btnTriggerGallery.addEventListener('click', () => { galleryOnlyInput.value = '';
+            galleryOnlyInput.click(); });
+
+        function handleImageFileImport(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    if (emptyState) emptyState.style.display = 'none';
+                    const dims = getStandardPageDimensions();
+                    const pageCard = document.createElement('div');
+                    pageCard.className = 'pdf-page-card';
+                    pageCard.dataset.rendered = 'true';
+                    pageCard.style.width = dims.width + 'px';
+                    pageCard.style.height = dims.height + 'px';
+                    pageCard.style.minHeight = dims.height + 'px';
+                    const indicator = document.createElement('div');
+                    indicator.className = 'page-number-indicator';
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'canvas-wrapper';
+                    wrapper.style.width = '100%';
+                    wrapper.style.height = '100%';
+                    wrapper.style.display = 'flex';
+                    wrapper.style.alignItems = 'center';
+                    wrapper.style.justifyContent = 'center';
+                    wrapper.style.overflow = 'hidden';
+                    const imgElem = document.createElement('img');
+                    imgElem.src = event.target.result;
+                    imgElem.style.maxWidth = '100%';
+                    imgElem.style.maxHeight = '100%';
+                    imgElem.style.objectFit = 'contain';
+                    const textLayer = createPageTextLayer();
+                    wrapper.appendChild(imgElem);
+                    wrapper.appendChild(textLayer);
+                    pageCard.appendChild(indicator);
+                    pageCard.appendChild(wrapper);
+                    insertPageCardInPlace(pageCard);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        cameraOnlyInput.addEventListener('change', (e) => handleImageFileImport(e.target.files[0]));
+        galleryOnlyInput.addEventListener('change', (e) => handleImageFileImport(e.target.files[0]));
+
+        document.querySelectorAll('.template-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const templateType = btn.dataset.template;
+                if (!templateType) return;
+                if (emptyState) emptyState.style.display = 'none';
+                const dims = getStandardPageDimensions();
+                const pageCard = document.createElement('div');
+                pageCard.className = 'pdf-page-card';
+                pageCard.dataset.rendered = 'true';
+                pageCard.style.width = dims.width + 'px';
+                pageCard.style.height = dims.height + 'px';
+                pageCard.style.minHeight = dims.height + 'px';
+                const indicator = document.createElement('div');
+                indicator.className = 'page-number-indicator';
+                const wrapper = document.createElement('div');
+                wrapper.className = `canvas-wrapper page-template-${templateType}`;
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+                const textLayer = createPageTextLayer();
+                wrapper.appendChild(textLayer);
+                pageCard.appendChild(indicator);
+                pageCard.appendChild(wrapper);
+                insertPageCardInPlace(pageCard);
+            });
+        });
+
+        // ================================================================
+        // OPEN PDF & CASE +
+        // ================================================================
+        btnOpenPdf.addEventListener('click', () => { fileInput.value = '';
+            fileInput.click(); });
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    pdfjsLib.getDocument({ data }).promise
+                        .then(function(pdf) {
+                            loadedDocs = [];
+                            totalPages = 0;
+                            globalStrokes = [];
+                            linkData = [];
+                            linkIdCounter = 0;
+                            textAnnotations = [];
+                            textIdCounter = 0;
+                            loadedDocs.push({ pdfDoc: pdf, fileName: file.name, numPages: pdf
+                                    .numPages });
+                            hideNotepad();
+                            setToolMode('pointer');
+                            if (emptyState) emptyState.style.display = 'none';
+                            pdfContainer.innerHTML = '';
+                            pdfContainer.style.transform = '';
+                            pdfContainer.style.transformOrigin = '';
+                            pdfContainer.style.willChange = '';
+                            initIntersectionObserver();
+                            appendPageCardsForRange(0, 1, pdf.numPages);
+                            const first = pdfContainer.querySelector('.pdf-page-card');
+                            if (first) renderSinglePage(first);
+                            updateDocSummaryLabel();
+                            resizeGlobalCanvas();
+                            leftMarginPx = 0;
+                            applyLeftMargin(0);
+                            notepadPagesData = [{ content: '', background: 'bg-red-lined', scrollTop: 0 }];
+                            currentNotepadIndex = 0;
+                            renderNotepadPages();
+                            notepadBgSelect.value = 'bg-red-lined';
+                            toolButtons.forEach(btn => {
+                                btn.classList.toggle('active', btn.dataset.tool === 'pointer');
+                            });
+                        })
+                        .catch((err) => {
+                            console.error('PDF parse error:', err);
+                            alert('Failed to parse PDF: ' + (err.message || 'Unknown error'));
+                        });
+                } catch (err) {
+                    console.error('File read error:', err);
+                    alert('Error reading file: ' + (err.message || 'Unknown error'));
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        btnCasePlus.addEventListener('click', () => { casePlusInput.value = '';
+            casePlusInput.click(); });
+
+        casePlusInput.addEventListener('change', async function(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            for (let file of files) {
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const data = new Uint8Array(buffer);
+                    const pdf = await pdfjsLib.getDocument({ data }).promise;
+                    const docIndex = loadedDocs.length;
+                    const numPages = pdf.numPages;
+                    loadedDocs.push({ pdfDoc: pdf, fileName: file.name, numPages });
+                    if (emptyState) emptyState.style.display = 'none';
+                    appendPageCardsForRange(docIndex, 1, numPages);
+                    const newly = pdfContainer.querySelector(
+                        `[data-doc-index="${docIndex}"][data-internal-page-num="1"]`);
+                    if (newly) renderSinglePage(newly);
+                } catch (err) {
+                    console.error('Case+ load error:', err);
+                    alert('Failed to append PDF: ' + (err.message || 'Unknown error'));
+                }
+            }
+            updateDocSummaryLabel();
+            resizeGlobalCanvas();
+        });
+
+        btnClearPage.addEventListener('click', function() {
+            const activeCard = getCurrentlyActivePageNode();
+            if (!activeCard) return;
+            const pNum = parseInt(activeCard.dataset.pageNum, 10);
+            const toRemove = globalStrokes.filter(s => s.container === 'pdf' && s.pageNum === pNum);
+            toRemove.forEach(s => {
+                const linkIds = [];
+                linkData.forEach(l => {
+                    if ((l.sourceType === 'pdf' && l.sourcePageNum === pNum) || (l.targetType ===
+                        'pdf' && l.targetPageNum === pNum)) {
+                        linkIds.push(l.id);
+                    }
+                });
+                linkData = linkData.filter(l => !linkIds.includes(l.id));
+            });
+            globalStrokes = globalStrokes.filter(s => !(s.container === 'pdf' && s.pageNum === pNum));
+            const linkIdsOnPage = [];
+            linkData.forEach(l => {
+                if ((l.sourceType === 'pdf' && l.sourcePageNum === pNum) || (l.targetType === 'pdf' &&
+                        l.targetPageNum === pNum)) {
+                    linkIdsOnPage.push(l.id);
+                }
+            });
+            linkIdsOnPage.forEach(id => {
+                const wrappers = notepadPagesContainer.querySelectorAll('.notepad-page-wrapper');
+                wrappers.forEach(wrapper => {
+                    const marker = wrapper.querySelector(`.notepad-link-marker[data-link-id="${id}"]`);
+                    if (marker) marker.remove();
+                    const scan = wrapper.querySelector(`.notepad-scan-container[data-link-id="${id}"]`);
+                    if (scan) scan.remove();
+                });
+            });
+            document.querySelectorAll('.pdf-link-marker').forEach(marker => {
+                const id = parseInt(marker.dataset.linkId, 10);
+                if (linkIdsOnPage.includes(id)) { marker.remove(); }
+            });
+            const toRemoveText = textAnnotations.filter(a => a.pageNum === pNum);
+            toRemoveText.forEach(a => {
+                if (a.element && a.element.parentNode) a.element.parentNode.removeChild(a.element);
+            });
+            textAnnotations = textAnnotations.filter(a => a.pageNum !== pNum);
+            redrawGlobalStrokes();
+        });
+
+        // ================================================================
+        // RESIZE CANVAS
+        // ================================================================
+        function resizeGlobalCanvas() {
+            const rect = mainWorkspace.getBoundingClientRect();
+            globalCanvas.width = rect.width;
+            globalCanvas.height = rect.height;
+            redrawGlobalStrokes();
+            setTimeout(updateAllOverlayMarkers, 50);
+        }
+
+        // ================================================================
+        // EXPORT
+        // ================================================================
+        btnExportPdf.addEventListener('click', () => {
+            if (totalPages === 0) { alert('Please open a PDF document or insert a page first.'); return; }
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = mainWorkspace.clientWidth;
+            tempCanvas.height = mainWorkspace.clientHeight;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            redrawGlobalStrokes();
+            ctx.drawImage(globalCanvas, 0, 0);
+            const link = document.createElement('a');
+            link.download = 'annotated-workspace.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // ================================================================
+        // SCROLL LISTENERS
+        // ================================================================
+        pdfViewWrapper.addEventListener('scroll', redrawGlobalStrokes);
+        window.addEventListener('resize', resizeGlobalCanvas);
+
+        // ================================================================
+        // NAVIGATION LISTENERS
+        // ================================================================
+        notepadPrevBtn.addEventListener('click', prevNotepadPage);
+        notepadNextBtn.addEventListener('click', nextNotepadPage);
+        notepadPageSelect.addEventListener('change', function(e) {
+            goToNotepadPage(this.value);
+        });
+        btnNotepadList.addEventListener('click', showNotepadPageList);
+        notepadListClose.addEventListener('click', function() {
+            notepadListModal.style.display = 'none';
+        });
+        notepadListModal.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+
+        // ================================================================
+        // INIT
+        // ================================================================
+        hideNotepad();
+        setToolMode('pointer');
+        resizeGlobalCanvas();
+        if (loadedDocs.length === 0) emptyState.style.display = 'flex';
+
+        renderNotepadPages();
+        window.addNewNotepadPage = addNewNotepadPage;
+
+        leftMarginPx = 0;
+        applyLeftMargin(0);
+
+        setTimeout(updateAllOverlayMarkers, 200);
+
+        console.log('✅ Sticky note removed. Highlighter is now a LINK tool – draw highlight on PDF, tap Notepad to link.');
+        console.log('✅ All other features unchanged.');
+    </script>
+</body>
+</html>
