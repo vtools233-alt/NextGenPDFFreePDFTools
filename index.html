@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Viewer & Workspace</title>
+    <style>
+        :root {
+            --bg-primary: #f8fafc; --bg-secondary: #ffffff; --border-color: #e2e8f0;
+            --text-main: #0f172a; --text-muted: #64748b; --primary-accent: #2563eb;
+            --primary-accent-hover: #1d4ed8; --active-bg: #eff6ff;
+            --toolbar-height: 55px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-primary); color: var(--text-main); touch-action: none; }
+        body { display: flex; flex-direction: column; height: 100vh; width: 100vw; padding-bottom: 150px; }
+        
+        #debug-console { position: fixed; bottom: 0; left: 0; width: 100%; max-height: 150px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 12px; padding: 5px 10px; z-index: 999999; border-top: 2px solid #2563eb; }
+        #debug-console .log-success { color: #81c784; }
+        #debug-console .log-error { color: #ef5350; font-weight: bold; }
+        #debug-console .log-warn { color: #ffb74d; }
+
+        #top-toolbar { width: 100%; height: var(--toolbar-height); z-index: 1000; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: flex-start; overflow-x: auto; gap: 6px; padding: 0 10px; flex-shrink: 0; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; border: 1px solid var(--border-color); background-color: #ffffff; color: var(--text-main); cursor: pointer; transition: all 0.15s ease; }
+        .btn-primary { background-color: var(--primary-accent); color: #ffffff; border-color: var(--primary-accent); }
+        .tool-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 5px; border: 2px solid transparent; background: transparent; color: var(--text-muted); font-size: 16px; cursor: pointer; }
+        .tool-icon-btn.active { border-color: var(--primary-accent); background-color: var(--active-bg); color: var(--primary-accent); }
+        .control-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+        input[type="color"] { -webkit-appearance: none; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; padding: 0; }
+        input[type="range"] { width: 60px; accent-color: var(--primary-accent); }
+
+        #main-workspace { display: flex; flex-direction: row; width: 100%; flex: 1; height: calc(100vh - 55px - 150px); overflow: hidden; position: relative; background-color: #f1f5f9; }
+        #global-drawing-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: auto; cursor: crosshair; touch-action: none; }
+        #pdf-view-wrapper { flex: 1; width: 100%; height: 100%; overflow-y: auto; background-color: #f1f5f9; position: relative; padding: 24px 0 80px 0; }
+        #pdf-container { width: 100%; min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px; margin: 0 auto; }
+        #empty-state { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; background: #ffffff; padding: 40px 60px; border-radius: 12px; border: 2px dashed #cbd5e1; z-index: 10; }
+        .pdf-page-card { position: relative; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 4px; display: flex; flex-direction: column; align-items: center; margin: 0 auto; flex-shrink: 0; }
+        .page-number-indicator { position: absolute; top: -22px; left: 0; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+        .canvas-wrapper { position: relative; overflow: hidden; border-radius: 4px; }
+        .pdf-canvas { display: block; position: relative; z-index: 1; }
+    </style>
+</head>
+<body>
+
+<div id="debug-console">
+    <div style="color:#aaa;border-bottom:1px solid #444;padding-bottom:4px;margin-bottom:4px;">⬇️ <b>डिबग लॉग</b></div>
+    <div id="debug-output"></div>
+</div>
+
+<header id="top-toolbar">
+    <!-- Open PDF -->
+    <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" />
+    <button class="btn btn-primary" onclick="document.getElementById('pdf-file-input').click();">Open PDF</button>
+    
+    <!-- Case + (अब काम करेगा) -->
+    <input type="file" id="case-plus-input" accept="application/pdf" style="display: none;" />
+    <button class="btn" id="btn-case-plus">Case +</button>
+    
+    <span id="doc-info">No file selected</span>
+    <button class="btn">+ Page</button>
+    <div class="toolbar-divider"></div>
+
+    <!-- टूल्स (अब काम करेंगे) -->
+    <button class="tool-icon-btn" data-tool="pointer" title="Pointer">🖱️</button>
+    <button class="tool-icon-btn" data-tool="pen" title="Pen">✏️</button>
+    <button class="tool-icon-btn" data-tool="highlighter" title="Highlighter">🟡</button>
+    <button class="tool-icon-btn" data-tool="eraser" title="Eraser">🧹</button>
+    <button class="tool-icon-btn" data-tool="cursor" title="Cursor">⌨️</button>
+    <button class="tool-icon-btn" data-tool="line" title="Line">📏</button>
+    <button class="tool-icon-btn" data-tool="scan" title="Scan">📷</button>
+    
+    <div class="toolbar-divider"></div>
+    <span class="control-label">Color:</span>
+    <input type="color" id="picker-color" value="#2563eb" />
+    <span class="control-label">Size:</span>
+    <input type="range" id="slider-size" min="1" max="25" value="3" />
+    <div class="toolbar-divider"></div>
+
+    <button class="btn" onclick="zoomOut()">−</button>
+    <span id="zoom-label" class="control-label">135%</span>
+    <button class="btn" onclick="zoomIn()">+</button>
+    <button class="btn" onclick="toggleNotepad()">📒 Notepad</button>
+    <button class="btn">💾 Save</button>
+</header>
+
+<div id="main-workspace">
+    <canvas id="global-drawing-canvas"></canvas>
+    <main id="pdf-view-wrapper">
+        <div id="empty-state"><h3>No Document Loaded</h3><p>Click "Open PDF" or "Case +" to load a file.</p></div>
+        <div id="pdf-container"></div>
+    </main>
+    <aside id="notepad-pane" style="display: none; width: 30%; background: white; border-left: 2px solid #ccc; padding: 10px;">
+        <h3>📒 Notepad</h3>
+        <div contenteditable="true" style="width: 100%; height: 90%; border: 1px dashed #ccc; padding: 10px;">Type here...</div>
+    </aside>
+</div>
+
+<script>
+    // Logging
+    function logDebug(msg, type = 'info') {
+        const output = document.getElementById('debug-output');
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement('div');
+        div.className = 'log-' + type;
+        div.textContent = `[${time}] ${msg}`;
+        output.appendChild(div);
+        document.getElementById('debug-console').scrollTop = document.getElementById('debug-console').scrollHeight;
+    }
+
+    // CDN
+    if (typeof pdfjsLib !== 'undefined') {
+        logDebug('✅ pdfjsLib लोड हो गया!', 'success');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    } else {
+        logDebug('❌ pdfjsLib NOT FOUND! Fallback लोड हो रहा है...', 'warn');
+        var script = document.createElement('script');
+        script.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
+        script.onload = function() {
+            logDebug('✅ unpkg से लोड हुआ', 'success');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        };
+        document.head.appendChild(script);
+    }
+
+    let currentScale = 1.5;
+
+    // -- Main PDF Loader --
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    pdfFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        logDebug('📄 फ़ाइल: ' + file.name, 'info');
+        loadPdf(file, true);
+    });
+
+    // -- Case + Loader (नई फाइल जोड़ेगा) --
+    const casePlusInput = document.getElementById('case-plus-input');
+    document.getElementById('btn-case-plus').addEventListener('click', () => casePlusInput.click());
+
+    casePlusInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        logDebug('📂 Case + फ़ाइल: ' + file.name, 'info');
+        loadPdf(file, false); // false = पुरानी फाइल न हटाएं
+    });
+
+    // -- PDF Render Function --
+    function loadPdf(file, clearContainer) {
+        if (typeof pdfjsLib === 'undefined') {
+            alert('PDF.js लाइब्रेरी लोड नहीं हुई! इंटरनेट चेक करें।');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const data = new Uint8Array(ev.target.result);
+            pdfjsLib.getDocument({ data }).promise
+                .then(function(pdf) {
+                    if (clearContainer) {
+                        document.getElementById('pdf-container').innerHTML = '';
+                        document.getElementById('empty-state').style.display = 'none';
+                        document.getElementById('doc-info').innerText = file.name;
+                    }
+                    
+                    logDebug('✅ PDF पार्स हो गई! पेज: ' + pdf.numPages, 'success');
+                    
+                    // नई फाइल के पेज कंटेनर में जोड़ें
+                    const container = document.getElementById('pdf-container');
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        (function(pageNum) {
+                            const pageCard = document.createElement('div');
+                            pageCard.className = 'pdf-page-card';
+                            
+                            const pageIndicator = document.createElement('div');
+                            pageIndicator.className = 'page-number-indicator';
+                            pageIndicator.textContent = 'Page ' + pageNum;
+                            pageCard.appendChild(pageIndicator);
+
+                            const canvasWrapper = document.createElement('div');
+                            canvasWrapper.className = 'canvas-wrapper';
+                            
+                            const canvas = document.createElement('canvas');
+                            canvas.className = 'pdf-canvas';
+                            
+                            canvasWrapper.appendChild(canvas);
+                            pageCard.appendChild(canvasWrapper);
+                            container.appendChild(pageCard);
+
+                            pdf.getPage(pageNum).then(function(page) {
+                                const viewport = page.getViewport({ scale: currentScale });
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+                                page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise
+                                    .then(() => logDebug('✅ पेज ' + pageNum + ' रेंडर हुआ', 'success'))
+                                    .catch(err => logDebug('❌ पेज ' + pageNum + ' एरर: ' + err.message, 'error'));
+                            });
+                        })(pageNum);
+                    }
+                })
+                .catch(function(err) {
+                    logDebug('❌ PDF एरर: ' + err.message, 'error');
+                });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // -- टूल्स को सक्रिय करना और ड्रॉइंग लॉजिक --
+    const drawingCanvas = document.getElementById('global-drawing-canvas');
+    const ctx = drawingCanvas.getContext('2d');
+    let currentTool = 'pointer';
+    let isDrawing = false;
+    let lastX = 0, lastY = 0;
+
+    // कैनवास साइज़ सेट करना
+    function resizeCanvas() {
+        drawingCanvas.width = window.innerWidth;
+        drawingCanvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // टूल बटन्स पर क्लिक इवेंट
+    document.querySelectorAll('.tool-icon-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tool-icon-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentTool = this.dataset.tool;
+            logDebug('🔧 टूल चुना गया: ' + currentTool, 'info');
+        });
+    });
+
+    // माउस से ड्रॉइंग
+    drawingCanvas.addEventListener('mousedown', startDrawing);
+    drawingCanvas.addEventListener('mousemove', draw);
+    drawingCanvas.addEventListener('mouseup', stopDrawing);
+    drawingCanvas.addEventListener('mouseleave', stopDrawing);
+
+    // टच से ड्रॉइंग (Mobile के लिए)
+    drawingCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = drawingCanvas.getBoundingClientRect();
+        startDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+    
+    drawingCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        draw({ clientX: touch.clientX, clientY: touch.clientY });
+    }, { passive: false });
+
+    drawingCanvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopDrawing();
+    }, { passive: false });
+
+    function startDrawing(e) {
+        if (currentTool === 'pointer' || currentTool === 'cursor') return; // पॉइंटर और कर्सर से ड्रॉ नहीं होता
+        isDrawing = true;
+        const rect = drawingCanvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+
+        // टूल के अनुसार स्टाइल सेट करें
+        ctx.globalAlpha = 1.0;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = document.getElementById('slider-size').value;
+        
+        if (currentTool === 'pen') {
+            ctx.strokeStyle = document.getElementById('picker-color').value;
+        } else if (currentTool === 'highlighter') {
+            ctx.strokeStyle = document.getElementById('picker-color').value;
+            ctx.globalAlpha = 0.5; // पारदर्शी
+        } else if (currentTool === 'eraser') {
+            ctx.strokeStyle = '#f1f5f9'; // बैकग्राउंड के रंग से मिलाएं
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = drawingCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        lastX = currentX;
+        lastY = currentY;
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    // Zoom
+    function zoomIn() {
+        currentScale += 0.1;
+        document.getElementById('zoom-label').innerText = Math.round(currentScale * 100) + '%';
+        logDebug('Zoom In: ' + Math.round(currentScale * 100) + '% (रीलोड करने पर लागू होगा)', 'info');
+    }
+    function zoomOut() {
+        currentScale -= 0.1;
+        document.getElementById('zoom-label').innerText = Math.round(currentScale * 100) + '%';
+        logDebug('Zoom Out: ' + Math.round(currentScale * 100) + '%', 'info');
+    }
+
+    // Notepad Toggle
+    function toggleNotepad() {
+        const pane = document.getElementById('notepad-pane');
+        pane.style.display = (pane.style.display === 'none') ? 'block' : 'none';
+    }
+
+    logDebug('✅ सभी टूल्स और Case + तैयार हैं।', 'success');
+</script>
+</body>
+</html>
