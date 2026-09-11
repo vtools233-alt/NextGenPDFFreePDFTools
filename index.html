@@ -1,0 +1,3862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PDF Viewer & Workspace</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root { --bg-primary: #f8fafc; --bg-secondary: #ffffff; --border-color: #e2e8f0; --text-main: #0f172a; --text-muted: #64748b; --primary-accent: #2563eb; --primary-accent-hover: #1d4ed8; --active-bg: #eff6ff; --active-border: #3b82f6; --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1); --toolbar-height: 55px; --link-color: #2563eb; --link-highlight: rgba(37,99,235,0.25); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; top: 0; left: 0; margin: 0; padding: 0; background-color: var(--bg-primary); color: var(--text-main); touch-action: none; }
+    body { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+    #top-toolbar { position: relative; width: 100%; height: var(--toolbar-height); z-index: 1000; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: flex-start; overflow-x: auto; overflow-y: hidden; gap: 10px; white-space: nowrap; padding: 0 15px; -webkit-overflow-scrolling: touch; box-shadow: var(--shadow-sm); flex-shrink: 0; -ms-overflow-style: none; scrollbar-width: none; }
+    #top-toolbar::-webkit-scrollbar { display: none; }
+    .toolbar-section { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .toolbar-divider { height: 24px; width: 1px; background-color: var(--border-color); margin: 0 2px; flex-shrink: 0; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-color); background-color: #ffffff; color: var(--text-main); cursor: pointer; transition: all 0.15s ease; user-select: none; white-space: nowrap; flex-shrink: 0; }
+    .btn:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+    .btn-primary { background-color: var(--primary-accent); color: #ffffff; border-color: var(--primary-accent); }
+    .btn-primary:hover { background-color: var(--primary-accent-hover); border-color: var(--primary-accent-hover); }
+    .btn-success { background-color: #16a34a; color: #ffffff; border-color: #16a34a; }
+    .btn-success:hover { background-color: #15803d; border-color: #15803d; }
+    .btn-tool { padding: 8px; min-width: 36px; height: 36px; flex-shrink: 0; }
+    .btn-tool.active { background-color: var(--active-bg); border-color: var(--active-border); color: var(--primary-accent); }
+    .btn.active { background-color: var(--active-bg) !important; border-color: var(--active-border) !important; color: var(--primary-accent) !important; }
+    .tool-group { display: flex; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 2px; border: 1px solid var(--border-color); flex-shrink: 0; }
+    .tool-group .btn-tool { border: none; border-radius: 5px; background: transparent; }
+    .tool-group .btn-tool.active { background-color: #ffffff; box-shadow: var(--shadow-sm); color: var(--primary-accent); }
+    .tool-group .tool-divider { width: 1px; height: 22px; background-color: var(--border-color); margin: 0 3px; flex-shrink: 0; }
+#tool-laser.active { background: #fee2e2 !important; border-color: #dc2626 !important; color: #dc2626 !important; }
+#tool-type-text.active { background: #dbeafe !important; border-color: #2563eb !important; color: #2563eb !important; }
+#tool-scan-pan.active { background: #ddd6fe !important; border-color: #8b5cf6 !important; color: #6d28d9 !important; }
+.pdf-text-annotation { position: absolute; z-index: 8; background: rgba(255,255,255,0.95); border: 2px solid var(--primary-accent); border-radius: 4px; padding: 4px 8px; min-width: 60px; min-height: 26px; font-size: 14px; color: #0f172a; outline: none; cursor: move; box-shadow: 0 2px 6px rgba(0,0,0,0.12); word-break: break-word; pointer-events: auto; resize: both; overflow: auto; font-family: inherit; line-height: 1.4; user-select: text; }
+.pdf-text-annotation:focus { border-color: var(--primary-accent-hover); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); cursor: text; }
+.pdf-text-annotation .delete-text-annotation { position: absolute; top: -10px; right: -10px; width: 20px; height: 20px; background: #ef4444; color: #fff; border-radius: 50%; border: 2px solid #fff; font-size: 11px; line-height: 1; cursor: pointer; display: none; align-items: center; justify-content: center; pointer-events: auto; padding: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.pdf-text-annotation:hover .delete-text-annotation { display: flex; }
+#type-text-input { position: fixed; z-index: 9999; background: #ffffff; border: 2px solid var(--primary-accent); border-radius: 8px; padding: 8px 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); min-width: 220px; max-width: 90vw; display: none; }
+#type-text-input input { border: none; outline: none; font-size: 16px; width: 100%; padding: 4px 0; color: #0f172a; background: transparent; font-family: inherit; }
+#type-text-input .type-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; border-top: 1px solid var(--border-color); padding-top: 6px; }
+#type-text-input .type-actions button { background: none; border: none; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 4px 10px; border-radius: 4px; font-weight: 500; }
+#type-text-input .type-actions button:hover { background-color: #f1f5f9; color: var(--text-main); }
+#type-text-input .type-actions .btn-apply-type { color: var(--primary-accent); font-weight: 700; background: var(--active-bg); }
+#type-text-input .type-actions .btn-apply-type:hover { background: var(--primary-accent); color: #fff; }
+#btn-undo:disabled, #btn-redo:disabled, #btn-delete-last:disabled { opacity: 0.3; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .tool-group .btn-tool { min-width: 30px; height: 30px; padding: 5px; font-size: 13px; }
+}
+    #doc-info { font-size: 13px; color: var(--text-muted); font-weight: 500; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+    .control-label { font-size: 12px; color: var(--text-muted); font-weight: 500; flex-shrink: 0; }
+    .color-picker-wrapper { display: flex; align-items: center; gap: 6px; padding: 0 4px; flex-shrink: 0; }
+    input[type="color"] { -webkit-appearance: none; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; background: none; flex-shrink: 0; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border-color); border-radius: 50%; }
+    input[type="range"] { width: 70px; accent-color: var(--primary-accent); cursor: pointer; flex-shrink: 0; }
+    #main-workspace { display: flex; flex-direction: row; width: 100%; flex: 1; height: calc(100vh - var(--toolbar-height)); overflow: hidden; position: relative; touch-action: none; background-color: #f1f5f9; }
+    #global-drawing-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; touch-action: none; }
+    #pdf-view-wrapper { flex: 1 1 100%; width: 100%; height: 100%; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; background-color: #f1f5f9; position: relative; display: block; padding: 24px 0 80px 0; box-sizing: border-box; min-width: 0; touch-action: pan-x pan-y; will-change: width, flex-basis; transition: width 0.08s ease-out, flex-basis 0.08s ease-out; }
+    #pdf-container { width: 100%; min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px; margin: 0 auto; transform-origin: top center; will-change: transform; transition: transform 0.08s ease-out; }
+    #notepad-pane { display: none; width: 0%; flex: 0 0 0%; height: 100%; background-color: #ffffff; border-left: none; flex-direction: column; box-shadow: -2px 0 8px rgba(0,0,0,0.04); z-index: 20; overflow: hidden; flex-shrink: 0; position: relative; min-width: 0; background-color: #f1f5f9; will-change: width, flex-basis; transition: width 0.08s ease-out, flex-basis 0.08s ease-out; }
+    #notepad-editor { width: 100%; min-height: 100%; height: auto; outline: none; font-size: 16px; background: transparent; color: #1e293b; font-family: inherit; line-height: 1.6; white-space: pre-wrap; word-break: break-word; will-change: font-size; transition: font-size 0.08s ease-out; }
+    #resizer { width: 4px; height: 100%; background-color: var(--border-color); cursor: col-resize; flex-shrink: 0; user-select: none; touch-action: none; z-index: 30; display: none; position: relative; transition: background-color 0.2s ease; }
+    #resizer:hover, #resizer.active { background-color: var(--primary-accent); }
+    #resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 2px; height: 24px; background-color: #94a3b8; border-radius: 1px; }
+    #resizer:hover::after, #resizer.active::after { background-color: #ffffff; }
+    .pdf-page-card { position: relative; background-color: #ffffff; box-shadow: var(--shadow-md); border-radius: 4px; min-height: 850px; display: flex; flex-direction: column; align-items: center; margin: 0 auto; flex-shrink: 0; transition: box-shadow 0.2s ease; }
+    .pdf-page-card:hover { box-shadow: var(--shadow-lg); }
+    .page-number-indicator { position: absolute; top: -22px; left: 0; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .canvas-wrapper { position: relative; overflow: hidden; border-radius: 4px; width: 100%; height: 100%; }
+    .pdf-canvas { display: block; position: relative; z-index: 1; width: 100%; height: 100%; }
+    .pdf-link-highlight { position: absolute; border-radius: 3px; pointer-events: none; z-index: 5; background-color: var(--link-highlight); border: 2px solid var(--primary-accent); transition: opacity 0.4s ease; opacity: 0; box-shadow: 0 0 16px rgba(37,99,235,0.25); }
+    .pdf-link-highlight.active { opacity: 1; }
+    .pdf-link-marker { position: absolute; width: 24px; height: 24px; border-radius: 50%; z-index: 6; cursor: pointer; border: 2px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #ffffff; pointer-events: auto; transform: translate(-50%, -50%); background: #2563eb; }
+    .pdf-link-marker:hover { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    .pdf-link-marker .link-tooltip { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; pointer-events: none; }
+    .pdf-link-marker:hover .link-tooltip { display: block; }
+    .pdf-link-marker .link-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #1e293b; }
+    .pdf-link-marker.type-line { background: #2563eb; }
+    .pdf-link-marker.type-highlight { background: #eab308; }
+    .pdf-link-marker.type-underline { background: #22c55e; }
+    .pdf-link-marker.type-scan { background: #8b5cf6; }
+    .pdf-link-marker.type-linkpoint { background: #ec4899; }
+    .page-text-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; outline: none; padding: 32px 28px; box-sizing: border-box; font-size: 16px; line-height: 32px; color: #0f172a; white-space: pre-wrap; word-break: break-word; cursor: text; pointer-events: auto; }
+    .page-text-layer.block-events { pointer-events: none !important; }
+    #empty-state { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; background: #ffffff; padding: 40px 60px; border-radius: 12px; border: 2px dashed #cbd5e1; box-shadow: var(--shadow-sm); z-index: 10; }
+    #empty-state svg { width: 48px; height: 48px; stroke: var(--text-muted); }
+    #empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text-main); }
+    #empty-state p { font-size: 14px; color: var(--text-muted); max-width: 300px; }
+    #notepad-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background-color: #ffffff; flex-shrink: 0; flex-wrap: wrap; gap: 6px; }
+    #notepad-header h4 { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .notepad-nav-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .notepad-page-label { font-size: 12px; font-weight: 600; color: var(--text-main); padding: 0 4px; white-space: nowrap; }
+    #btn-notepad-prev:disabled, #btn-notepad-next:disabled { opacity: 0.35; cursor: not-allowed; }
+    #btn-notepad-new { background-color: var(--primary-accent); color: #fff; border-color: var(--primary-accent); }
+    #btn-notepad-new:hover { background-color: var(--primary-accent-hover); }
+    .notepad-draw-tools { display: flex; gap: 2px; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .notepad-tool-btn { width: 30px; height: 30px; border-radius: 5px; border: none; background: transparent; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+    .notepad-tool-btn:hover { background: #e2e8f0; }
+    .notepad-tool-btn.active { background: #ffffff; color: var(--primary-accent); box-shadow: var(--shadow-sm); }
+    .notepad-controls { display: flex; align-items: center; gap: 8px; }
+    #notepad-editor-container { flex: 1; padding: 24px; overflow-y: auto; position: relative; background-color: #ffffff; }
+    #notepad-draw-canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+    #notepad-draw-canvas.pen-active { pointer-events: auto; cursor: crosshair; touch-action: none; }
+    #notepad-draw-canvas.eraser-active { pointer-events: auto; cursor: cell; touch-action: none; }
+    .bg-red-lined { background-color: #ffffff; background-image: linear-gradient(#f1f5f9 1px, transparent 1px); background-size: 100% 32px; line-height: 32px !important; border-left: 3px solid #f87171 !important; padding-left: 16px !important; }
+    .bg-purple-lined { background-color: #ffffff; background-image: linear-gradient(#f3e8ff 1px, transparent 1px); background-size: 100% 32px; line-height: 32px !important; border-left: 3px solid #c084fc !important; padding-left: 16px !important; }
+    .bg-dot-grid { background-color: #ffffff; background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 24px 24px; line-height: 24px !important; padding-left: 12px !important; }
+    .bg-white-blank { background-color: #ffffff; background-image: none; line-height: 1.8; padding-left: 8px !important; }
+    .bg-white-red-line { background-color: #ffffff; background-image: linear-gradient(#fecaca 1px, transparent 1px); background-size: 100% 32px; line-height: 32px !important; border-left: 3px solid #f87171 !important; padding-left: 16px !important; }
+    .bg-white-purple-line { background-color: #ffffff; background-image: linear-gradient(#e9d5ff 1px, transparent 1px); background-size: 100% 32px; line-height: 32px !important; border-left: 3px solid #c084fc !important; padding-left: 16px !important; }
+    .bg-light-yellow-blank { background-color: #fefce8; background-image: none; line-height: 1.8; padding-left: 8px !important; }
+    .bg-yellow-lined { background-color: #fef9c3; background-image: linear-gradient(#fbbf24 1px, transparent 1px); background-size: 100% 32px; line-height: 32px !important; border-left: 3px solid #f59e0b !important; padding-left: 16px !important; }
+    .notepad-link-marker { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin: 0 2px; cursor: grab; position: relative; vertical-align: middle; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 2px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.2); flex-shrink: 0; text-align: center; line-height: 16px; font-size: 10px; color: #fff; background: #2563eb; touch-action: none; user-select: none; }
+    .notepad-link-marker:hover { transform: scale(1.15); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+    .notepad-link-marker:active { cursor: grabbing; }
+    .notepad-link-marker .link-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1e293b; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; pointer-events: none; z-index: 100; }
+    .notepad-link-marker:hover .link-tooltip { display: block; }
+    .notepad-link-marker .link-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #1e293b; }
+    .notepad-link-marker.type-line { background: #2563eb; }
+    .notepad-link-marker.type-highlight { background: #eab308; }
+    .notepad-link-marker.type-underline { background: #22c55e; }
+    .notepad-link-marker.type-scan { background: #8b5cf6; }
+    .notepad-link-marker.type-linkpoint { background: #ec4899; }
+    .notepad-link-marker.type-line::after { content: '✏️'; font-size: 10px; line-height: 16px; }
+    .notepad-link-marker.type-highlight::after { content: '🟡'; font-size: 10px; line-height: 16px; }
+    .notepad-link-marker.type-underline::after { content: '⏺️'; font-size: 10px; line-height: 16px; }
+    .notepad-link-marker.type-scan::after { content: '📷'; font-size: 10px; line-height: 16px; }
+    .notepad-link-marker.type-linkpoint::after { content: '🔗'; font-size: 10px; line-height: 16px; }
+    .marker-ghost { position: fixed; pointer-events: none; z-index: 99999; opacity: 0.85; transform: scale(1.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: none; }
+    .page-template-white { background-color: #ffffff; }
+    .page-template-lined-white { background-color: #ffffff; background-image: linear-gradient(#e2e8f0 1px, transparent 1px); background-size: 100% 32px; border-left: 3px solid #f87171 !important; }
+    .page-template-dot-grid { background-color: #ffffff; background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px); background-size: 24px 24px; }
+    .page-template-yellow-blank { background-color: #fef9c3; }
+    .page-template-yellow-lined { background-color: #fef9c3; background-image: linear-gradient(#cbd5e1 1px, transparent 1px); background-size: 100% 32px; border-left: 3px solid #f87171 !important; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(15,23,42,0.4); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+    .modal-content { background-color: #ffffff; border-radius: 12px; width: 90%; max-width: 480px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); overflow: hidden; animation: modalFadeIn 0.2s ease-out; max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; background-color: #f8fafc; }
+    .modal-header h3 { font-size: 16px; font-weight: 600; color: var(--text-main); }
+    .modal-close-btn { background: none; border: none; font-size: 22px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; }
+    .modal-close-btn:hover { color: var(--text-main); background-color: #e2e8f0; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .modal-section h4 { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .modal-action-btn { padding: 12px; font-size: 14px; justify-content: center; }
+    .template-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+    .template-option { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.15s ease; }
+    .template-option:hover { border-color: var(--primary-accent); background-color: var(--active-bg); }
+    .template-preview { width: 100%; height: 60px; border: 1px solid var(--border-color); border-radius: 4px; }
+    .template-option span { font-size: 12px; font-weight: 500; color: var(--text-main); text-align: center; }
+    .bg-template-white { background-color: #ffffff; }
+    .bg-template-lined-white { background-color: #ffffff; background-image: linear-gradient(#e2e8f0 1px, transparent 1px); background-size: 100% 16px; border-left: 2px solid #f87171 !important; }
+    .bg-template-dot-grid { background-color: #ffffff; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 12px 12px; }
+    .bg-template-yellow-blank { background-color: #fef9c3; }
+    .bg-template-yellow-lined { background-color: #fef9c3; background-image: linear-gradient(#cbd5e1 1px, transparent 1px); background-size: 100% 16px; border-left: 2px solid #f87171 !important; }
+    .select-wrapper { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .select-wrapper .select-label { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-right: 2px; }
+    #mode-select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; min-width: 110px; cursor: pointer; background-color: #ffffff; }
+    #mode-select option { background: #ffffff; color: #0f172a; }
+    #mode-status { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--primary-accent); color: #fff; padding: 8px 20px; border-radius: 30px; font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; white-space: nowrap; }
+    #mode-status.visible { opacity: 1; }
+    #pdf-container.double-page-mode { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px; }
+    #pdf-container.double-page-mode .pdf-page-card { margin: 0; }
+    .case-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; font-family: inherit; color: var(--text-main); background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+.case-input:focus { border-color: var(--primary-accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.case-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+.modal-footer { padding: 16px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); background: #f8fafc; }
+#case-info-bar { display: none; padding: 8px 16px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom: 1px solid #bfdbfe; font-size: 13px; color: #1e40af; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+#case-info-bar.visible { display: flex; }
+#case-info-bar .ci-label { font-weight: 700; }
+#case-info-bar .ci-sep { color: #93c5fd; }
+#case-info-bar button { margin-left: auto; padding: 4px 10px; font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid #93c5fd; border-radius: 5px; cursor: pointer; color: #1e40af; font-weight: 500; }
+#case-info-bar button:hover { background: #fff; }
+#cases-panel { position: fixed; top: 0; left: 0; width: 340px; max-width: 90vw; height: 100vh; background: #fff; box-shadow: 4px 0 24px rgba(0,0,0,0.15); z-index: 3000; display: flex; flex-direction: column; transform: translateX(-100%); transition: transform 0.25s ease-out; }
+#cases-panel.open { transform: translateX(0); }
+#cases-panel-header { padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); flex-shrink: 0; }
+#cases-panel-header h3 { font-size: 16px; font-weight: 700; color: #1e40af; margin: 0; }
+#btn-cases-close { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #93c5fd; background: #fff; color: #1e40af; font-size: 16px; cursor: pointer; }
+#btn-cases-close:hover { background: #dbeafe; }
+#cases-search-wrapper { padding: 12px 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+#cases-search { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; }
+#cases-search:focus { border-color: var(--primary-accent); }
+#cases-filter-bar { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; overflow-x: auto; }
+.cases-filter-btn { padding: 6px 12px; font-size: 12px; border-radius: 20px; border: 1px solid var(--border-color); background: #fff; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.cases-filter-btn.active { background: var(--primary-accent); color: #fff; border-color: var(--primary-accent); }
+#cases-list { flex: 1; overflow-y: auto; padding: 12px; }
+.case-card { padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 10px; background: #fff; cursor: pointer; transition: all 0.15s ease; position: relative; }
+.case-card:hover { border-color: var(--primary-accent); background: #f8fafc; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+.case-card.active { border-color: var(--primary-accent); background: var(--active-bg); }
+.case-card-title { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; padding-right: 30px; }
+.case-card-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; line-height: 1.4; }
+.case-card-pages { font-size: 11px; color: #64748b; }
+.case-card-today { display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 600; background: #dcfce7; color: #166534; border-radius: 4px; margin-left: 4px; }
+.case-card-delete { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 6px; border: 1px solid #fecaca; background: #fff; color: #ef4444; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.case-card-delete:hover { background: #fee2e2; }
+#cases-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+#cases-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 2999; display: none; }
+#cases-backdrop.open { display: block; }
+#board-pane { display: none; width: 0%; flex: 0 0 0%; height: 100%; background-color: #f8fafc; border-left: none; flex-direction: column; box-shadow: -2px 0 8px rgba(0,0,0,0.04); z-index: 20; overflow: hidden; flex-shrink: 0; position: relative; min-width: 0; will-change: width, flex-basis; transition: width 0.08s ease-out, flex-basis 0.08s ease-out; }
+#board-header { padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background-color: #ffffff; flex-shrink: 0; flex-wrap: wrap; gap: 6px; }
+#board-header h4 { font-size: 14px; font-weight: 700; color: var(--text-main); margin: 0; }
+.board-header-tools { display: flex; align-items: center; gap: 2px; background: #f1f5f9; padding: 3px; border-radius: 8px; border: 1px solid var(--border-color); }
+.board-tool-btn { width: 32px; height: 32px; border-radius: 5px; border: none; background: transparent; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+.board-tool-btn:hover { background: #e2e8f0; }
+.board-tool-btn.active { background: #ffffff; color: var(--primary-accent); box-shadow: var(--shadow-sm); }
+#board-canvas-wrapper { position: relative; height: 220px; background: #ffffff; border-bottom: 2px solid var(--border-color); flex-shrink: 0; overflow: hidden; }
+#board-draw-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 20px 20px; touch-action: none; }
+#board-draw-canvas.pen-active { cursor: crosshair; }
+#board-draw-canvas.highlighter-active { cursor: cell; }
+#board-draw-canvas.eraser-active { cursor: not-allowed; }
+#board-category-bar { display: flex; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); overflow-x: auto; flex-shrink: 0; background: #fff; }
+#board-category-bar::-webkit-scrollbar { height: 4px; }
+.board-cat-btn { padding: 6px 12px; font-size: 12px; border-radius: 20px; border: 1px solid var(--border-color); background: #fff; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-weight: 500; }
+.board-cat-btn:hover { background: #f1f5f9; }
+.board-cat-btn.active { background: var(--primary-accent); color: #fff; border-color: var(--primary-accent); }
+#board-cards-list { flex: 1; overflow-y: auto; padding: 12px; }
+.board-card { background: #fff; border: 1px solid var(--border-color); border-left: 4px solid var(--primary-accent); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.15s ease; position: relative; }
+.board-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.board-card[data-cat="evidence"] { border-left-color: #2563eb; }
+.board-card[data-cat="argument"] { border-left-color: #16a34a; }
+.board-card[data-cat="issue"] { border-left-color: #dc2626; }
+.board-card[data-cat="contradiction"] { border-left-color: #ea580c; }
+.board-card[data-cat="order"] { border-left-color: #7c3aed; }
+.board-card[data-cat="content"] { border-left-color: #64748b; }
+.board-card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding-right: 50px; }
+.board-card-cat-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: #eff6ff; color: #1e40af; letter-spacing: 0.3px; }
+.board-card-title-text { font-size: 14px; font-weight: 700; color: var(--text-main); line-height: 1.3; }
+.board-card-body { font-size: 13px; color: #475569; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.board-card-page { display: inline-block; margin-top: 6px; font-size: 11px; color: var(--primary-accent); font-weight: 600; padding: 2px 8px; background: var(--active-bg); border-radius: 4px; }
+.board-card-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+.board-card-edit, .board-card-del { width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border-color); background: #fff; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.board-card-edit:hover { background: #eff6ff; color: var(--primary-accent); border-color: var(--primary-accent); }
+.board-card-del { color: #ef4444; border-color: #fecaca; }
+.board-card-del:hover { background: #fee2e2; }
+#board-add-area { padding: 12px; border-top: 1px solid var(--border-color); background: #fff; flex-shrink: 0; }
+#board-empty { padding: 30px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <header id="top-toolbar">
+    <div class="toolbar-section">
+      <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" />
+      <button class="btn btn-primary" id="btn-open-pdf">Open PDF</button>
+      <input type="file" id="case-plus-input" accept="application/pdf" multiple style="display: none;" />
+      <button class="btn" id="btn-cases-list">📁 Cases</button>
+      <button class="btn" id="btn-case-plus">Case +</button>
+      <span id="doc-info">No file selected</span>
+      <button class="btn" id="btn-add-page">+ Page</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-section">
+   <div class="tool-group">
+  <button class="btn btn-tool active" id="tool-select" title="Pointer">🖱️</button>
+  <button class="btn btn-tool" id="tool-pen" title="Pen">✏️</button>
+  <button class="btn btn-tool" id="tool-highlighter" title="Highlighter">🟡</button>
+  <button class="btn btn-tool" id="tool-eraser" title="Eraser">🧹</button>
+  <button class="btn btn-tool" id="tool-laser" title="Laser Pointer">🔴</button>
+  <button class="btn btn-tool" id="tool-type-text" title="Select & Type">⌨️</button>
+  <div class="tool-divider"></div>
+  <button class="btn btn-tool" id="tool-line" title="Line (Link)">📏</button>
+  <button class="btn btn-tool" id="tool-underline" title="Underline (Link)">⏺️</button>
+  <button class="btn btn-tool" id="tool-hl-link" title="Highlight (Link)">🖍️</button>
+  <button class="btn btn-tool" id="tool-scan" title="Scan (Link)">📷</button>
+  <button class="btn btn-tool" id="tool-scan-pan" title="Scan to Pan (Freehand)">✏️</button>
+  <button class="btn btn-tool" id="tool-linkpoint" title="Link Point">🔗</button>
+  <div class="tool-divider"></div>
+  <button class="btn btn-tool" id="btn-undo" title="Undo">↩️</button>
+  <button class="btn btn-tool" id="btn-redo" title="Redo">↪️</button>
+  <button class="btn btn-tool" id="btn-delete-last" title="Delete Last">🗑️</button>
+</div>
+      <div class="color-picker-wrapper">
+        <span class="control-label">Color:</span>
+        <input type="color" id="picker-color" value="#2563eb" />
+      </div>
+      <div class="color-picker-wrapper">
+        <span class="control-label">Size:</span>
+        <input type="range" id="slider-size" min="1" max="25" value="3" />
+      </div>
+      <button class="btn" id="btn-clear-page">Clear Page</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-section">
+      <button class="btn btn-tool" id="btn-zoom-out">−</button>
+      <span id="zoom-label" class="control-label" style="min-width:42px;text-align:center;">135%</span>
+      <button class="btn btn-tool" id="btn-zoom-in">+</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-section" style="position:relative;">
+      <select id="mode-select" style="display:none;">
+  <option value="pointer">Pointer</option>
+  <option value="line">Line</option>
+  <option value="highlight">Highlight</option>
+  <option value="underline">Underline</option>
+  <option value="scan">Scan</option>
+  <option value="linkpoint">Link Point</option>
+</select>
+      <button class="btn" id="btn-double-page">📖 2 Pages</button>
+      <button class="btn" id="btn-toggle-board">📋 Board</button>
+      <button class="btn" id="btn-toggle-notepad">Notepad</button>
+      <button class="btn" id="btn-export-pdf">Save</button>
+    </div>
+  </header>
+
+  <div id="mode-status"></div>
+  <div id="type-text-input">
+  <input type="text" id="type-text-field" placeholder="Type here…" autocomplete="off" />
+  <div class="type-actions">
+    <button id="type-cancel-btn">Cancel</button>
+    <button id="type-apply-btn" class="btn-apply-type">✔ Apply</button>
+  </div>
+</div>
+  <div id="case-info-bar"></div>
+
+<!-- CASES PANEL -->
+<div id="cases-backdrop"></div>
+<aside id="cases-panel">
+  <div id="cases-panel-header">
+    <h3>📁 Daily Cases (Device Memory)</h3>
+    <button id="btn-cases-close">✕</button>
+  </div>
+  <div id="cases-search-wrapper">
+    <input type="text" id="cases-search" placeholder="🔍 Search case name / number...">
+  </div>
+  <div id="cases-filter-bar">
+    <button class="cases-filter-btn active" data-filter="all">All Cases</button>
+    <button class="cases-filter-btn" data-filter="today">📅 Today's Hearings</button>
+    <button class="cases-filter-btn" data-filter="week">🗓️ This Week</button>
+  </div>
+  <div id="cases-list"></div>
+</aside>
+  <div id="main-workspace">
+    <canvas id="global-drawing-canvas"></canvas>
+    <main id="pdf-view-wrapper">
+      <div id="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        <h3>No Document Loaded</h3>
+        <p>Click "Open PDF" to load a file, "Case +" to append documents, or "+ Page" to insert custom page templates.</p>
+      </div>
+      <div id="pdf-container"></div>
+    </main>
+    <div id="resizer" title="Drag to resize workspace"></div>
+    <aside id="board-pane">
+  <div id="board-header">
+    <h4>📋 Board</h4>
+    <div class="board-header-tools">
+      <button class="board-tool-btn active" data-board-tool="pointer" title="Pointer">🖱️</button>
+      <button class="board-tool-btn" data-board-tool="pen" title="Pen">✏️</button>
+      <button class="board-tool-btn" data-board-tool="highlighter" title="Highlighter">🟡</button>
+      <button class="board-tool-btn" data-board-tool="eraser" title="Eraser">🧹</button>
+      <button class="btn btn-tool" id="btn-close-board" title="Close">✕</button>
+    </div>
+  </div>
+  <div id="board-canvas-wrapper">
+    <canvas id="board-draw-canvas"></canvas>
+  </div>
+  <div id="board-category-bar">
+    <button class="board-cat-btn active" data-cat="all">All</button>
+    <button class="board-cat-btn" data-cat="evidence">📎 Evidence</button>
+    <button class="board-cat-btn" data-cat="argument">💬 Argument</button>
+    <button class="board-cat-btn" data-cat="issue">❓ Issue</button>
+    <button class="board-cat-btn" data-cat="contradiction">⚡ Contradiction</button>
+    <button class="board-cat-btn" data-cat="order">📜 Order</button>
+    <button class="board-cat-btn" data-cat="content">📄 Content</button>
+  </div>
+  <div id="board-cards-list"></div>
+  <div id="board-add-area">
+    <button class="btn btn-primary" id="btn-add-board-card" style="width:100%;">+ Add Card</button>
+  </div>
+</aside>
+    <aside id="notepad-pane">
+      <div id="notepad-header">
+        <div class="notepad-nav-group">
+          <button class="btn btn-tool" id="btn-notepad-prev" title="Previous page">◀</button>
+          <span id="notepad-page-label" class="notepad-page-label">Notepad 1/1</span>
+          <button class="btn btn-tool" id="btn-notepad-next" title="Next page">▶</button>
+          <button class="btn" id="btn-notepad-new" title="Add new page" style="padding:6px 10px;font-size:12px;">+ New</button>
+        </div>
+        <div class="notepad-draw-tools">
+          <button class="notepad-tool-btn active" data-notepad-tool="move" title="Move/Select">🖐️</button>
+          <button class="notepad-tool-btn" data-notepad-tool="pen" title="Note Pen">✏️</button>
+          <button class="notepad-tool-btn" data-notepad-tool="eraser" title="Eraser">🧹</button>
+        </div>
+        <div class="notepad-controls">
+          <select id="notepad-bg-select" class="btn" style="padding:4px 8px;font-size:12px;">
+            <option value="bg-white-blank">⬜ White (Blank)</option>
+            <option value="bg-white-red-line">📄 White (Light Red Line)</option>
+            <option value="bg-white-purple-line">📘 White (Light Purple Line)</option>
+            <option value="bg-light-yellow-blank">📒 Light Yellow (Blank)</option>
+            <option value="bg-yellow-lined">📜 Yellow (Lined)</option>
+          </select>
+          <button class="btn btn-tool" id="btn-close-notepad">✕</button>
+        </div>
+      </div>
+      <div id="notepad-editor-container" class="bg-white-red-line">
+        <canvas id="notepad-draw-canvas"></canvas>
+        <div id="notepad-editor" contenteditable="true" placeholder="Type your notes here..."></div>
+      </div>
+    </aside>
+  </div>
+<!-- BOARD CARD MODAL -->
+<div id="board-card-modal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 id="board-card-modal-title">📋 New Board Card</h3>
+      <button class="modal-close-btn" id="btn-close-board-card-modal">&times;</button>
+    </div>
+    <div class="modal-body" style="gap: 14px;">
+      <div>
+        <label class="case-label">Title</label>
+        <input type="text" id="board-card-title" class="case-input" placeholder="e.g. Key evidence from page 5">
+      </div>
+      <div>
+        <label class="case-label">Category</label>
+        <select id="board-card-category" class="case-input">
+          <option value="evidence">📎 Evidence</option>
+          <option value="argument">💬 Argument</option>
+          <option value="issue">❓ Issue</option>
+          <option value="contradiction">⚡ Contradiction</option>
+          <option value="order">📜 Order</option>
+          <option value="content">📄 Content</option>
+        </select>
+      </div>
+      <div>
+        <label class="case-label">Content / Notes</label>
+        <textarea id="board-card-text" class="case-input" style="min-height: 100px; resize: vertical;" placeholder="Write your notes here..."></textarea>
+      </div>
+      <div>
+        <label class="case-label">Link to PDF Page (Optional)</label>
+        <input type="number" id="board-card-page" class="case-input" placeholder="e.g. 5" min="1">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btn-cancel-board-card">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-board-card">Save Card</button>
+    </div>
+  </div>
+</div>
+
+  <!-- CASE SETUP MODAL -->
+<div id="case-setup-modal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3>📁 Case Setup &amp; Important Date Memory</h3>
+      <button id="btn-case-modal-close" class="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-body" style="gap: 14px;">
+      <div>
+        <label class="case-label">Case Name (e.g. A vs B)</label>
+        <input type="text" id="case-name-input" class="case-input" placeholder="e.g. Ramesh vs State of M.P.">
+      </div>
+      <div>
+        <label class="case-label">Case / Cause List Number</label>
+        <input type="text" id="case-number-input" class="case-input" placeholder="e.g. Item No. 14 / WP 4021/2026">
+      </div>
+      <div>
+        <label class="case-label">📅 Important Date Memory &amp; Hearing Log (Optional)</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label class="case-label" style="font-weight:400;">Hearing Date:</label>
+            <input type="date" id="case-hearing-date" class="case-input">
+          </div>
+          <div>
+            <label class="case-label" style="font-weight:400;">Time:</label>
+            <input type="time" id="case-hearing-time" class="case-input">
+          </div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <label class="case-label">Judge Name:</label>
+          <input type="text" id="case-judge" class="case-input" placeholder="e.g. Hon. Justice...">
+        </div>
+        <div>
+          <label class="case-label">Court Name:</label>
+          <input type="text" id="case-court" class="case-input" placeholder="e.g. Court Room No. 4">
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <label class="case-label">Client Name:</label>
+          <input type="text" id="case-client" class="case-input" placeholder="e.g. Ramesh Kumar">
+        </div>
+        <div>
+          <label class="case-label">Advocate / Opp. Name:</label>
+          <input type="text" id="case-advocate" class="case-input" placeholder="e.g. State / Counsel">
+        </div>
+      </div>
+      <div>
+        <label class="case-label">What Happened / Proceedings Notes:</label>
+        <textarea id="case-notes" class="case-input" style="min-height: 80px; resize: vertical;" placeholder="Note down orders, arguments or next steps..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btn-case-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-case-save-record">Save Case &amp; Record</button>
+    </div>
+  </div>
+</div>
+
+<div id="add-page-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Insert New Page</h3>
+        <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h4>FROM CAMERA / PHOTO</h4>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary modal-action-btn" id="btn-trigger-camera" style="flex:1;">📷 Camera</button>
+            <button class="btn modal-action-btn" id="btn-trigger-gallery" style="flex:1;">🖼️ Gallery</button>
+          </div>
+          <input type="file" id="camera-only-input" accept="image/*" capture="environment" style="display:none;">
+          <input type="file" id="gallery-only-input" accept="image/*" style="display:none;">
+        </div>
+        <div class="modal-section">
+          <h4>Custom Page Templates</h4>
+          <div class="template-grid">
+            <button class="template-option" data-template="white"><div class="template-preview bg-template-white"></div><span>Plain White</span></button>
+            <button class="template-option" data-template="lined-white"><div class="template-preview bg-template-lined-white"></div><span>Lined White</span></button>
+            <button class="template-option" data-template="dot-grid"><div class="template-preview bg-template-dot-grid"></div><span>Dot Grid</span></button>
+            <button class="template-option" data-template="yellow-blank"><div class="template-preview bg-template-yellow-blank"></div><span>Yellow Blank</span></button>
+            <button class="template-option" data-template="yellow-lined"><div class="template-preview bg-template-yellow-lined"></div><span>Yellow Lined</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  let loadedDocs = [];
+  let totalPages = 0;
+  let currentScale = 1.35;
+  let currentTool = 'select';
+  let penColor = '#1e293b';
+  let highlighterColor = 'rgba(250, 204, 21, 0.4)';
+  let strokeWidth = 3;
+  let intersectionObserver = null;
+
+  let globalStrokes = [];
+  let activeStroke = null;
+  let isDrawing = false;
+
+  let linkData = [];
+  let linkIdCounter = 0;
+
+  let activeToolMode = 'pointer';
+  let pendingLinkSource = null;
+  let waitingForDrop = false;
+  let linkPointStart = null;
+
+  let scanSelectionStart = null;
+  let scanSelectionEnd = null;
+  let isScanSelecting = false;
+  let underlineStartX = 0, underlineStartY = 0, underlineEndX = 0;
+  let dragState = null;
+
+  let isResizing = false;
+  let resizeRafId = null;
+  let isPinching = false;
+  let initialPinchDistance = 0;
+  let initialPinchScale = 1.35;
+  let pinchRafId = null;
+  let zoomDebounceTimer = null;
+  let isZoomFinalizing = false;
+  const activePointerMap = new Map();
+
+  const fileInput = document.getElementById('pdf-file-input');
+  const btnOpenPdf = document.getElementById('btn-open-pdf');
+  const casePlusInput = document.getElementById('case-plus-input');
+  const btnCasePlus = document.getElementById('btn-case-plus');
+  const btnAddPage = document.getElementById('btn-add-page');
+  const btnTriggerCamera = document.getElementById('btn-trigger-camera');
+  const btnTriggerGallery = document.getElementById('btn-trigger-gallery');
+  const cameraOnlyInput = document.getElementById('camera-only-input');
+  const galleryOnlyInput = document.getElementById('gallery-only-input');
+  const addPageModal = document.getElementById('add-page-modal');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const docInfo = document.getElementById('doc-info');
+  const mainWorkspace = document.getElementById('main-workspace');
+  const globalCanvas = document.getElementById('global-drawing-canvas');
+  const globalCtx = globalCanvas.getContext('2d');
+  const pdfContainer = document.getElementById('pdf-container');
+  const emptyState = document.getElementById('empty-state');
+  const pdfViewWrapper = document.getElementById('pdf-view-wrapper');
+  const notepadPane = document.getElementById('notepad-pane');
+  const notepadEditorContainer = document.getElementById('notepad-editor-container');
+  const notepadEditor = document.getElementById('notepad-editor');
+  const resizer = document.getElementById('resizer');
+  const btnToggleNotepad = document.getElementById('btn-toggle-notepad');
+  const btnCloseNotepad = document.getElementById('btn-close-notepad');
+  const notepadBgSelect = document.getElementById('notepad-bg-select');
+  const toolSelect = document.getElementById('tool-select');
+  const toolPen = document.getElementById('tool-pen');
+  const toolHighlighter = document.getElementById('tool-highlighter');
+  const toolEraser = document.getElementById('tool-eraser');
+  const pickerColor = document.getElementById('picker-color');
+  const sliderSize = document.getElementById('slider-size');
+  const btnClearPage = document.getElementById('btn-clear-page');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const zoomLabel = document.getElementById('zoom-label');
+  const btnExportPdf = document.getElementById('btn-export-pdf');
+  const modeSelect = document.getElementById('mode-select');
+  const modeStatus = document.getElementById('mode-status');
+  const btnDoublePage = document.getElementById('btn-double-page');
+  let doublePageMode = false;
+
+  let notepadPages = [
+    { content: '', background: 'bg-white-red-line', scrollY: 0, strokes: [] }
+  ];
+  let currentNotepadPage = 0;
+
+  let notepadTool = 'move';
+  let notepadStrokes = [];
+  let activeNotepadStroke = null;
+  let isNotepadDrawing = false;
+  let notepadCtx = null;
+  let notepadCanvas = null;
+
+// ================================================================
+// IndexedDB — PDF file storage (per case)
+// ================================================================
+const _pdfDB = (function() {
+  let dbPromise = null;
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open('NextGenPDFStorage', 1);
+      req.onupgradeneeded = function(e) {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('pdfs')) db.createObjectStore('pdfs');
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+    return dbPromise;
+  }
+  function savePDF(caseId, arrayBuffer) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction('pdfs', 'readwrite');
+      tx.objectStore('pdfs').put(arrayBuffer, caseId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function getPDF(caseId) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction('pdfs', 'readonly');
+      const req = tx.objectStore('pdfs').get(caseId);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+  function deletePDF(caseId) {
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction('pdfs', 'readwrite');
+      tx.objectStore('pdfs').delete(caseId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  return { savePDF, getPDF, deletePDF };
+})();
+let _pendingCasePdfBuffer = null;
+
+// ================================================================
+// SELECT & TYPE — State + Functions
+// ================================================================
+let textAnnotations = [];
+let textIdCounter = 0;
+let isTypeTextActive = false;
+
+// ---- SCAN PAN (Freehand) STATE ----
+let isScanPanMode = false;
+let scanPanPoints = [];
+let isScanPanDrawing = false;
+let scanPanContainer = null;
+let typeTextTarget = null;
+
+function setTypeTextMode(on) {
+  isTypeTextActive = on;
+  const btn = document.getElementById('tool-type-text');
+  if (btn) btn.classList.toggle('active', on);
+  if (on) {
+    setActiveToolButton('tool-type-text');
+    globalCanvas.style.pointerEvents = 'none';
+    document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events'); el.style.pointerEvents = 'none'; });
+    updateModeStatus('⌨️ Tap anywhere on PDF to type');
+  } else {
+    hideTypeInput();
+    updateModeStatus('🖱️ Pointer mode');
+  }
+}
+
+function getPdfCardFromEvent(e) {
+  const t = e.target;
+  const card = t.closest ? t.closest('.pdf-page-card') : null;
+  return card;
+}
+
+function onPdfClickForType(e) {
+  if (!isTypeTextActive) return;
+  if (waitingForDrop) return;
+  const card = getPdfCardFromEvent(e);
+  if (!card) return;
+  const wrapper = card.querySelector('.canvas-wrapper');
+  if (!wrapper) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const wRect = wrapper.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const localX = cx - wRect.left;
+  const localY = cy - wRect.top;
+  const pageNum = parseInt(card.dataset.pageNum, 10);
+  showTypeInput(localX, localY, pageNum, cx, cy);
+}
+
+function showTypeInput(localX, localY, pageNum, clientX, clientY) {
+  const input = document.getElementById('type-text-input');
+  const field = document.getElementById('type-text-field');
+  typeTextTarget = { pageNum: pageNum, localX: localX, localY: localY };
+  input.style.display = 'block';
+  input.style.left = Math.min(clientX + 10, window.innerWidth - 260) + 'px';
+  input.style.top = Math.max(clientY - 60, 60) + 'px';
+  field.value = '';
+  setTimeout(function() { field.focus(); }, 60);
+  updateModeStatus('⌨️ Type and press Apply');
+}
+
+function hideTypeInput() {
+  const input = document.getElementById('type-text-input');
+  if (input) input.style.display = 'none';
+  typeTextTarget = null;
+}
+
+function applyTypeText() {
+  const field = document.getElementById('type-text-field');
+  const text = (field.value || '').trim();
+  if (!text || !typeTextTarget) { hideTypeInput(); return; }
+  createTextAnnotation(typeTextTarget.pageNum, typeTextTarget.localX, typeTextTarget.localY, text);
+  hideTypeInput();
+  updateModeStatus('✅ Text added');
+}
+
+function createTextAnnotation(pageNum, localX, localY, text) {
+  const wrapper = getPdfCanvasWrapper(pageNum);
+  if (!wrapper) return;
+  const id = ++textIdCounter;
+  const div = document.createElement('div');
+  div.className = 'pdf-text-annotation';
+  div.contentEditable = 'true';
+  div.dataset.id = id;
+  div.dataset.pageNum = pageNum;
+  div.style.left = localX + 'px';
+  div.style.top = localY + 'px';
+  div.style.width = '140px';
+  div.style.minHeight = '26px';
+  div.textContent = text;
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-text-annotation';
+  delBtn.textContent = '×';
+  delBtn.title = 'Delete';
+  delBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    deleteTextAnnotation(id);
+  });
+  div.appendChild(delBtn);
+
+  // Drag to move
+  let dragState = null;
+  div.addEventListener('pointerdown', function(e) {
+    if (e.target === delBtn) return;
+    if (div.isContentEditable && document.activeElement === div) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = div.getBoundingClientRect();
+    dragState = { offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
+    div.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    if (div.setPointerCapture) { try { div.setPointerCapture(e.pointerId); } catch(_) {} }
+  });
+  div.addEventListener('pointermove', function(e) {
+    if (!dragState) return;
+    e.preventDefault();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const wsRect = getWorkspaceRect();
+    let left = e.clientX - wsRect.left - dragState.offsetX;
+    let top = e.clientY - wsRect.top - dragState.offsetY;
+    left = Math.max(0, Math.min(left, wrapperRect.width - div.offsetWidth));
+    top = Math.max(0, Math.min(top, wrapperRect.height - div.offsetHeight));
+    div.style.left = left + 'px';
+    div.style.top = top + 'px';
+  });
+  div.addEventListener('pointerup', function(e) {
+    if (!dragState) return;
+    dragState = null;
+    div.style.cursor = 'move';
+    document.body.style.userSelect = '';
+    if (div.releasePointerCapture) { try { div.releasePointerCapture(e.pointerId); } catch(_) {} }
+  });
+  div.addEventListener('pointercancel', function() {
+    dragState = null;
+    div.style.cursor = 'move';
+    document.body.style.userSelect = '';
+  });
+
+  wrapper.appendChild(div);
+  textAnnotations.push({ id: id, pageNum: pageNum, element: div });
+}
+
+function deleteTextAnnotation(id) {
+  const idx = textAnnotations.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  const ann = textAnnotations[idx];
+  if (ann.element && ann.element.parentNode) ann.element.parentNode.removeChild(ann.element);
+  textAnnotations.splice(idx, 1);
+}
+
+function reattachTextAnnotations() {
+  // Re-attach all text annotations to their pages after re-render
+  textAnnotations = textAnnotations.filter(ann => {
+    if (!ann.element || !ann.element.parentNode) return false;
+    return true;
+  });
+}
+
+
+// ================================================================
+// Storage Check & Alert
+// ================================================================
+async function checkStorageAvailable(fileSizeBytes) {
+  try {
+    if (!navigator.storage || !navigator.storage.estimate) {
+      return { ok: true, reason: 'unsupported' };
+    }
+    const est = await navigator.storage.estimate();
+    const quota = est.quota || 0;
+    const usage = est.usage || 0;
+    const available = quota - usage;
+    const safeBuffer = 5 * 1024 * 1024; // 5 MB safety
+    const needed = (fileSizeBytes || 0) + safeBuffer;
+    if (available < needed) {
+      return {
+        ok: false,
+        available: available,
+        quota: quota,
+        usage: usage,
+        percentUsed: quota ? Math.round((usage / quota) * 100) : 0
+      };
+    }
+    return { ok: true, available: available, quota: quota, usage: usage };
+  } catch (e) {
+    return { ok: true, reason: 'error' };
+  }
+}
+
+function showStorageAlert(info) {
+  return new Promise(function(resolve) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;box-sizing:border-box;';
+    const fmt = function(bytes) {
+      if (!bytes && bytes !== 0) return 'N/A';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    };
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;animation:modalFadeIn 0.2s ease-out;">' +
+        '<div style="padding:20px 22px 14px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:40px;height:40px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⚠️</div>' +
+          '<h3 style="font-size:17px;font-weight:700;color:#0f172a;margin:0;">Low Storage Alert</h3>' +
+        '</div>' +
+        '<div style="padding:18px 22px;">' +
+          '<p style="font-size:14px;line-height:1.6;color:#334155;margin:0 0 12px;">Your device storage is running low. To save this case, please free up some space.</p>' +
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:12px;color:#475569;line-height:1.7;">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;"><span>Total Storage:</span><strong style="color:#0f172a;">' + fmt(info.quota) + '</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;"><span>Used:</span><strong style="color:#dc2626;">' + fmt(info.usage) + ' (' + info.percentUsed + '%)</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;"><span>Available:</span><strong style="color:#16a34a;">' + fmt(info.available) + '</strong></div>' +
+          '</div>' +
+          '<p style="font-size:12px;line-height:1.5;color:#64748b;margin:12px 0 0;">💡 Tip: Delete old cases from the Cases panel, or clear browser data to free up space.</p>' +
+        '</div>' +
+        '<div style="padding:14px 22px 18px;display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-top:1px solid #e2e8f0;">' +
+          '<button id="_storageAlertOK" style="padding:10px 24px;font-size:14px;font-weight:600;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;">OK</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    const okBtn = overlay.querySelector('#_storageAlertOK');
+    okBtn.addEventListener('click', function() {
+      overlay.remove();
+      resolve();
+    });
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) { overlay.remove(); resolve(); }
+    });
+  });
+}
+
+
+// ---- LASER STATE (temporary marks) ----
+let laserStrokes = [];
+let activeLaserStroke = null;
+let isLaserDrawing = false;
+
+// ---- CASE MEMORY STATE ----
+let caseData = {
+  caseName: '', caseNumber: '',
+  hearingDate: '', hearingTime: '',
+  judgeName: '', courtName: '',
+  clientName: '', advocateName: '',
+  proceedingsNotes: '', lastUpdated: null
+};
+
+// ---- CASES LIBRARY (Device Memory) ----
+let casesLibrary = [];
+let currentCaseId = null;
+let casesFilter = 'all';
+
+// ---- BOARD STATE ----
+let boardCards = [];
+let boardTool = 'pointer';
+let boardStrokes = [];
+let activeBoardStroke = null;
+let isBoardDrawing = false;
+let boardCtx = null;
+let boardCanvas = null;
+let boardFilter = 'all';
+let editingBoardCardId = null;
+// ================================================================
+// CASE MEMORY FUNCTIONS
+// ================================================================
+function saveCaseDataToStorage() {
+  try { localStorage.setItem('nextgenpdf_caseData', JSON.stringify(caseData)); } catch(e) {}
+}
+function loadCaseDataFromStorage() {
+  try {
+    const raw = localStorage.getItem('nextgenpdf_caseData');
+    if (raw) { Object.assign(caseData, JSON.parse(raw)); return true; }
+  } catch(e) {}
+  return false;
+}
+function populateCaseForm() {
+  document.getElementById('case-name-input').value = caseData.caseName || '';
+  document.getElementById('case-number-input').value = caseData.caseNumber || '';
+  document.getElementById('case-hearing-date').value = caseData.hearingDate || '';
+  document.getElementById('case-hearing-time').value = caseData.hearingTime || '';
+  document.getElementById('case-judge').value = caseData.judgeName || '';
+  document.getElementById('case-court').value = caseData.courtName || '';
+  document.getElementById('case-client').value = caseData.clientName || '';
+  document.getElementById('case-advocate').value = caseData.advocateName || '';
+  document.getElementById('case-notes').value = caseData.proceedingsNotes || '';
+}
+function readCaseForm() {
+  caseData.caseName = document.getElementById('case-name-input').value.trim();
+  caseData.caseNumber = document.getElementById('case-number-input').value.trim();
+  caseData.hearingDate = document.getElementById('case-hearing-date').value;
+  caseData.hearingTime = document.getElementById('case-hearing-time').value;
+  caseData.judgeName = document.getElementById('case-judge').value.trim();
+  caseData.courtName = document.getElementById('case-court').value.trim();
+  caseData.clientName = document.getElementById('case-client').value.trim();
+  caseData.advocateName = document.getElementById('case-advocate').value.trim();
+  caseData.proceedingsNotes = document.getElementById('case-notes').value.trim();
+  caseData.lastUpdated = new Date().toISOString();
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function updateCaseInfoBar() {
+  const bar = document.getElementById('case-info-bar');
+  if (!bar) return;
+  const hasAny = caseData.caseName || caseData.caseNumber || caseData.hearingDate;
+  if (!hasAny) { bar.classList.remove('visible'); bar.innerHTML = ''; return; }
+  bar.classList.add('visible');
+  const parts = [];
+  if (caseData.caseName) parts.push('<span class="ci-label">📁 ' + escapeHtml(caseData.caseName) + '</span>');
+  if (caseData.caseNumber) parts.push('<span class="ci-sep">•</span><span>' + escapeHtml(caseData.caseNumber) + '</span>');
+  if (caseData.hearingDate) parts.push('<span class="ci-sep">•</span><span>📅 ' + caseData.hearingDate + (caseData.hearingTime ? ' ' + caseData.hearingTime : '') + '</span>');
+  if (caseData.courtName) parts.push('<span class="ci-sep">•</span><span>' + escapeHtml(caseData.courtName) + '</span>');
+  if (caseData.clientName) parts.push('<span class="ci-sep">•</span><span>👤 ' + escapeHtml(caseData.clientName) + '</span>');
+  bar.innerHTML = parts.join(' ') + '<button id="btn-edit-case-info">✏️ Edit Case</button>';
+  const eb = document.getElementById('btn-edit-case-info');
+  if (eb) eb.addEventListener('click', openCaseModal);
+}
+function openCaseModal() {
+  populateCaseForm();
+  document.getElementById('case-setup-modal').style.display = 'flex';
+}
+function closeCaseModal() {
+  document.getElementById('case-setup-modal').style.display = 'none';
+}
+
+// ================================================================
+// CASES LIBRARY FUNCTIONS (MISSING)
+// ================================================================
+function loadCasesLibrary() {
+  try {
+    const raw = localStorage.getItem('nextgenpdf_casesLibrary');
+    if (raw) casesLibrary = JSON.parse(raw);
+    else casesLibrary = [];
+  } catch(e) { casesLibrary = []; }
+}
+function saveCasesLibrary() {
+  try { localStorage.setItem('nextgenpdf_casesLibrary', JSON.stringify(casesLibrary)); } catch(e) {}
+}
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function isToday(dateStr) {
+  if (!dateStr) return false;
+  return dateStr === getTodayStr();
+}
+function isThisWeek(dateStr) {
+  if (!dateStr) return false;
+  try {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    return d >= startOfWeek && d < endOfWeek;
+  } catch(e) { return false; }
+}
+function renderCasesList() {
+  const listEl = document.getElementById('cases-list');
+  if (!listEl) return;
+  const searchTerm = (document.getElementById('cases-search')?.value || '').toLowerCase().trim();
+  let filtered = casesLibrary.slice();
+  if (casesFilter === 'today') filtered = filtered.filter(c => isToday(c.hearingDate));
+  else if (casesFilter === 'week') filtered = filtered.filter(c => isThisWeek(c.hearingDate));
+  if (searchTerm) {
+    filtered = filtered.filter(c =>
+      (c.caseName || '').toLowerCase().includes(searchTerm) ||
+      (c.caseNumber || '').toLowerCase().includes(searchTerm) ||
+      (c.clientName || '').toLowerCase().includes(searchTerm) ||
+      (c.courtName || '').toLowerCase().includes(searchTerm)
+    );
+  }
+  filtered.sort((a,b) => {
+    if (a.hearingDate && b.hearingDate) return a.hearingDate.localeCompare(b.hearingDate);
+    if (a.hearingDate) return -1;
+    if (b.hearingDate) return 1;
+    return (b.savedAt || '').localeCompare(a.savedAt || '');
+  });
+  if (!filtered.length) {
+    listEl.innerHTML = '<div id="cases-empty">' +
+      (casesFilter === 'today' ? '📅 No hearings today' :
+       casesFilter === 'week' ? '🗓️ No hearings this week' :
+       searchTerm ? '🔍 No matching cases' : '📁 No cases saved yet') + '</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  filtered.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'case-card' + (c.id === currentCaseId ? ' active' : '');
+    card.dataset.caseId = c.id;
+    const todayBadge = isToday(c.hearingDate) ? '<span class="case-card-today">TODAY</span>' : '';
+    const meta1 = c.caseNumber ? 'No: ' + escapeHtml(c.caseNumber) : '';
+    const meta2 = [c.courtName, c.judgeName].filter(Boolean).join(' • ');
+    const dateLine = c.hearingDate ? '📅 ' + c.hearingDate + (c.hearingTime ? ' ' + c.hearingTime : '') + todayBadge : '';
+    card.innerHTML =
+      '<div class="case-card-title">' + (escapeHtml(c.caseName) || 'Untitled Case') + '</div>' +
+      (meta1 ? '<div class="case-card-meta">' + meta1 + '</div>' : '') +
+      (meta2 ? '<div class="case-card-meta">' + meta2 + '</div>' : '') +
+      (dateLine ? '<div class="case-card-meta">' + dateLine + '</div>' : '') +
+      '<div class="case-card-pages">' + (c.totalPages || 0) + ' Pgs • ' + (c.notepadCount || 0) + ' Cards</div>' +
+      '<button class="case-card-delete" data-delete-id="' + c.id + '" title="Delete case">✕</button>';
+    card.addEventListener('click', function(e) {
+      if (e.target.classList.contains('case-card-delete')) return;
+      loadCaseFromLibrary(c.id);
+    });
+    listEl.appendChild(card);
+  });
+  listEl.querySelectorAll('.case-card-delete').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteCaseFromLibrary(this.dataset.deleteId);
+    });
+  });
+}
+function openCasesPanel() {
+  renderCasesList();
+  document.getElementById('cases-panel').classList.add('open');
+  document.getElementById('cases-backdrop').classList.add('open');
+}
+function closeCasesPanel() {
+  document.getElementById('cases-panel').classList.remove('open');
+  document.getElementById('cases-backdrop').classList.remove('open');
+}
+function loadCaseFromLibrary(caseId) {
+  const c = casesLibrary.find(x => x.id === caseId);
+  if (!c) return;
+  Object.assign(caseData, {
+    caseName: c.caseName, caseNumber: c.caseNumber,
+    hearingDate: c.hearingDate, hearingTime: c.hearingTime,
+    judgeName: c.judgeName, courtName: c.courtName,
+    clientName: c.clientName, advocateName: c.advocateName,
+    proceedingsNotes: c.proceedingsNotes, lastUpdated: c.savedAt
+  });
+  currentCaseId = c.id;
+  saveCaseDataToStorage();
+  updateCaseInfoBar();
+  closeCasesPanel();
+  renderCasesList();
+  _pdfDB.getPDF(caseId).then(function(buffer) {
+    if (!buffer) {
+      updateModeStatus('📁 Case loaded (no PDF saved)');
+      return;
+    }
+    updateModeStatus('📄 Opening PDF...');
+    loadedDocs = [];
+    totalPages = 0;
+    globalStrokes = [];
+    linkData = [];
+    linkIdCounter = 0;
+    notepadEditor.innerHTML = '';
+    pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise.then(function(pdf) {
+      loadedDocs.push({ pdfDoc: pdf, fileName: c.caseName + '.pdf', numPages: pdf.numPages });
+      setTool('select');
+      modeSelect.value = 'pointer';
+      setToolMode('pointer');
+      if (emptyState) emptyState.style.display = 'none';
+      pdfContainer.innerHTML = '';
+      initIntersectionObserver();
+      appendPageCardsForRange(0, 1, pdf.numPages);
+      const first = pdfContainer.querySelector('.pdf-page-card');
+      if (first) renderSinglePage(first);
+      updateDocSummaryLabel();
+      resizeGlobalCanvas();
+      updateModeStatus('✅ Case opened: ' + (c.caseName || 'Untitled'));
+    }).catch(function(err) {
+      console.error('PDF load error:', err);
+      alert('Failed to load saved PDF');
+    });
+  }).catch(function(err) {
+    console.error('IndexedDB read error:', err);
+    updateModeStatus('⚠️ Cannot read saved PDF');
+  });
+}
+function deleteCaseFromLibrary(caseId) {
+  const c = casesLibrary.find(x => x.id === caseId);
+  if (!c) return;
+  if (!confirm('Delete case: ' + (c.caseName || 'Untitled') + '?\n\nThis will also delete the saved PDF from storage.')) return;
+  casesLibrary = casesLibrary.filter(x => x.id !== caseId);
+  saveCasesLibrary();
+  try { _pdfDB.deletePDF(caseId); } catch(e) {}
+  if (currentCaseId === caseId) currentCaseId = null;
+  renderCasesList();
+  updateModeStatus('🗑️ Case deleted');
+}
+function saveCurrentCaseToLibrary() {
+  readCaseForm();
+  saveCaseDataToStorage();
+  updateCaseInfoBar();
+  const id = currentCaseId || ('case_' + Date.now());
+  currentCaseId = id;
+  const existingIdx = casesLibrary.findIndex(x => x.id === id);
+  const entry = {
+    id: id,
+    caseName: caseData.caseName,
+    caseNumber: caseData.caseNumber,
+    hearingDate: caseData.hearingDate,
+    hearingTime: caseData.hearingTime,
+    judgeName: caseData.judgeName,
+    courtName: caseData.courtName,
+    clientName: caseData.clientName,
+    advocateName: caseData.advocateName,
+    proceedingsNotes: caseData.proceedingsNotes,
+    totalPages: totalPages,
+    notepadCount: notepadPages.length,
+    savedAt: new Date().toISOString()
+  };
+  if (existingIdx >= 0) casesLibrary[existingIdx] = entry;
+  else casesLibrary.push(entry);
+  saveCasesLibrary();
+  renderCasesList();
+}
+
+// ================================================================
+// BOARD FUNCTIONS
+// ================================================================
+function loadBoardFromStorage() {
+  try {
+    const raw = localStorage.getItem('nextgenpdf_boardCards');
+    if (raw) boardCards = JSON.parse(raw);
+    else boardCards = [];
+    const rawStrokes = localStorage.getItem('nextgenpdf_boardStrokes');
+    if (rawStrokes) boardStrokes = JSON.parse(rawStrokes);
+    else boardStrokes = [];
+  } catch(e) { boardCards = []; boardStrokes = []; }
+}
+function saveBoardToStorage() {
+  try {
+    localStorage.setItem('nextgenpdf_boardCards', JSON.stringify(boardCards));
+    localStorage.setItem('nextgenpdf_boardStrokes', JSON.stringify(boardStrokes));
+  } catch(e) {}
+}
+function openBoardPanel() {
+  if (notepadPane.style.display !== 'none') hideNotepad();
+  boardPane.style.display = 'flex';
+  const pdfRatio = 50;
+  const boardPct = 50;
+  pdfViewWrapper.style.width = pdfRatio + '%';
+  pdfViewWrapper.style.flex = '0 0 ' + pdfRatio + '%';
+  boardPane.style.width = boardPct + '%';
+  boardPane.style.flex = '0 0 ' + boardPct + '%';
+  resizer.style.display = 'block';
+  btnToggleBoard.classList.add('active');
+  resizeGlobalCanvas();
+  setTimeout(initBoardCanvas, 100);
+}
+function closeBoardPanel() {
+  boardPane.style.display = 'none';
+  boardPane.style.width = '0%';
+  boardPane.style.flex = '0 0 0%';
+  resizer.style.display = 'none';
+  btnToggleBoard.classList.remove('active');
+  pdfViewWrapper.style.width = '100%';
+  pdfViewWrapper.style.flex = '1 1 100%';
+  resizeGlobalCanvas();
+}
+function initBoardCanvas() {
+  boardCanvas = document.getElementById('board-draw-canvas');
+  if (!boardCanvas) return;
+  boardCtx = boardCanvas.getContext('2d');
+  resizeBoardCanvas();
+}
+function resizeBoardCanvas() {
+  if (!boardCanvas) return;
+  const wrapper = document.getElementById('board-canvas-wrapper');
+  if (!wrapper) return;
+  const w = wrapper.clientWidth;
+  const h = wrapper.clientHeight;
+  boardCanvas.width = w;
+  boardCanvas.height = h;
+  redrawBoardCanvas();
+}
+function redrawBoardCanvas() {
+  if (!boardCtx || !boardCanvas) return;
+  boardCtx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
+  boardStrokes.forEach(stroke => {
+    if (!stroke.points || stroke.points.length < 2) return;
+    boardCtx.save();
+    boardCtx.beginPath();
+    boardCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    for (let i = 1; i < stroke.points.length; i++) boardCtx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    if (stroke.tool === 'pen') {
+      boardCtx.globalCompositeOperation = 'source-over';
+      boardCtx.strokeStyle = stroke.color;
+      boardCtx.lineWidth = stroke.width;
+      boardCtx.lineCap = 'round';
+      boardCtx.lineJoin = 'round';
+    } else if (stroke.tool === 'highlighter') {
+      boardCtx.globalCompositeOperation = 'source-over';
+      boardCtx.strokeStyle = stroke.color;
+      boardCtx.lineWidth = stroke.width * 4;
+      boardCtx.lineCap = 'square';
+      boardCtx.lineJoin = 'miter';
+    } else if (stroke.tool === 'eraser') {
+      boardCtx.globalCompositeOperation = 'destination-out';
+      boardCtx.lineWidth = stroke.width * 6;
+      boardCtx.lineCap = 'round';
+      boardCtx.lineJoin = 'round';
+    }
+    boardCtx.stroke();
+    boardCtx.restore();
+  });
+}
+function setBoardTool(tool) {
+  boardTool = tool;
+  document.querySelectorAll('.board-tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.boardTool === tool);
+  });
+  if (!boardCanvas) return;
+  boardCanvas.classList.toggle('pen-active', tool === 'pen');
+  boardCanvas.classList.toggle('highlighter-active', tool === 'highlighter');
+  boardCanvas.classList.toggle('eraser-active', tool === 'eraser');
+  boardCanvas.style.pointerEvents = (tool === 'pointer') ? 'none' : 'auto';
+  updateModeStatus(tool === 'pen' ? '✏️ Board Pen' : tool === 'highlighter' ? '🟡 Board Highlighter' : tool === 'eraser' ? '🧹 Board Eraser' : '🖱️ Board Pointer');
+}
+function startBoardStroke(e) {
+  if (boardTool === 'pointer') return;
+  if (!boardCanvas) return;
+  e.preventDefault();
+  const rect = boardCanvas.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = cx - rect.left;
+  const y = cy - rect.top;
+  isBoardDrawing = true;
+  const strokeColor = boardTool === 'highlighter' ? highlighterColor : penColor;
+  activeBoardStroke = {
+    id: Date.now() + '_' + Math.random().toString(36).substr(2,6),
+    tool: boardTool,
+    color: strokeColor,
+    width: strokeWidth,
+    points: [{ x, y }]
+  };
+  boardStrokes.push(activeBoardStroke);
+}
+function drawBoardStroke(e) {
+  if (!isBoardDrawing || !activeBoardStroke || !boardCtx) return;
+  e.preventDefault();
+  const rect = boardCanvas.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const x = cx - rect.left;
+  const y = cy - rect.top;
+  activeBoardStroke.points.push({ x, y });
+  const pts = activeBoardStroke.points;
+  const last = pts[pts.length - 2];
+  boardCtx.save();
+  boardCtx.beginPath();
+  boardCtx.moveTo(last.x, last.y);
+  boardCtx.lineTo(x, y);
+  if (activeBoardStroke.tool === 'pen') {
+    boardCtx.globalCompositeOperation = 'source-over';
+    boardCtx.strokeStyle = activeBoardStroke.color;
+    boardCtx.lineWidth = activeBoardStroke.width;
+    boardCtx.lineCap = 'round';
+    boardCtx.lineJoin = 'round';
+  } else if (activeBoardStroke.tool === 'highlighter') {
+    boardCtx.globalCompositeOperation = 'source-over';
+    boardCtx.strokeStyle = activeBoardStroke.color;
+    boardCtx.lineWidth = activeBoardStroke.width * 4;
+    boardCtx.lineCap = 'square';
+    boardCtx.lineJoin = 'miter';
+  } else if (activeBoardStroke.tool === 'eraser') {
+    boardCtx.globalCompositeOperation = 'destination-out';
+    boardCtx.lineWidth = activeBoardStroke.width * 6;
+    boardCtx.lineCap = 'round';
+    boardCtx.lineJoin = 'round';
+  }
+  boardCtx.stroke();
+  boardCtx.restore();
+}
+function stopBoardStroke(e) {
+  if (!isBoardDrawing) return;
+  isBoardDrawing = false;
+  activeBoardStroke = null;
+  saveBoardToStorage();
+}
+function renderBoardCards() {
+  const listEl = document.getElementById('board-cards-list');
+  if (!listEl) return;
+  let filtered = boardCards.slice();
+  if (boardFilter !== 'all') filtered = filtered.filter(c => c.category === boardFilter);
+  if (!filtered.length) {
+    listEl.innerHTML = '<div id="board-empty">' + (boardFilter === 'all' ? '📋 No cards yet<br><small>Tap "+ Add Card" to start</small>' : '🔍 No cards in this category') + '</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  const catLabels = { evidence: '📎 Evidence', argument: '💬 Argument', issue: '❓ Issue', contradiction: '⚡ Contradiction', order: '📜 Order', content: '📄 Content' };
+  filtered.forEach(card => {
+    const div = document.createElement('div');
+    div.className = 'board-card';
+    div.dataset.cat = card.category;
+    div.dataset.cardId = card.id;
+    const pageBadge = card.pdfPage ? '<span class="board-card-page">📄 Page ' + card.pdfPage + '</span>' : '';
+    div.innerHTML =
+      '<div class="board-card-head">' +
+        '<span class="board-card-cat-badge">' + (catLabels[card.category] || card.category) + '</span>' +
+      '</div>' +
+      '<div class="board-card-title-text">' + escapeHtml(card.title || 'Untitled') + '</div>' +
+      '<div class="board-card-body">' + escapeHtml(card.text || '') + '</div>' +
+      pageBadge +
+      '<div class="board-card-actions">' +
+        '<button class="board-card-edit" title="Edit">✏️</button>' +
+        '<button class="board-card-del" title="Delete">✕</button>' +
+      '</div>';
+    div.querySelector('.board-card-edit').addEventListener('click', function(e) {
+      e.stopPropagation();
+      openBoardCardModal(card.id);
+    });
+    div.querySelector('.board-card-del').addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteBoardCard(card.id);
+    });
+    div.addEventListener('click', function() {
+      if (card.pdfPage && parseInt(card.pdfPage, 10) > 0) {
+        const pageNum = parseInt(card.pdfPage, 10);
+        const pageCard = pdfContainer.querySelector(`.pdf-page-card[data-page-num="${pageNum}"]`);
+        if (pageCard) {
+          const wr = pdfViewWrapper.getBoundingClientRect();
+          const cr = pageCard.getBoundingClientRect();
+          pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (cr.top - wr.top) - 60, behavior: 'smooth' });
+          setTimeout(() => { showPdfHighlight(pageNum, { x1: 40, y1: 40, x2: 200, y2: 80 }); }, 400);
+        } else {
+          updateModeStatus('⚠️ Page ' + pageNum + ' not loaded');
+        }
+      }
+    });
+    listEl.appendChild(div);
+  });
+}
+function openBoardCardModal(cardId) {
+  editingBoardCardId = cardId || null;
+  const modal = document.getElementById('board-card-modal');
+  const titleEl = document.getElementById('board-card-modal-title');
+  if (cardId) {
+    const card = boardCards.find(c => c.id === cardId);
+    if (card) {
+      titleEl.textContent = '✏️ Edit Board Card';
+      document.getElementById('board-card-title').value = card.title || '';
+      document.getElementById('board-card-category').value = card.category || 'evidence';
+      document.getElementById('board-card-text').value = card.text || '';
+      document.getElementById('board-card-page').value = card.pdfPage || '';
+    }
+  } else {
+    titleEl.textContent = '📋 New Board Card';
+    document.getElementById('board-card-title').value = '';
+    document.getElementById('board-card-category').value = 'evidence';
+    document.getElementById('board-card-text').value = '';
+    document.getElementById('board-card-page').value = '';
+  }
+  modal.style.display = 'flex';
+}
+function closeBoardCardModal() {
+  document.getElementById('board-card-modal').style.display = 'none';
+  editingBoardCardId = null;
+}
+function saveBoardCard() {
+  const title = document.getElementById('board-card-title').value.trim();
+  const category = document.getElementById('board-card-category').value;
+  const text = document.getElementById('board-card-text').value.trim();
+  const pdfPage = document.getElementById('board-card-page').value.trim();
+  if (!title && !text) { alert('Please enter title or content'); return; }
+  if (editingBoardCardId) {
+    const card = boardCards.find(c => c.id === editingBoardCardId);
+    if (card) {
+      card.title = title;
+      card.category = category;
+      card.text = text;
+      card.pdfPage = pdfPage;
+    }
+  } else {
+    boardCards.push({
+      id: 'card_' + Date.now(),
+      title: title,
+      category: category,
+      text: text,
+      pdfPage: pdfPage,
+      created: new Date().toISOString()
+    });
+  }
+  saveBoardToStorage();
+  renderBoardCards();
+  closeBoardCardModal();
+  updateModeStatus('✅ Card saved');
+}
+function deleteBoardCard(cardId) {
+  const card = boardCards.find(c => c.id === cardId);
+  if (!card) return;
+  if (!confirm('Delete card: ' + (card.title || 'Untitled') + '?')) return;
+  boardCards = boardCards.filter(c => c.id !== cardId);
+  saveBoardToStorage();
+  renderBoardCards();
+  updateModeStatus('🗑️ Card deleted');
+}
+
+  function getWorkspaceRect() { return mainWorkspace.getBoundingClientRect(); }
+  function getPdfCanvasWrapper(pageNum) {
+    const card = pdfContainer.querySelector(`.pdf-page-card[data-page-num="${pageNum}"]`);
+    if (!card) return null;
+    return card.querySelector('.canvas-wrapper');
+  }
+  function getContainerFromPoint(globalX, globalY) {
+    const wsRect = getWorkspaceRect();
+    const viewportX = globalX + wsRect.left;
+    const viewportY = globalY + wsRect.top;
+    const elements = document.elementsFromPoint(viewportX, viewportY);
+    for (let el of elements) {
+      const card = el.closest('.pdf-page-card');
+      if (card) {
+        const wrapper = card.querySelector('.canvas-wrapper');
+        if (wrapper) {
+          const wrapperRect = wrapper.getBoundingClientRect();
+          return { type: 'pdf', pageNum: parseInt(card.dataset.pageNum,10), element: card, wrapper, wrapperRect,
+                   offsetX: wrapperRect.left - wsRect.left, offsetY: wrapperRect.top - wsRect.top,
+                   width: wrapperRect.width, height: wrapperRect.height };
+        }
+        const rect = card.getBoundingClientRect();
+        return { type: 'pdf', pageNum: parseInt(card.dataset.pageNum,10), element: card, wrapper: null,
+                 offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top,
+                 width: rect.width, height: rect.height };
+      }
+    }
+    const notepadRect = notepadEditorContainer.getBoundingClientRect();
+    if (notepadPane.style.display !== 'none') {
+      const nOffsetX = notepadRect.left - wsRect.left;
+      const nOffsetY = notepadRect.top - wsRect.top;
+      if (globalX >= nOffsetX && globalX <= nOffsetX + notepadRect.width &&
+          globalY >= nOffsetY && globalY <= nOffsetY + notepadRect.height) {
+        return { type: 'notepad', element: notepadEditorContainer, offsetX: nOffsetX, offsetY: nOffsetY,
+                 width: notepadRect.width, height: notepadRect.height };
+      }
+    }
+    return null;
+  }
+  function globalToContainer(globalX, globalY, containerInfo) {
+    if (containerInfo.type === 'pdf') return { x: globalX - containerInfo.offsetX, y: globalY - containerInfo.offsetY };
+    if (containerInfo.type === 'notepad') {
+      const sx = notepadEditorContainer.scrollLeft || 0;
+      const sy = notepadEditorContainer.scrollTop || 0;
+      return { x: globalX - containerInfo.offsetX + sx, y: globalY - containerInfo.offsetY + sy };
+    }
+    return { x: globalX, y: globalY };
+  }
+  function containerToGlobal(cx, cy, containerInfo) {
+    if (containerInfo.type === 'pdf') return { x: cx + containerInfo.offsetX, y: cy + containerInfo.offsetY };
+    if (containerInfo.type === 'notepad') {
+      const sx = notepadEditorContainer.scrollLeft || 0;
+      const sy = notepadEditorContainer.scrollTop || 0;
+      return { x: cx + containerInfo.offsetX - sx, y: cy + containerInfo.offsetY - sy };
+    }
+    return { x: cx, y: cy };
+  }
+
+  function insertPdfMarker(linkId, x, y, pageNum, type) {
+    const wrapper = getPdfCanvasWrapper(pageNum);
+    if (!wrapper) return;
+    const existing = wrapper.querySelector(`.pdf-link-marker[data-link-id="${linkId}"]`);
+    if (existing) existing.remove();
+    const marker = document.createElement('div');
+    marker.className = `pdf-link-marker type-${type}`;
+    marker.dataset.linkId = linkId;
+    marker.style.left = x + 'px';
+    marker.style.top = y + 'px';
+    const tooltip = document.createElement('span');
+    tooltip.className = 'link-tooltip';
+    const labels = { line:'✏️ Line', highlight:'🟡 Highlight', underline:'⏺️ Underline', scan:'📷 Scan', linkpoint:'🔗 Link Point' };
+    tooltip.textContent = 'Jump to Notepad (' + (labels[type]||type) + ')';
+    marker.appendChild(tooltip);
+    marker.addEventListener('click', function(e) { e.stopPropagation(); jumpToLink(parseInt(this.dataset.linkId,10)); });
+    wrapper.appendChild(marker);
+  }
+
+  function insertNotepadMarker(linkId, x, y, type, targetPageIndex) {
+    const editor = notepadEditor;
+    if (!editor) return;
+    if (targetPageIndex !== undefined && targetPageIndex !== currentNotepadPage) {
+      saveCurrentNotepadPage();
+      currentNotepadPage = targetPageIndex;
+      const page = notepadPages[targetPageIndex];
+      if (page) {
+        notepadEditor.innerHTML = page.content || '';
+        notepadEditorContainer.className = page.background || 'bg-white-red-line';
+        notepadBgSelect.value = page.background || 'bg-white-red-line';
+        updateNotepadNavUI();
+      }
+    }
+    editor.focus();
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const marker = document.createElement('span');
+    marker.className = `notepad-link-marker type-${type}`;
+    marker.dataset.linkId = linkId;
+    marker.dataset.notepadPage = (targetPageIndex !== undefined ? targetPageIndex : currentNotepadPage);
+    marker.contentEditable = 'false';
+    marker.draggable = false;
+    const tooltip = document.createElement('span');
+    tooltip.className = 'link-tooltip';
+    const labels = { line:'✏️ Line', highlight:'🟡 Highlight', underline:'⏺️ Underline', scan:'📷 Scan', linkpoint:'🔗 Link Point' };
+    tooltip.textContent = 'Jump to PDF (' + (labels[type]||type) + ')';
+    marker.appendChild(tooltip);
+    marker.addEventListener('click', function(e) { e.stopPropagation(); jumpToLink(parseInt(this.dataset.linkId,10)); });
+    marker.addEventListener('pointerdown', onMarkerPointerDown);
+    range.insertNode(marker);
+    const spaceNode = document.createTextNode(' ');
+    range.setStartAfter(marker);
+    range.insertNode(spaceNode);
+    range.setStartAfter(spaceNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    requestAnimationFrame(() => updateMarkerPosition(linkId));
+  }
+
+  function insertNotepadScanImage(linkId, x, y, imageData) {
+    const editor = notepadEditor;
+    if (!editor) return;
+    editor.focus();
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const container = document.createElement('span');
+    container.contentEditable = 'false';
+    container.style.display = 'inline-block';
+    container.style.verticalAlign = 'middle';
+    container.style.margin = '0 4px';
+    container.dataset.linkId = linkId;
+    const img = document.createElement('img');
+    img.src = imageData;
+    img.style.maxHeight = '80px';
+    img.style.maxWidth = '150px';
+    img.style.borderRadius = '4px';
+    img.style.border = '1px solid #e2e8f0';
+    img.style.display = 'block';
+    const marker = document.createElement('span');
+    marker.className = 'notepad-link-marker type-scan';
+    marker.dataset.linkId = linkId;
+    marker.style.display = 'inline-block';
+    marker.style.marginTop = '4px';
+    marker.contentEditable = 'false';
+    marker.draggable = false;
+    const tooltip = document.createElement('span');
+    tooltip.className = 'link-tooltip';
+    tooltip.textContent = 'Jump to PDF (Scan)';
+    marker.appendChild(tooltip);
+    marker.addEventListener('click', function(e) { e.stopPropagation(); jumpToLink(parseInt(this.dataset.linkId,10)); });
+    marker.addEventListener('pointerdown', onMarkerPointerDown);
+    container.appendChild(img);
+    container.appendChild(marker);
+    range.insertNode(container);
+    const spaceNode = document.createTextNode(' ');
+    range.setStartAfter(container);
+    range.insertNode(spaceNode);
+    range.setStartAfter(spaceNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    requestAnimationFrame(() => updateMarkerPosition(linkId));
+  }
+
+  function updateMarkerPosition(linkId) {
+    const link = linkData.find(l => l.id === linkId);
+    if (!link) return;
+    const markerEl = document.querySelector(`.notepad-link-marker[data-link-id="${linkId}"]`);
+    if (!markerEl) return;
+    const containerRect = notepadEditorContainer.getBoundingClientRect();
+    const markerRect = markerEl.getBoundingClientRect();
+    const x = markerRect.left - containerRect.left + (markerRect.width / 2);
+    const y = markerRect.top - containerRect.top + (markerRect.height / 2);
+    if (link.targetType === 'notepad') { link.targetX = x; link.targetY = y; link.targetScrollY = notepadEditorContainer.scrollTop || 0; }
+    else if (link.sourceType === 'notepad') { link.sourceX = x; link.sourceY = y; link.sourceScrollY = notepadEditorContainer.scrollTop || 0; }
+  }
+
+  function updateAllMarkerPositions() {
+    linkData.forEach(link => {
+      if (link.sourceType === 'notepad' || link.targetType === 'notepad') updateMarkerPosition(link.id);
+    });
+  }
+
+  function onMarkerPointerDown(e) {
+    e.preventDefault(); e.stopPropagation();
+    const marker = this;
+    const linkId = parseInt(marker.dataset.linkId, 10);
+    const rect = marker.getBoundingClientRect();
+    dragState = { marker, linkId, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, ghost: null };
+    const ghost = marker.cloneNode(true);
+    ghost.className = marker.className + ' marker-ghost';
+    ghost.style.position = 'fixed';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.zIndex = 99999;
+    ghost.style.opacity = '0.85';
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+    ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+    ghost.style.transform = 'scale(1.2)';
+    const tooltip = ghost.querySelector('.link-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+    document.body.appendChild(ghost);
+    dragState.ghost = ghost;
+    marker.style.opacity = '0.3';
+    marker.style.transform = 'scale(0.8)';
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'grabbing';
+    if (marker.setPointerCapture) marker.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMoveGlobal(e) {
+    if (!dragState || !dragState.ghost) return;
+    e.preventDefault();
+    const ghost = dragState.ghost;
+    ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+    ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+  }
+
+  function onPointerUpGlobal(e) {
+    if (!dragState) return;
+    const marker = dragState.marker;
+    const linkId = dragState.linkId;
+    const ghost = dragState.ghost;
+    if (ghost && ghost.parentNode) ghost.remove();
+    marker.style.opacity = '1';
+    marker.style.transform = '';
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    const dropX = e.clientX, dropY = e.clientY;
+    const dropElement = document.elementFromPoint(dropX, dropY);
+    if (dropElement && notepadEditor.contains(dropElement)) {
+      try {
+        let range = null;
+        if (document.caretPositionFromPoint) {
+          const cp = document.caretPositionFromPoint(dropX, dropY);
+          if (cp) { range = document.createRange(); range.setStart(cp.offsetNode, cp.offset); range.collapse(true); }
+        }
+        if (!range) {
+          const elements = document.elementsFromPoint(dropX, dropY);
+          for (let el of elements) {
+            if (el.nodeType === Node.TEXT_NODE || el.nodeType === Node.ELEMENT_NODE) {
+              let tn = el;
+              if (tn.nodeType === Node.ELEMENT_NODE) {
+                const walker = document.createTreeWalker(tn, NodeFilter.SHOW_TEXT, null, false);
+                let ft = walker.nextNode();
+                if (ft) { range = document.createRange(); range.setStart(ft, 0); range.collapse(true); break; }
+              } else if (tn.nodeType === Node.TEXT_NODE) {
+                range = document.createRange(); range.setStart(tn, 0); range.collapse(true); break;
+              }
+            }
+          }
+        }
+        if (!range) { range = document.createRange(); range.selectNodeContents(notepadEditor); range.collapse(false); }
+        const parent = marker.parentNode;
+        if (parent) {
+          const markerClone = marker.cloneNode(true);
+          markerClone.className = marker.className;
+          markerClone.dataset.linkId = linkId;
+          markerClone.contentEditable = 'false';
+          markerClone.draggable = false;
+          markerClone.addEventListener('click', function(e) { e.stopPropagation(); jumpToLink(parseInt(this.dataset.linkId,10)); });
+          markerClone.addEventListener('pointerdown', onMarkerPointerDown);
+          const oldTip = markerClone.querySelector('.link-tooltip');
+          if (oldTip) oldTip.remove();
+          const newTip = document.createElement('span');
+          newTip.className = 'link-tooltip';
+          const labels = { line:'✏️ Line', highlight:'🟡 Highlight', underline:'⏺️ Underline', scan:'📷 Scan', linkpoint:'🔗 Link Point' };
+          const link = linkData.find(l => l.id === linkId);
+          const type = link ? link.type : 'linkpoint';
+          newTip.textContent = 'Jump to PDF (' + (labels[type]||type) + ')';
+          markerClone.appendChild(newTip);
+          marker.remove();
+          range.insertNode(markerClone);
+          const spaceNode = document.createTextNode(' ');
+          range.setStartAfter(markerClone);
+          range.insertNode(spaceNode);
+          range.setStartAfter(spaceNode);
+          range.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          requestAnimationFrame(() => updateMarkerPosition(linkId));
+        }
+      } catch (err) { if (marker.parentNode) { marker.style.opacity = '1'; marker.style.transform = ''; } }
+    } else { marker.style.opacity = '1'; marker.style.transform = ''; }
+    dragState = null;
+  }
+
+  document.addEventListener('pointermove', onPointerMoveGlobal);
+  document.addEventListener('pointerup', onPointerUpGlobal);
+  document.addEventListener('pointercancel', onPointerUpGlobal);
+
+  function jumpToLink(linkId) {
+    const link = linkData.find(l => l.id === linkId);
+    if (!link) return;
+    if (link.sourceType === 'pdf') jumpToPdf(link.sourcePageNum, link.sourceX, link.sourceY, link.sourceBounds);
+    else if (link.targetType === 'pdf') jumpToPdf(link.targetPageNum, link.targetX, link.targetY, link.targetBounds);
+    else if (link.sourceType === 'notepad') {
+      const page = link.sourceNotepadPage !== undefined ? link.sourceNotepadPage : 0;
+      loadNotepadPage(page);
+      setTimeout(() => jumpToNotepad(link.sourceScrollY), 80);
+    }
+    else if (link.targetType === 'notepad') {
+      const page = link.targetNotepadPage !== undefined ? link.targetNotepadPage : 0;
+      loadNotepadPage(page);
+      setTimeout(() => jumpToNotepad(link.targetScrollY), 80);
+    }
+  }
+
+  function jumpToPdf(pageNum, x, y, bounds) {
+    const wrapper = getPdfCanvasWrapper(pageNum);
+    if (!wrapper) {
+      const card = pdfContainer.querySelector(`.pdf-page-card[data-page-num="${pageNum}"]`);
+      if (card) {
+        const wr = pdfViewWrapper.getBoundingClientRect();
+        const cr = card.getBoundingClientRect();
+        pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (cr.top - wr.top) - 60, behavior: 'smooth' });
+        setTimeout(() => jumpToPdf(pageNum, x, y, bounds), 400);
+      }
+      return;
+    }
+    let targetY = y;
+    if (bounds) targetY = (bounds.y1 + bounds.y2) / 2;
+    const wr = wrapper.getBoundingClientRect();
+    const vwr = pdfViewWrapper.getBoundingClientRect();
+    pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (wr.top + targetY - vwr.top) - 80, behavior: 'smooth' });
+    setTimeout(() => { showPdfHighlight(pageNum, bounds ? bounds : { x1: x-30, y1: y-15, x2: x+30, y2: y+15 }); }, 400);
+  }
+
+  function showPdfHighlight(pageNum, bounds) {
+    document.querySelectorAll('.pdf-link-highlight').forEach(el => el.remove());
+    const wrapper = getPdfCanvasWrapper(pageNum);
+    if (!wrapper) return;
+    let x1 = bounds.x1, y1 = bounds.y1, x2 = bounds.x2, y2 = bounds.y2;
+    if (!bounds.x2) { x1 = bounds.x1 - 20; y1 = bounds.y1 - 10; x2 = bounds.x1 + 20; y2 = bounds.y1 + 10; }
+    const left = Math.min(x1, x2), top = Math.min(y1, y2);
+    const width = Math.abs(x2 - x1), height = Math.abs(y2 - y1);
+    const highlight = document.createElement('div');
+    highlight.className = 'pdf-link-highlight active';
+    highlight.style.left = left + 'px';
+    highlight.style.top = top + 'px';
+    highlight.style.width = width + 'px';
+    highlight.style.height = height + 'px';
+    wrapper.appendChild(highlight);
+    setTimeout(() => { highlight.classList.remove('active'); setTimeout(() => highlight.remove(), 500); }, 3000);
+  }
+
+  function jumpToNotepad(scrollY) {
+    notepadEditorContainer.scrollTo({ top: scrollY || 0, behavior: 'smooth' });
+    notepadEditor.focus();
+  }
+
+  function cancelPendingLink() {
+    if (waitingForDrop) {
+      waitingForDrop = false;
+      pendingLinkSource = null;
+      scanSelectionStart = null; scanSelectionEnd = null; isScanSelecting = false;
+      linkPointStart = null;
+      underlineStartX = underlineStartY = underlineEndX = 0;
+      updateGlobalCanvasPointerEvents();
+      updateModeStatus('Cancelled');
+      redrawGlobalStrokes();
+    }
+  }
+
+  function setToolMode(mode) {
+    cancelPendingLink();
+    if (mode === 'pointer') {
+      setTool('select');
+      activeToolMode = 'pointer';
+      updateModeStatus('🖱️ Pointer mode');
+      globalCanvas.style.pointerEvents = 'none';
+      return;
+    }
+    if (mode === 'line' || mode === 'underline') setTool('pen');
+    else if (mode === 'highlight') setTool('highlighter');
+    activeToolMode = mode;
+    updateModeStatus(getModeLabel(mode));
+    globalCanvas.style.pointerEvents = 'auto';
+    globalCanvas.style.cursor = 'crosshair';
+    document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events'); el.style.pointerEvents = 'none'; });
+  }
+
+  function getModeLabel(mode) {
+    const map = { 'line': '✏️ Line: Draw on PDF, then tap on Notepad', 'highlight': '🟡 Highlight: Highlight on PDF, then tap on Notepad', 'underline': '⏺️ Underline: Draw horizontal line on PDF, then tap on Notepad', 'scan': '📷 Scan: Select area on PDF, then tap on Notepad', 'linkpoint': '🔗 Link Point: Tap on PDF, then tap on Notepad', 'pointer': '🖱️ Pointer mode' };
+    return map[mode] || '';
+  }
+
+  function updateModeStatus(text) {
+    modeStatus.textContent = text;
+    modeStatus.classList.add('visible');
+    clearTimeout(modeStatus._timeout);
+    modeStatus._timeout = setTimeout(() => modeStatus.classList.remove('visible'), 3000);
+  }
+
+  function updateGlobalCanvasPointerEvents() {
+    if (waitingForDrop) { globalCanvas.style.pointerEvents = 'none'; return; }
+    if (activeToolMode === 'pointer') { globalCanvas.style.pointerEvents = 'none'; }
+    else { globalCanvas.style.pointerEvents = 'auto'; }
+  }
+
+  modeSelect.addEventListener('change', function(e) { setToolMode(this.value); });
+  modeSelect.value = 'pointer';
+  setToolMode('pointer');
+
+  function redrawGlobalStrokes() {
+    const wsRect = getWorkspaceRect();
+    globalCanvas.width = wsRect.width;
+    globalCanvas.height = wsRect.height;
+    globalCtx.clearRect(0, 0, globalCanvas.width, globalCanvas.height);
+    globalStrokes.forEach(stroke => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      let ci = null;
+      if (stroke.container === 'pdf') {
+        const wrapper = getPdfCanvasWrapper(stroke.pageNum);
+        if (!wrapper) return;
+        const rect = wrapper.getBoundingClientRect();
+        ci = { type: 'pdf', pageNum: stroke.pageNum, element: wrapper, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+      } else if (stroke.container === 'notepad') {
+        if (notepadPane.style.display === 'none') return;
+        const rect = notepadEditorContainer.getBoundingClientRect();
+        ci = { type: 'notepad', element: notepadEditorContainer, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+      } else return;
+      const gp = stroke.points.map(p => containerToGlobal(p.x, p.y, ci));
+      globalCtx.save();
+      globalCtx.beginPath();
+      globalCtx.moveTo(gp[0].x, gp[0].y);
+      for (let i = 1; i < gp.length; i++) globalCtx.lineTo(gp[i].x, gp[i].y);
+      globalCtx.setLineDash([]);
+      if (stroke.tool === 'pen') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = stroke.color; globalCtx.lineWidth = stroke.width; globalCtx.lineCap = 'round'; globalCtx.lineJoin = 'round'; }
+      else if (stroke.tool === 'highlighter') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = stroke.color; globalCtx.lineWidth = stroke.width * 4; globalCtx.lineCap = 'square'; globalCtx.lineJoin = 'miter'; }
+      else if (stroke.tool === 'eraser') { globalCtx.globalCompositeOperation = 'destination-out'; globalCtx.lineWidth = stroke.width * 6; globalCtx.lineCap = 'round'; globalCtx.lineJoin = 'round'; }
+      globalCtx.stroke();
+      globalCtx.restore();
+    });
+    linkData.forEach(link => {
+      let sg = null, tg = null;
+      if (link.sourceType === 'pdf') {
+        const wrapper = getPdfCanvasWrapper(link.sourcePageNum);
+        if (wrapper) {
+          const rect = wrapper.getBoundingClientRect();
+          const ci = { type: 'pdf', pageNum: link.sourcePageNum, element: wrapper, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+          let cx = link.sourceX, cy = link.sourceY;
+          if (link.sourceBounds) { cx = (link.sourceBounds.x1+link.sourceBounds.x2)/2; cy = (link.sourceBounds.y1+link.sourceBounds.y2)/2; }
+          sg = containerToGlobal(cx, cy, ci);
+        }
+      } else if (link.sourceType === 'notepad' && notepadPane.style.display !== 'none') {
+        const rect = notepadEditorContainer.getBoundingClientRect();
+        const ci = { type: 'notepad', element: notepadEditorContainer, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+        let cx = link.sourceX, cy = link.sourceY;
+        if (link.sourceBounds) { cx = (link.sourceBounds.x1+link.sourceBounds.x2)/2; cy = (link.sourceBounds.y1+link.sourceBounds.y2)/2; }
+        sg = containerToGlobal(cx, cy, ci);
+      }
+      if (link.targetType === 'pdf') {
+        const wrapper = getPdfCanvasWrapper(link.targetPageNum);
+        if (wrapper) {
+          const rect = wrapper.getBoundingClientRect();
+          const ci = { type: 'pdf', pageNum: link.targetPageNum, element: wrapper, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+          let cx = link.targetX, cy = link.targetY;
+          if (link.targetBounds) { cx = (link.targetBounds.x1+link.targetBounds.x2)/2; cy = (link.targetBounds.y1+link.targetBounds.y2)/2; }
+          tg = containerToGlobal(cx, cy, ci);
+        }
+      } else if (link.targetType === 'notepad' && notepadPane.style.display !== 'none') {
+        const rect = notepadEditorContainer.getBoundingClientRect();
+        const ci = { type: 'notepad', element: notepadEditorContainer, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+        let cx = link.targetX, cy = link.targetY;
+        if (link.targetBounds) { cx = (link.targetBounds.x1+link.targetBounds.x2)/2; cy = (link.targetBounds.y1+link.targetBounds.y2)/2; }
+        tg = containerToGlobal(cx, cy, ci);
+      }
+      if (sg && tg) {
+        globalCtx.save();
+        globalCtx.setLineDash([6,6]);
+        globalCtx.strokeStyle = '#94a3b8';
+        globalCtx.lineWidth = 1.5;
+        globalCtx.globalAlpha = 0.4;
+        globalCtx.beginPath();
+        globalCtx.moveTo(sg.x, sg.y);
+        globalCtx.lineTo(tg.x, tg.y);
+        globalCtx.stroke();
+        globalCtx.restore();
+      }
+    });
+  }
+
+// ================================================================
+// LASER FUNCTIONS (Temporary red marks — auto-fade in 1.5s)
+// ================================================================
+function startLaserStroke(e) {
+  if (e.touches && e.touches.length > 1) return;
+  if (isPinching) return;
+  e.preventDefault();
+  const wsRect = getWorkspaceRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const gx = cx - wsRect.left;
+  const gy = cy - wsRect.top;
+  const ci = getContainerFromPoint(gx, gy);
+  if (!ci) return;
+  isLaserDrawing = true;
+  const lp = globalToContainer(gx, gy, ci);
+  activeLaserStroke = {
+    id: 'laser_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    color: '#dc2626',
+    width: (typeof strokeWidth === 'number' ? strokeWidth : 3) + 3,
+    container: ci.type,
+    pageNum: ci.type === 'pdf' ? ci.pageNum : undefined,
+    points: [lp],
+    containerInfo: ci
+  };
+  laserStrokes.push(activeLaserStroke);
+  drawLaserMarks();
+}
+
+function drawLaserStroke(e) {
+  if (!isLaserDrawing || !activeLaserStroke) return;
+  if (e.touches && e.touches.length > 1) return;
+  e.preventDefault();
+  const wsRect = getWorkspaceRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const gx = cx - wsRect.left;
+  const gy = cy - wsRect.top;
+  const ci = getContainerFromPoint(gx, gy);
+  if (!ci || ci.type !== activeLaserStroke.container) return;
+  if (ci.type === 'pdf' && ci.pageNum !== activeLaserStroke.pageNum) return;
+  const lp = globalToContainer(gx, gy, ci);
+  activeLaserStroke.points.push(lp);
+  drawLaserMarks();
+}
+
+function stopLaserStroke(e) {
+  if (!isLaserDrawing || !activeLaserStroke) return;
+  isLaserDrawing = false;
+  const laserId = activeLaserStroke.id;
+  activeLaserStroke = null;
+  setTimeout(function() {
+    laserStrokes = laserStrokes.filter(s => s.id !== laserId);
+    redrawGlobalStrokes();
+  }, 1500);
+}
+
+function drawLaserMarks() {
+  redrawGlobalStrokes();
+  if (!laserStrokes.length) return;
+  const wsRect = getWorkspaceRect();
+  laserStrokes.forEach(stroke => {
+    if (!stroke.points || !stroke.points.length) return;
+    let ci = null;
+    if (stroke.container === 'pdf') {
+      const wrapper = getPdfCanvasWrapper(stroke.pageNum);
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      ci = { type: 'pdf', pageNum: stroke.pageNum, element: wrapper, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+    } else if (stroke.container === 'notepad') {
+      if (notepadPane.style.display === 'none') return;
+      const rect = notepadEditorContainer.getBoundingClientRect();
+      ci = { type: 'notepad', element: notepadEditorContainer, offsetX: rect.left - wsRect.left, offsetY: rect.top - wsRect.top };
+    } else return;
+    const gp = stroke.points.map(p => containerToGlobal(p.x, p.y, ci));
+    globalCtx.save();
+    globalCtx.globalCompositeOperation = 'source-over';
+    globalCtx.strokeStyle = 'rgba(220,38,38,0.9)';
+    globalCtx.fillStyle = 'rgba(220,38,38,0.9)';
+    globalCtx.lineWidth = stroke.width;
+    globalCtx.lineCap = 'round';
+    globalCtx.lineJoin = 'round';
+    globalCtx.shadowColor = 'rgba(220,38,38,0.95)';
+    globalCtx.shadowBlur = 14;
+    if (gp.length === 1) {
+      globalCtx.beginPath();
+      globalCtx.arc(gp[0].x, gp[0].y, stroke.width / 2, 0, Math.PI * 2);
+      globalCtx.fill();
+    } else {
+      globalCtx.beginPath();
+      globalCtx.moveTo(gp[0].x, gp[0].y);
+      for (let i = 1; i < gp.length; i++) globalCtx.lineTo(gp[i].x, gp[i].y);
+      globalCtx.stroke();
+    }
+    globalCtx.restore();
+  });
+}
+
+  function startGlobalStroke(e) {
+    if (activeToolMode !== 'pointer') return;
+    if (isPinching) return;
+    if (e.touches && e.touches.length > 1) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci) return;
+    isDrawing = true;
+    const lp = globalToContainer(gx, gy, ci);
+    activeStroke = { id: Date.now() + '_' + Math.random().toString(36).substr(2,6), tool: currentTool, color: currentTool === 'highlighter' ? highlighterColor : penColor, width: strokeWidth, container: ci.type, pageNum: ci.type === 'pdf' ? ci.pageNum : undefined, points: [lp], containerInfo: ci };
+    globalStrokes.push(activeStroke);
+  }
+
+  function drawGlobalStroke(e) {
+    if (activeToolMode !== 'pointer') return;
+    if (!isDrawing || !activeStroke) return;
+    if (e.touches && e.touches.length > 1) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci || ci.type !== activeStroke.container || (ci.type === 'pdf' && ci.pageNum !== activeStroke.pageNum)) return;
+    const lp = globalToContainer(gx, gy, ci);
+    activeStroke.points.push(lp);
+    const last = activeStroke.points[activeStroke.points.length-2];
+    const lg = containerToGlobal(last.x, last.y, ci);
+    const cg = containerToGlobal(lp.x, lp.y, ci);
+    globalCtx.save();
+    globalCtx.beginPath();
+    globalCtx.moveTo(lg.x, lg.y);
+    globalCtx.lineTo(cg.x, cg.y);
+    globalCtx.setLineDash([]);
+    if (activeStroke.tool === 'pen') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = penColor; globalCtx.lineWidth = strokeWidth; globalCtx.lineCap = 'round'; globalCtx.lineJoin = 'round'; }
+    else if (activeStroke.tool === 'highlighter') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = highlighterColor; globalCtx.lineWidth = strokeWidth * 4; globalCtx.lineCap = 'square'; globalCtx.lineJoin = 'miter'; }
+    else if (activeStroke.tool === 'eraser') { globalCtx.globalCompositeOperation = 'destination-out'; globalCtx.lineWidth = strokeWidth * 6; globalCtx.lineCap = 'round'; globalCtx.lineJoin = 'round'; }
+    globalCtx.stroke();
+    globalCtx.restore();
+  }
+
+  function stopGlobalStroke(e) {
+    if (activeToolMode !== 'pointer') return;
+    if (isDrawing) { isDrawing = false; activeStroke = null; }
+  }
+
+  function startLinkStroke(e) {
+    if (activeToolMode === 'pointer' || activeToolMode === 'scan' || activeToolMode === 'linkpoint' || waitingForDrop) return;
+    if (isPinching) return;
+    if (e.touches && e.touches.length > 1) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci || ci.type !== 'pdf') return;
+    isDrawing = true;
+    const lp = globalToContainer(gx, gy, ci);
+    if (activeToolMode === 'underline') {
+      underlineStartX = lp.x; underlineStartY = lp.y; underlineEndX = lp.x;
+      activeStroke = { id: Date.now() + '_' + Math.random().toString(36).substr(2,6), tool: 'pen', color: penColor, width: strokeWidth, container: ci.type, pageNum: ci.pageNum, points: [{ x: underlineStartX, y: underlineStartY }, { x: underlineStartX, y: underlineStartY }], containerInfo: ci, mode: 'underline' };
+      return;
+    }
+    const tool = (activeToolMode === 'highlight') ? 'highlighter' : 'pen';
+    const color = (tool === 'highlighter') ? highlighterColor : penColor;
+    activeStroke = { id: Date.now() + '_' + Math.random().toString(36).substr(2,6), tool, color, width: strokeWidth, container: ci.type, pageNum: ci.pageNum, points: [lp], containerInfo: ci, mode: activeToolMode };
+  }
+
+  function drawLinkStroke(e) {
+    if (!isDrawing || !activeStroke) return;
+    if (activeToolMode === 'underline' && activeStroke.mode === 'underline') {
+      if (e.touches && e.touches.length > 1) return;
+      e.preventDefault();
+      const wsRect = getWorkspaceRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      const gx = cx - wsRect.left;
+      const gy = cy - wsRect.top;
+      const ci = getContainerFromPoint(gx, gy);
+      if (!ci || ci.type !== 'pdf' || ci.pageNum !== activeStroke.pageNum) return;
+      const lp = globalToContainer(gx, gy, ci);
+      underlineEndX = lp.x;
+      redrawGlobalStrokes();
+      globalCtx.save();
+      globalCtx.beginPath();
+      globalCtx.moveTo(underlineStartX, underlineStartY);
+      globalCtx.lineTo(underlineEndX, underlineStartY);
+      globalCtx.strokeStyle = penColor;
+      globalCtx.lineWidth = strokeWidth;
+      globalCtx.lineCap = 'round';
+      globalCtx.stroke();
+      globalCtx.restore();
+      return;
+    }
+    if (activeToolMode === 'pointer' || activeToolMode === 'scan' || activeToolMode === 'linkpoint' || waitingForDrop) return;
+    if (e.touches && e.touches.length > 1) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci || ci.type !== activeStroke.container || ci.pageNum !== activeStroke.pageNum) return;
+    const lp = globalToContainer(gx, gy, ci);
+    activeStroke.points.push(lp);
+    const last = activeStroke.points[activeStroke.points.length-2];
+    const lg = containerToGlobal(last.x, last.y, ci);
+    const cg = containerToGlobal(lp.x, lp.y, ci);
+    globalCtx.save();
+    globalCtx.beginPath();
+    globalCtx.moveTo(lg.x, lg.y);
+    globalCtx.lineTo(cg.x, cg.y);
+    globalCtx.setLineDash([]);
+    if (activeStroke.tool === 'pen') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = penColor; globalCtx.lineWidth = strokeWidth; globalCtx.lineCap = 'round'; globalCtx.lineJoin = 'round'; }
+    else if (activeStroke.tool === 'highlighter') { globalCtx.globalCompositeOperation = 'source-over'; globalCtx.strokeStyle = highlighterColor; globalCtx.lineWidth = strokeWidth * 4; globalCtx.lineCap = 'square'; globalCtx.lineJoin = 'miter'; }
+    globalCtx.stroke();
+    globalCtx.restore();
+  }
+
+  function stopLinkStroke(e) {
+    if (!isDrawing || !activeStroke) return;
+    isDrawing = false;
+    if (activeToolMode === 'underline' && activeStroke.mode === 'underline') {
+      if (underlineStartX !== underlineEndX) {
+        const stroke = { id: Date.now() + '_' + Math.random().toString(36).substr(2,6), tool: 'pen', color: penColor, width: strokeWidth, container: activeStroke.container, pageNum: activeStroke.pageNum, points: [{ x: underlineStartX, y: underlineStartY }, { x: underlineEndX, y: underlineStartY }], containerInfo: activeStroke.containerInfo, mode: 'underline' };
+        globalStrokes.push(stroke);
+        pendingLinkSource = { type: 'underline', container: stroke.container, pageNum: stroke.pageNum, points: stroke.points.slice(), color: penColor, containerInfo: stroke.containerInfo, bounds: { x1: Math.min(underlineStartX, underlineEndX), y1: underlineStartY - 5, x2: Math.max(underlineStartX, underlineEndX), y2: underlineStartY + 5 } };
+        waitingForDrop = true; globalCanvas.style.pointerEvents = 'none';
+        updateModeStatus('✋ Now tap on Notepad to drop the underline link');
+        redrawGlobalStrokes();
+      } else { redrawGlobalStrokes(); }
+      activeStroke = null; underlineStartX = underlineStartY = underlineEndX = 0;
+      return;
+    }
+    if (activeStroke.points.length > 1) {
+      pendingLinkSource = { type: activeToolMode, container: activeStroke.container, pageNum: activeStroke.pageNum, points: activeStroke.points.slice(), color: (activeStroke.tool === 'highlighter') ? highlighterColor : penColor, containerInfo: activeStroke.containerInfo, bounds: null };
+      waitingForDrop = true; globalStrokes.push(activeStroke);
+      globalCanvas.style.pointerEvents = 'none';
+      updateModeStatus('✋ Now tap on Notepad to drop the link');
+    }
+    activeStroke = null;
+  }
+
+  function handleLinkPointClick(e) {
+    if (activeToolMode !== 'linkpoint' || waitingForDrop) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci) return;
+    const lp = globalToContainer(gx, gy, ci);
+    if (!linkPointStart) {
+      linkPointStart = { container: ci.type, pageNum: ci.type === 'pdf' ? ci.pageNum : undefined, x: lp.x, y: lp.y, containerInfo: ci, scrollY: ci.type === 'notepad' ? (notepadEditorContainer.scrollTop || 0) : 0 };
+      updateModeStatus('📍 Now tap on the other side (PDF or Notepad) to link');
+      if (ci.type === 'pdf') { showPdfHighlight(ci.pageNum, { x1: lp.x-15, y1: lp.y-10, x2: lp.x+15, y2: lp.y+10 }); }
+      return;
+    }
+    const source = linkPointStart;
+    const target = { container: ci.type, pageNum: ci.type === 'pdf' ? ci.pageNum : undefined, x: lp.x, y: lp.y, containerInfo: ci, scrollY: ci.type === 'notepad' ? (notepadEditorContainer.scrollTop || 0) : 0 };
+    if (source.container === target.container && source.pageNum === target.pageNum) {
+      linkPointStart = null; updateModeStatus('❌ Same container, try again'); return;
+    }
+    const linkId = ++linkIdCounter;
+    const linkEntry = { id: linkId, type: 'linkpoint', sourceType: source.container, sourcePageNum: source.pageNum, sourceX: source.x, sourceY: source.y, sourceScrollY: source.scrollY, targetType: target.container, targetPageNum: target.pageNum, targetX: target.x, targetY: target.y, targetScrollY: target.scrollY, sourceBounds: null, targetBounds: null, color: penColor, created: Date.now() };
+    linkData.push(linkEntry);
+    if (source.container === 'pdf') insertPdfMarker(linkId, source.x, source.y, source.pageNum, 'linkpoint');
+    else insertNotepadMarker(linkId, source.x, source.y, 'linkpoint', currentNotepadPage);
+    if (target.container === 'pdf') insertPdfMarker(linkId, target.x, target.y, target.pageNum, 'linkpoint');
+    else insertNotepadMarker(linkId, target.x, target.y, 'linkpoint', currentNotepadPage);
+    linkPointStart = null; redrawGlobalStrokes(); updateModeStatus('✅ Link created!');
+  }
+// ================================================================
+// SCAN TO PAN — Freehand selection
+// ================================================================
+function startScanPan(e) {
+  if (activeToolMode !== 'scan-pan' || waitingForDrop) return;
+  if (e.touches && e.touches.length > 1) return;
+  e.preventDefault();
+  const wsRect = getWorkspaceRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const gx = cx - wsRect.left;
+  const gy = cy - wsRect.top;
+  const ci = getContainerFromPoint(gx, gy);
+  if (!ci || ci.type !== 'pdf') return;
+  const lp = globalToContainer(gx, gy, ci);
+  scanPanContainer = ci;
+  scanPanPoints = [{ x: lp.x, y: lp.y }];
+  isScanPanDrawing = true;
+  redrawGlobalStrokes();
+  // Draw initial mark
+  const g = containerToGlobal(lp.x, lp.y, ci);
+  globalCtx.save();
+  globalCtx.strokeStyle = '#8b5cf6';
+  globalCtx.lineWidth = 3;
+  globalCtx.lineCap = 'round';
+  globalCtx.lineJoin = 'round';
+  globalCtx.globalAlpha = 0.7;
+  globalCtx.beginPath();
+  globalCtx.arc(g.x, g.y, 4, 0, Math.PI * 2);
+  globalCtx.fill();
+  globalCtx.restore();
+}
+
+function moveScanPan(e) {
+  if (!isScanPanDrawing || !scanPanContainer) return;
+  if (e.touches && e.touches.length > 1) return;
+  e.preventDefault();
+  const wsRect = getWorkspaceRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  const gx = cx - wsRect.left;
+  const gy = cy - wsRect.top;
+  const lp = globalToContainer(gx, gy, scanPanContainer);
+  scanPanPoints.push({ x: lp.x, y: lp.y });
+  
+  // Draw freehand path
+  if (scanPanPoints.length >= 2) {
+    const p1 = scanPanPoints[scanPanPoints.length - 2];
+    const p2 = scanPanPoints[scanPanPoints.length - 1];
+    const g1 = containerToGlobal(p1.x, p1.y, scanPanContainer);
+    const g2 = containerToGlobal(p2.x, p2.y, scanPanContainer);
+    globalCtx.save();
+    globalCtx.strokeStyle = '#8b5cf6';
+    globalCtx.lineWidth = 3;
+    globalCtx.lineCap = 'round';
+    globalCtx.lineJoin = 'round';
+    globalCtx.globalAlpha = 0.7;
+    globalCtx.beginPath();
+    globalCtx.moveTo(g1.x, g1.y);
+    globalCtx.lineTo(g2.x, g2.y);
+    globalCtx.stroke();
+    globalCtx.restore();
+  }
+}
+
+function endScanPan(e) {
+  if (!isScanPanDrawing || !scanPanContainer) return;
+  isScanPanDrawing = false;
+  if (scanPanPoints.length < 3) { scanPanPoints = []; scanPanContainer = null; redrawGlobalStrokes(); return; }
+  // Compute bounding box
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  scanPanPoints.forEach(p => {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  });
+  const padding = 5;
+  minX = Math.max(0, minX - padding);
+  minY = Math.max(0, minY - padding);
+  maxX = maxX + padding;
+  maxY = maxY + padding;
+  const width = maxX - minX;
+  const height = maxY - minY;
+  if (width < 10 || height < 10) { scanPanPoints = []; scanPanContainer = null; redrawGlobalStrokes(); return; }
+  // Capture the region
+  const wrapper = scanPanContainer.wrapper;
+  if (wrapper) {
+    const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+    if (pdfCanvas) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = width;
+      tempCanvas.height = height;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(pdfCanvas, minX, minY, width, height, 0, 0, width, height);
+      const imageData = tempCanvas.toDataURL('image/png');
+      pendingLinkSource = {
+        type: 'scan',
+        container: 'pdf',
+        pageNum: scanPanContainer.pageNum,
+        bounds: { x1: minX, y1: minY, x2: maxX, y2: maxY },
+        imageData: imageData,
+        containerInfo: scanPanContainer,
+        color: '#8b5cf6'
+      };
+      waitingForDrop = true;
+      globalCanvas.style.pointerEvents = 'none';
+      updateModeStatus('✏️ Pan captured! Tap on Notepad/Board to drop');
+      // Highlight captured area briefly
+      showPdfHighlight(scanPanContainer.pageNum, { x1: minX, y1: minY, x2: maxX, y2: maxY });
+    }
+  }
+  scanPanPoints = [];
+  scanPanContainer = null;
+  redrawGlobalStrokes();
+}
+
+  function handleScanPointerDown(e) {
+    if (activeToolMode !== 'scan' || waitingForDrop) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci || ci.type !== 'pdf') return;
+    const lp = globalToContainer(gx, gy, ci);
+    scanSelectionStart = { globalX: gx, globalY: gy, containerInfo: ci, localX: lp.x, localY: lp.y };
+    isScanSelecting = true;
+  }
+
+  function handleScanPointerMove(e) {
+    if (!isScanSelecting || !scanSelectionStart) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = scanSelectionStart.containerInfo;
+    const lp = globalToContainer(gx, gy, ci);
+    scanSelectionEnd = { globalX: gx, globalY: gy, containerInfo: ci, localX: lp.x, localY: lp.y };
+    redrawGlobalStrokes();
+    const g1 = containerToGlobal(scanSelectionStart.localX, scanSelectionStart.localY, scanSelectionStart.containerInfo);
+    const g2 = containerToGlobal(scanSelectionEnd.localX, scanSelectionEnd.localY, scanSelectionEnd.containerInfo);
+    const left = Math.min(g1.x, g2.x), top = Math.min(g1.y, g2.y);
+    const width = Math.abs(g2.x - g1.x), height = Math.abs(g2.y - g1.y);
+    globalCtx.save();
+    globalCtx.fillStyle = 'rgba(37,99,235,0.08)';
+    globalCtx.strokeStyle = '#2563eb';
+    globalCtx.lineWidth = 1.5;
+    globalCtx.setLineDash([4,4]);
+    globalCtx.fillRect(left, top, width, height);
+    globalCtx.strokeRect(left, top, width, height);
+    globalCtx.restore();
+  }
+
+  function handleScanPointerUp(e) {
+    if (!isScanSelecting || !scanSelectionStart || !scanSelectionEnd) {
+      isScanSelecting = false; scanSelectionStart = null; scanSelectionEnd = null; redrawGlobalStrokes(); return;
+    }
+    e.preventDefault();
+    const start = scanSelectionStart, end = scanSelectionEnd;
+    const dx = Math.abs(end.localX - start.localX);
+    const dy = Math.abs(end.localY - start.localY);
+    if (dx > 5 && dy > 5) {
+      const wrapper = start.containerInfo.wrapper;
+      if (wrapper) {
+        const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+        if (pdfCanvas) {
+          const minX = Math.min(start.localX, end.localX);
+          const minY = Math.min(start.localY, end.localY);
+          const width = Math.abs(end.localX - start.localX);
+          const height = Math.abs(end.localY - start.localY);
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = width; tempCanvas.height = height;
+          const ctx = tempCanvas.getContext('2d');
+          ctx.drawImage(pdfCanvas, minX, minY, width, height, 0, 0, width, height);
+          const imageData = tempCanvas.toDataURL('image/png');
+          pendingLinkSource = { type: 'scan', container: 'pdf', pageNum: start.containerInfo.pageNum, bounds: { x1: minX, y1: minY, x2: minX + width, y2: minY + height }, imageData, containerInfo: start.containerInfo, color: '#8b5cf6' };
+          waitingForDrop = true; globalCanvas.style.pointerEvents = 'none';
+          updateModeStatus('📷 Scan captured! Tap on Notepad to drop image');
+        }
+      }
+    }
+    isScanSelecting = false; scanSelectionStart = null; scanSelectionEnd = null; redrawGlobalStrokes();
+  }
+
+  function handleNotepadDrop(e) {
+    if (!waitingForDrop || !pendingLinkSource) return;
+    e.preventDefault();
+    const wsRect = getWorkspaceRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const gx = cx - wsRect.left;
+    const gy = cy - wsRect.top;
+    const ci = getContainerFromPoint(gx, gy);
+    if (!ci || ci.type !== 'notepad') return;
+    const lp = globalToContainer(gx, gy, ci);
+    const source = pendingLinkSource;
+    const target = { container: 'notepad', x: lp.x, y: lp.y, containerInfo: ci, scrollY: notepadEditorContainer.scrollTop || 0 };
+    const linkId = ++linkIdCounter;
+    const linkType = source.type;
+    const linkEntry = { id: linkId, type: linkType, sourceType: 'pdf', sourcePageNum: source.pageNum, sourceX: (source.bounds) ? (source.bounds.x1 + source.bounds.x2)/2 : source.points[0].x, sourceY: (source.bounds) ? (source.bounds.y1 + source.bounds.y2)/2 : source.points[0].y, sourceBounds: source.bounds || null, sourceScrollY: 0, targetType: 'notepad', targetPageNum: undefined, targetNotepadPage: currentNotepadPage, targetX: target.x, targetY: target.y, targetBounds: null, targetScrollY: target.scrollY, color: source.color || penColor, imageData: source.imageData || null, created: Date.now() };
+    linkData.push(linkEntry);
+    insertPdfMarker(linkId, linkEntry.sourceX, linkEntry.sourceY, source.pageNum, linkType);
+    if (linkType === 'scan' && source.imageData) insertNotepadScanImage(linkId, target.x, target.y, source.imageData);
+    else insertNotepadMarker(linkId, target.x, target.y, linkType, currentNotepadPage);
+    waitingForDrop = false; pendingLinkSource = null;
+    updateGlobalCanvasPointerEvents();
+    updateModeStatus('✅ Link created!');
+    redrawGlobalStrokes();
+  }
+
+  function onPointerDown(e) {
+    if (isPinching) return;
+    if (e.touches && e.touches.length > 1) return;
+    if (activeToolMode === 'laser') { startLaserStroke(e); return; }
+    if (activeToolMode === 'scan-pan') { startScanPan(e); return; }
+    if (activeToolMode === 'pointer') startGlobalStroke(e);
+    else if (activeToolMode === 'line' || activeToolMode === 'highlight' || activeToolMode === 'underline') startLinkStroke(e);
+    else if (activeToolMode === 'scan') handleScanPointerDown(e);
+    else if (activeToolMode === 'linkpoint') handleLinkPointClick(e);
+  }
+
+  function onPointerMove(e) {
+    if (isPinching) return;
+    if (activeToolMode === 'laser') { drawLaserStroke(e); return; }
+    if (activeToolMode === 'scan-pan') { moveScanPan(e); return; }
+    if (e.touches && e.touches.length > 1) return;
+    if (activeToolMode === 'pointer') drawGlobalStroke(e);
+    else if (activeToolMode === 'line' || activeToolMode === 'highlight' || activeToolMode === 'underline') drawLinkStroke(e);
+    else if (activeToolMode === 'scan') handleScanPointerMove(e);
+  }
+
+  function onPointerUp(e) {
+  if (activeToolMode === 'laser') { stopLaserStroke(e); return; }
+  if (activeToolMode === 'scan-pan') { endScanPan(e); return; }
+    if (activeToolMode === 'pointer') stopGlobalStroke(e);
+    else if (activeToolMode === 'line' || activeToolMode === 'highlight' || activeToolMode === 'underline') stopLinkStroke(e);
+    else if (activeToolMode === 'scan') handleScanPointerUp(e);
+  }
+
+  globalCanvas.addEventListener('pointerdown', onPointerDown);
+  globalCanvas.addEventListener('pointermove', onPointerMove);
+  globalCanvas.addEventListener('pointerup', onPointerUp);
+  globalCanvas.addEventListener('pointercancel', onPointerUp);
+  globalCanvas.addEventListener('pointerleave', function(e) {
+    if (activeToolMode === 'pointer') stopGlobalStroke(e);
+    else if (activeToolMode === 'line' || activeToolMode === 'highlight' || activeToolMode === 'underline') stopLinkStroke(e);
+  });
+  globalCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
+  globalCanvas.addEventListener('touchmove', onPointerMove, { passive: false });
+  globalCanvas.addEventListener('touchend', onPointerUp);
+  globalCanvas.addEventListener('touchcancel', onPointerUp);
+
+  notepadEditorContainer.addEventListener('pointerdown', function(e) { if (waitingForDrop) handleNotepadDrop(e); });
+  notepadEditorContainer.addEventListener('touchstart', function(e) { if (waitingForDrop) handleNotepadDrop(e); }, { passive: false });
+
+  document.addEventListener('pointerdown', function(e) {
+    if (waitingForDrop) {
+      const rect = notepadEditorContainer.getBoundingClientRect();
+      const x = e.clientX, y = e.clientY;
+      if (!(x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) { cancelPendingLink(); }
+    }
+  });
+
+  function setTool(tool) {
+  if (tool !== 'laser') {
+  laserStrokes = [];
+  isLaserDrawing = false;
+  activeLaserStroke = null;
+}
+    currentTool = tool;
+    toolSelect.classList.toggle('active', tool === 'select');
+    toolPen.classList.toggle('active', tool === 'pen');
+    toolHighlighter.classList.toggle('active', tool === 'highlighter');
+    toolEraser.classList.toggle('active', tool === 'eraser');
+    if (tool === 'select') {
+      if (activeToolMode === 'pointer') { globalCanvas.style.pointerEvents = 'none'; }
+      updateModeStatus('🖱️ Pointer mode');
+      document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.remove('block-events'); el.style.pointerEvents = 'auto'; });
+ } else {
+  activeToolMode = 'pointer';
+  modeSelect.value = 'pointer';
+  globalCanvas.style.pointerEvents = 'auto';
+  globalCanvas.style.cursor = 'crosshair';
+  const labels = { pen: '✏️ Pen', highlighter: '🟡 Highlighter', eraser: '🧹 Eraser' };
+  updateModeStatus(labels[tool] + ' mode');
+  document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events'); el.style.pointerEvents = 'none'; });
+}
+  }
+
+  toolSelect.addEventListener('click', () => setTool('select'));
+  toolPen.addEventListener('click', () => setTool('pen'));
+  toolHighlighter.addEventListener('click', () => setTool('highlighter'));
+  toolEraser.addEventListener('click', () => setTool('eraser'));
+
+  pickerColor.addEventListener('input', (e) => {
+    penColor = e.target.value;
+    const hex = e.target.value;
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    highlighterColor = `rgba(${r},${g},${b},0.35)`;
+  });
+
+  sliderSize.addEventListener('input', (e) => { strokeWidth = parseInt(e.target.value, 10); });
+
+  function startResizing(e) {
+    isResizing = true;
+    resizer.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    if (e.pointerId && resizer.setPointerCapture) { try { resizer.setPointerCapture(e.pointerId); } catch(_) {} }
+  }
+  function handleResizeMove(e) {
+    if (!isResizing) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    if (clientX === undefined) return;
+    updateWorkspaceWidths((clientX / window.innerWidth) * 100);
+  }
+  function stopResizing(e) {
+    if (isResizing) {
+      isResizing = false;
+      resizer.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (e && e.pointerId && resizer.releasePointerCapture) { try { resizer.releasePointerCapture(e.pointerId); } catch(_) {} }
+      resizeGlobalCanvas();
+    }
+  }
+  function updateWorkspaceWidths(pdfRatioPct) {
+    const isOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+    if (!isOpen) return;
+    if (resizeRafId) cancelAnimationFrame(resizeRafId);
+    resizeRafId = requestAnimationFrame(() => {
+      const clamped = Math.max(15, Math.min(85, pdfRatioPct));
+      const notepadPct = 100 - clamped;
+      pdfViewWrapper.style.width = clamped + '%';
+      pdfViewWrapper.style.flex = '0 0 ' + clamped + '%';
+      notepadPane.style.width = notepadPct + '%';
+      notepadPane.style.flex = '0 0 ' + notepadPct + '%';
+      resizeGlobalCanvas();
+    });
+  }
+  resizer.addEventListener('pointerdown', startResizing);
+  window.addEventListener('pointermove', handleResizeMove);
+  window.addEventListener('pointerup', stopResizing);
+  window.addEventListener('pointercancel', stopResizing);
+  resizer.addEventListener('touchstart', startResizing, { passive: false });
+  window.addEventListener('touchmove', handleResizeMove, { passive: false });
+  window.addEventListener('touchend', stopResizing);
+  window.addEventListener('touchcancel', stopResizing);
+
+  function handleWorkspaceTouchStart(e) {
+    if (e.touches && e.touches.length === 2) {
+      isPinching = true;
+      isZoomFinalizing = false;
+      if (isDrawing) { isDrawing = false; if (activeStroke) { activeStroke = null; } }
+      const t1 = e.touches[0], t2 = e.touches[1];
+      initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      initialPinchScale = currentScale;
+      if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); zoomDebounceTimer = null; }
+      pdfContainer.style.willChange = 'transform';
+      pdfViewWrapper.style.willChange = 'width, flex-basis';
+      notepadPane.style.willChange = 'width, flex-basis';
+      notepadEditor.style.willChange = 'font-size';
+    }
+  }
+  function handleWorkspaceTouchMove(e) {
+    if (isPinching && e.touches && e.touches.length === 2) {
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const cd = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      if (initialPinchDistance > 0) {
+        const factor = cd / initialPinchDistance;
+        const newScale = Math.min(Math.max(initialPinchScale * factor, 0.5), 3.0);
+        applyZoomTransformSmooth(newScale);
+        if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+        zoomDebounceTimer = setTimeout(() => {}, 150);
+      }
+    }
+  }
+  function handleWorkspaceTouchEnd(e) {
+    if (isPinching && (!e.touches || e.touches.length < 2)) {
+      isPinching = false;
+      if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); zoomDebounceTimer = null; }
+      finalizeZoomSmooth();
+    }
+  }
+  function applyZoomTransformSmooth(newScale) {
+    const cs = Math.min(Math.max(newScale, 0.5), 3.0);
+    if (Math.abs(cs - currentScale) < 0.003) return;
+    const sf = cs / 1.35;
+    pdfContainer.style.transition = 'transform 0.05s ease-out';
+    pdfContainer.style.transform = `scale(${sf})`;
+    pdfContainer.style.transformOrigin = 'top center';
+    zoomLabel.textContent = Math.round(cs * 100) + '%';
+    const isOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+    if (isOpen) {
+      const nfs = 16 * (cs / 1.35);
+      notepadEditor.style.transition = 'font-size 0.08s ease-out';
+      notepadEditor.style.fontSize = nfs + 'px';
+      const pdfRatio = 30 + (cs - 0.5) * (50 / 2.5);
+      const cpr = Math.max(30, Math.min(80, pdfRatio));
+      const np = 100 - cpr;
+      pdfViewWrapper.style.width = cpr + '%';
+      pdfViewWrapper.style.flex = '0 0 ' + cpr + '%';
+      notepadPane.style.width = np + '%';
+      notepadPane.style.flex = '0 0 ' + np + '%';
+    } else {
+      pdfViewWrapper.style.width = '100%';
+      pdfViewWrapper.style.flex = '1 1 100%';
+    }
+    currentScale = cs;
+    redrawGlobalStrokes();
+  }
+  function finalizeZoomSmooth() {
+    if (isZoomFinalizing) return;
+    isZoomFinalizing = true;
+    pdfContainer.style.transition = 'none';
+    pdfViewWrapper.style.transition = 'none';
+    notepadPane.style.transition = 'none';
+    notepadEditor.style.transition = 'none';
+    pdfContainer.style.transform = '';
+    pdfContainer.style.transformOrigin = '';
+    pdfContainer.style.willChange = '';
+    pdfViewWrapper.style.willChange = '';
+    notepadPane.style.willChange = '';
+    notepadEditor.style.willChange = '';
+    const isOpen = notepadPane.style.display === 'flex' || getComputedStyle(notepadPane).display === 'flex';
+    if (!isOpen) { pdfViewWrapper.style.width = '100%'; pdfViewWrapper.style.flex = '1 1 100%'; }
+    document.querySelectorAll('.pdf-page-card').forEach(card => {
+      if (card.dataset.isPdfPage === 'true') {
+        card.dataset.rendered = 'false';
+        const rect = card.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 2 && rect.bottom > -window.innerHeight) renderSinglePage(card);
+      } else {
+        const dims = getStandardPageDimensions();
+        card.style.width = dims.width + 'px';
+        card.style.height = dims.height + 'px';
+        card.style.minHeight = dims.height + 'px';
+      }
+    });
+    setTimeout(() => {
+      updateAllMarkerPositions();
+      redrawGlobalStrokes();
+      resizeGlobalCanvas();
+      isZoomFinalizing = false;
+    }, 80);
+  }
+  btnZoomIn.addEventListener('click', () => {
+    applyZoomTransformSmooth(Math.min(currentScale + 0.15, 3.0));
+    setTimeout(finalizeZoomSmooth, 120);
+  });
+  btnZoomOut.addEventListener('click', () => {
+    applyZoomTransformSmooth(Math.max(currentScale - 0.15, 0.5));
+    setTimeout(finalizeZoomSmooth, 120);
+  });
+  mainWorkspace.addEventListener('touchstart', handleWorkspaceTouchStart, { passive: false });
+  mainWorkspace.addEventListener('touchmove', handleWorkspaceTouchMove, { passive: false });
+  mainWorkspace.addEventListener('touchend', handleWorkspaceTouchEnd);
+  mainWorkspace.addEventListener('touchcancel', handleWorkspaceTouchEnd);
+  mainWorkspace.addEventListener('pointerdown', (e) => {
+    activePointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointerMap.size === 2) {
+      isPinching = true;
+      isZoomFinalizing = false;
+      if (isDrawing) { isDrawing = false; if (activeStroke) activeStroke = null; }
+      const pts = Array.from(activePointerMap.values());
+      initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      initialPinchScale = currentScale;
+      if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); zoomDebounceTimer = null; }
+    }
+  });
+  mainWorkspace.addEventListener('pointermove', (e) => {
+    if (activePointerMap.has(e.pointerId)) activePointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (isPinching && activePointerMap.size === 2) {
+      const pts = Array.from(activePointerMap.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (initialPinchDistance > 0) {
+        const factor = dist / initialPinchDistance;
+        applyZoomTransformSmooth(Math.min(Math.max(initialPinchScale * factor, 0.5), 3.0));
+        if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+        zoomDebounceTimer = setTimeout(() => {}, 150);
+      }
+    }
+  });
+  const releasePointer = (e) => {
+    activePointerMap.delete(e.pointerId);
+    if (activePointerMap.size < 2 && isPinching) {
+      isPinching = false;
+      if (zoomDebounceTimer) { clearTimeout(zoomDebounceTimer); zoomDebounceTimer = null; }
+      finalizeZoomSmooth();
+    }
+  };
+  mainWorkspace.addEventListener('pointerup', releasePointer);
+  mainWorkspace.addEventListener('pointercancel', releasePointer);
+function hideBoardIfOpen() {
+  if (boardPane.style.display === 'flex') {
+    closeBoardPanel();
+  }
+}
+
+  function hideNotepad() {
+    notepadPane.style.display = 'none';
+    notepadPane.style.width = '0%';
+    notepadPane.style.flex = '0 0 0%';
+    resizer.style.display = 'none';
+    pdfViewWrapper.style.width = '100%';
+    pdfViewWrapper.style.flex = '1 1 100%';
+    btnToggleNotepad.classList.remove('active');
+    pdfContainer.style.transform = '';
+    pdfContainer.style.transformOrigin = '';
+    pdfContainer.style.transition = 'none';
+    pdfContainer.style.willChange = '';
+    resizeGlobalCanvas();
+  }
+  function showNotepad() {
+    hideBoardIfOpen();
+    notepadPane.style.display = 'flex';
+    const pdfRatio = 30 + (currentScale - 0.5) * (50 / 2.5);
+    const cpr = Math.max(30, Math.min(80, pdfRatio));
+    const np = 100 - cpr;
+    pdfViewWrapper.style.width = cpr + '%';
+    pdfViewWrapper.style.flex = '0 0 ' + cpr + '%';
+    notepadPane.style.width = np + '%';
+    notepadPane.style.flex = '0 0 ' + np + '%';
+    resizer.style.display = 'block';
+    btnToggleNotepad.classList.add('active');
+    resizeGlobalCanvas();
+    setTimeout(resizeNotepadCanvas, 100);
+  }
+  btnToggleNotepad.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = notepadPane.style.display === 'none' || getComputedStyle(notepadPane).display === 'none';
+    if (isHidden) showNotepad();
+    else hideNotepad();
+  });
+  btnCloseNotepad.addEventListener('click', (e) => { e.stopPropagation(); hideNotepad(); });
+
+  function saveCurrentNotepadPage() {
+    if (!notepadEditor) return;
+    const text = notepadEditor.textContent.trim();
+    const isEmpty = (text === '' || text === 'Type your notes here...');
+    notepadPages[currentNotepadPage].content = isEmpty ? '' : notepadEditor.innerHTML;
+    notepadPages[currentNotepadPage].scrollY = notepadEditorContainer.scrollTop || 0;
+    notepadPages[currentNotepadPage].strokes = JSON.parse(JSON.stringify(notepadStrokes));
+  }
+  function loadNotepadPage(index) {
+    if (index < 0 || index >= notepadPages.length) return;
+    if (index !== currentNotepadPage) saveCurrentNotepadPage();
+    currentNotepadPage = index;
+    const page = notepadPages[index];
+    notepadEditor.innerHTML = page.content || '';
+    notepadEditorContainer.className = page.background || 'bg-white-red-line';
+    notepadBgSelect.value = page.background || 'bg-white-red-line';
+    requestAnimationFrame(() => {
+      notepadEditorContainer.scrollTop = page.scrollY || 0;
+      notepadStrokes = page.strokes ? JSON.parse(JSON.stringify(page.strokes)) : [];
+      resizeNotepadCanvas();
+      updateNotepadNavUI();
+      updateAllMarkerPositions();
+      redrawGlobalStrokes();
+    });
+  }
+  function addNewNotepadPage() {
+    saveCurrentNotepadPage();
+    const currentBg = notepadPages[currentNotepadPage].background || 'bg-white-red-line';
+    notepadPages.push({ content: '', background: currentBg, scrollY: 0, strokes: [] });
+    loadNotepadPage(notepadPages.length - 1);
+    updateNotepadNavUI();
+    updateModeStatus('📄 New notepad page added');
+  }
+  function prevNotepadPage() { if (currentNotepadPage > 0) loadNotepadPage(currentNotepadPage - 1); }
+  function nextNotepadPage() { if (currentNotepadPage < notepadPages.length - 1) loadNotepadPage(currentNotepadPage + 1); }
+  function updateNotepadNavUI() {
+    const label = document.getElementById('notepad-page-label');
+    if (label) label.textContent = 'Notepad ' + (currentNotepadPage + 1) + '/' + notepadPages.length;
+    const prevBtn = document.getElementById('btn-notepad-prev');
+    const nextBtn = document.getElementById('btn-notepad-next');
+    if (prevBtn) prevBtn.disabled = (currentNotepadPage === 0);
+    if (nextBtn) nextBtn.disabled = (currentNotepadPage === notepadPages.length - 1);
+  }
+  document.getElementById('btn-notepad-prev').addEventListener('click', prevNotepadPage);
+  document.getElementById('btn-notepad-next').addEventListener('click', nextNotepadPage);
+  document.getElementById('btn-notepad-new').addEventListener('click', addNewNotepadPage);
+  notepadEditor.addEventListener('blur', function() { saveCurrentNotepadPage(); });
+  notepadBgSelect.addEventListener('change', function(e) {
+    notepadPages[currentNotepadPage].background = e.target.value;
+    notepadEditorContainer.className = e.target.value;
+  });
+
+  function initNotepadCanvas() {
+    notepadCanvas = document.getElementById('notepad-draw-canvas');
+    if (!notepadCanvas) return;
+    notepadCtx = notepadCanvas.getContext('2d');
+    resizeNotepadCanvas();
+  }
+  function resizeNotepadCanvas() {
+    if (!notepadCanvas || !notepadEditor) return;
+    const container = notepadEditorContainer;
+    const w = container.clientWidth;
+    const h = Math.max(container.clientHeight, notepadEditor.scrollHeight);
+    notepadCanvas.width = w;
+    notepadCanvas.height = h;
+    notepadCanvas.style.width = w + 'px';
+    notepadCanvas.style.height = h + 'px';
+    redrawNotepadCanvas();
+  }
+  function redrawNotepadCanvas() {
+    if (!notepadCtx || !notepadCanvas) return;
+    notepadCtx.clearRect(0, 0, notepadCanvas.width, notepadCanvas.height);
+    notepadStrokes.forEach(stroke => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      notepadCtx.save();
+      notepadCtx.beginPath();
+      notepadCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) notepadCtx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      if (stroke.tool === 'pen') {
+        notepadCtx.globalCompositeOperation = 'source-over';
+        notepadCtx.strokeStyle = stroke.color || '#1e293b';
+        notepadCtx.lineWidth = stroke.width || 2;
+        notepadCtx.lineCap = 'round';
+        notepadCtx.lineJoin = 'round';
+      } else if (stroke.tool === 'eraser') {
+        notepadCtx.globalCompositeOperation = 'destination-out';
+        notepadCtx.lineWidth = (stroke.width || 2) * 6;
+        notepadCtx.lineCap = 'round';
+        notepadCtx.lineJoin = 'round';
+      }
+      notepadCtx.stroke();
+      notepadCtx.restore();
+    });
+  }
+  function setNotepadTool(tool) {
+    notepadTool = tool;
+    document.querySelectorAll('.notepad-tool-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.notepadTool === tool);
+    });
+    if (!notepadCanvas) return;
+    notepadCanvas.classList.toggle('pen-active', tool === 'pen');
+    notepadCanvas.classList.toggle('eraser-active', tool === 'eraser');
+    updateModeStatus(tool === 'pen' ? '✏️ Note Pen' : tool === 'eraser' ? '🧹 Notepad Eraser' : '🖐️ Move/Select');
+  }
+  function startNotepadStroke(e) {
+    if (notepadTool === 'move') return;
+    if (!notepadCanvas) return;
+    e.preventDefault();
+    const rect = notepadCanvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = cx - rect.left;
+    const y = cy - rect.top;
+    isNotepadDrawing = true;
+    activeNotepadStroke = { id: Date.now() + '_' + Math.random().toString(36).substr(2, 6), tool: notepadTool, color: penColor || '#1e293b', width: strokeWidth || 2, points: [{ x, y }] };
+    notepadStrokes.push(activeNotepadStroke);
+  }
+  function drawNotepadStroke(e) {
+    if (!isNotepadDrawing || !activeNotepadStroke || !notepadCtx) return;
+    e.preventDefault();
+    const rect = notepadCanvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = cx - rect.left;
+    const y = cy - rect.top;
+    activeNotepadStroke.points.push({ x, y });
+    const pts = activeNotepadStroke.points;
+    const last = pts[pts.length - 2];
+    notepadCtx.save();
+    notepadCtx.beginPath();
+    notepadCtx.moveTo(last.x, last.y);
+    notepadCtx.lineTo(x, y);
+    if (activeNotepadStroke.tool === 'pen') {
+      notepadCtx.globalCompositeOperation = 'source-over';
+      notepadCtx.strokeStyle = activeNotepadStroke.color;
+      notepadCtx.lineWidth = activeNotepadStroke.width;
+      notepadCtx.lineCap = 'round';
+      notepadCtx.lineJoin = 'round';
+    } else if (activeNotepadStroke.tool === 'eraser') {
+      notepadCtx.globalCompositeOperation = 'destination-out';
+      notepadCtx.lineWidth = activeNotepadStroke.width * 6;
+      notepadCtx.lineCap = 'round';
+      notepadCtx.lineJoin = 'round';
+    }
+    notepadCtx.stroke();
+    notepadCtx.restore();
+  }
+  function stopNotepadStroke(e) {
+    if (!isNotepadDrawing) return;
+    isNotepadDrawing = false;
+    activeNotepadStroke = null;
+  }
+  initNotepadCanvas();
+  document.querySelectorAll('.notepad-tool-btn').forEach(btn => {
+    btn.addEventListener('click', function() { setNotepadTool(this.dataset.notepadTool); });
+  });
+  if (notepadCanvas) {
+    notepadCanvas.addEventListener('pointerdown', startNotepadStroke);
+    notepadCanvas.addEventListener('pointermove', drawNotepadStroke);
+    notepadCanvas.addEventListener('pointerup', stopNotepadStroke);
+    notepadCanvas.addEventListener('pointercancel', stopNotepadStroke);
+    notepadCanvas.addEventListener('pointerleave', stopNotepadStroke);
+    notepadCanvas.addEventListener('touchstart', startNotepadStroke, { passive: false });
+    notepadCanvas.addEventListener('touchmove', drawNotepadStroke, { passive: false });
+    notepadCanvas.addEventListener('touchend', stopNotepadStroke);
+    notepadCanvas.addEventListener('touchcancel', stopNotepadStroke);
+  }
+
+  let scaleBeforeDoublePage = 1.35;
+  btnDoublePage.addEventListener('click', function() {
+    doublePageMode = !doublePageMode;
+    if (doublePageMode) {
+      scaleBeforeDoublePage = currentScale;
+      pdfContainer.classList.add('double-page-mode');
+      pdfContainer.style.display = 'flex';
+      pdfContainer.style.flexDirection = 'row';
+      pdfContainer.style.flexWrap = 'wrap';
+      pdfContainer.style.justifyContent = 'center';
+      pdfContainer.style.alignItems = 'flex-start';
+      pdfContainer.style.gap = '20px';
+      pdfContainer.style.width = '100%';
+      const ww = pdfViewWrapper.clientWidth || pdfViewWrapper.offsetWidth || window.innerWidth;
+      const avail = Math.floor((ww - 60) / 2);
+      const newScale = avail / 612;
+      currentScale = Math.max(0.15, Math.min(1.5, newScale));
+    } else {
+      pdfContainer.classList.remove('double-page-mode');
+      pdfContainer.style.flexDirection = 'column';
+      pdfContainer.style.flexWrap = 'nowrap';
+      pdfContainer.style.justifyContent = 'flex-start';
+      pdfContainer.style.alignItems = 'center';
+      pdfContainer.style.gap = '28px';
+      currentScale = scaleBeforeDoublePage;
+    }
+    this.classList.toggle('active', doublePageMode);
+    zoomLabel.textContent = Math.round(currentScale * 100) + '%';
+    document.querySelectorAll('.pdf-page-card').forEach(card => {
+      if (card.dataset.isPdfPage === 'true') { card.dataset.rendered = 'false'; card.dataset.rendering = 'false'; }
+    });
+    void pdfContainer.offsetWidth;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.pdf-page-card').forEach(card => {
+          if (card.dataset.isPdfPage === 'true') {
+            const rect = card.getBoundingClientRect();
+            if (rect.top < window.innerHeight * 3 && rect.bottom > -window.innerHeight) renderSinglePage(card);
+          }
+        });
+        setTimeout(() => { updateAllMarkerPositions(); redrawGlobalStrokes(); resizeGlobalCanvas(); }, 200);
+      });
+    });
+  });
+
+  function updateDocSummaryLabel() {
+    if (loadedDocs.length === 0) {
+      docInfo.textContent = totalPages > 0 ? `Custom Workspace (${totalPages} ${totalPages===1?'page':'pages'})` : 'No file selected';
+    } else if (loadedDocs.length === 1) {
+      docInfo.textContent = `${loadedDocs[0].fileName} (${totalPages} ${totalPages===1?'page':'pages'})`;
+    } else {
+      docInfo.textContent = `${loadedDocs.length} Cases (${totalPages} pages total)`;
+    }
+  }
+
+  function updateAllPageIndicators() {
+    const cards = pdfContainer.querySelectorAll('.pdf-page-card');
+    totalPages = cards.length;
+    cards.forEach((card, index) => {
+      const gpn = index + 1;
+      card.dataset.pageNum = gpn;
+      const indicator = card.querySelector('.page-number-indicator');
+      if (indicator) {
+        const docIndex = parseInt(card.dataset.docIndex, 10);
+        const ipn = parseInt(card.dataset.internalPageNum, 10);
+        const de = loadedDocs[docIndex];
+        if (de && !isNaN(ipn)) {
+          if (loadedDocs.length > 1) indicator.textContent = `DOC ${docIndex + 1} • PAGE ${ipn} OF ${de.numPages}`;
+          else indicator.textContent = `PAGE ${ipn} OF ${de.numPages}`;
+        } else {
+          indicator.textContent = `PAGE ${gpn} OF ${totalPages}`;
+        }
+      }
+    });
+  }
+
+  function getCurrentlyActivePageNode() {
+    const cards = Array.from(pdfContainer.querySelectorAll('.pdf-page-card'));
+    if (!cards.length) return null;
+    const wr = pdfViewWrapper.getBoundingClientRect();
+    const wc = wr.top + wr.height / 2;
+    let closest = cards[0], minDist = Infinity;
+    cards.forEach(card => {
+      const r = card.getBoundingClientRect();
+      const c = r.top + r.height/2;
+      const d = Math.abs(c - wc);
+      if (d < minDist) { minDist = d; closest = card; }
+    });
+    return closest;
+  }
+
+  function initIntersectionObserver() {
+    if (intersectionObserver) intersectionObserver.disconnect();
+    intersectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const pc = entry.target;
+          if (pc.dataset.isPdfPage === 'true' && pc.dataset.rendered !== 'true') renderSinglePage(pc);
+        }
+      });
+    }, { root: pdfViewWrapper, rootMargin: '600px 0px', threshold: 0.01 });
+  }
+
+  function appendPageCardsForRange(docIndex, start, end) {
+    if (!intersectionObserver) initIntersectionObserver();
+    for (let i = start; i <= end; i++) {
+      const pc = document.createElement('div');
+      pc.className = 'pdf-page-card';
+      pc.dataset.docIndex = docIndex;
+      pc.dataset.internalPageNum = i;
+      pc.dataset.isPdfPage = 'true';
+      pc.style.minHeight = '850px';
+      const indicator = document.createElement('div');
+      indicator.className = 'page-number-indicator';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'canvas-wrapper';
+      const cv = document.createElement('canvas');
+      cv.className = 'pdf-canvas';
+      wrapper.appendChild(cv);
+      pc.appendChild(indicator);
+      pc.appendChild(wrapper);
+      pdfContainer.appendChild(pc);
+      intersectionObserver.observe(pc);
+    }
+    updateAllPageIndicators();
+    redrawGlobalStrokes();
+  }
+
+  function renderSinglePage(pageCard) {
+    if (pageCard.dataset.isPdfPage !== 'true' || pageCard.dataset.rendering === 'true') return;
+    const docIndex = parseInt(pageCard.dataset.docIndex, 10);
+    const pageNum = parseInt(pageCard.dataset.internalPageNum, 10);
+    const de = loadedDocs[docIndex];
+    if (!de || !de.pdfDoc) return;
+    pageCard.dataset.rendering = 'true';
+    de.pdfDoc.getPage(pageNum).then(page => {
+      const viewport = page.getViewport({ scale: currentScale });
+      const cv = pageCard.querySelector('.pdf-canvas');
+      const wrapper = pageCard.querySelector('.canvas-wrapper');
+      const ctx = cv.getContext('2d');
+      cv.width = viewport.width;
+      cv.height = viewport.height;
+      wrapper.style.width = viewport.width + 'px';
+      wrapper.style.height = viewport.height + 'px';
+      pageCard.style.width = viewport.width + 'px';
+      pageCard.style.height = viewport.height + 'px';
+      pageCard.style.minHeight = viewport.height + 'px';
+      page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+        pageCard.dataset.rendered = 'true';
+        pageCard.dataset.rendering = 'false';
+        redrawGlobalStrokes();
+        linkData.forEach(link => {
+          if (link.sourceType === 'pdf' && link.sourcePageNum === parseInt(pageCard.dataset.pageNum,10)) {
+            let cx = link.sourceX, cy = link.sourceY;
+            if (link.sourceBounds) { cx = (link.sourceBounds.x1+link.sourceBounds.x2)/2; cy = (link.sourceBounds.y1+link.sourceBounds.y2)/2; }
+            insertPdfMarker(link.id, cx, cy, link.sourcePageNum, link.type);
+          }
+          if (link.targetType === 'pdf' && link.targetPageNum === parseInt(pageCard.dataset.pageNum,10)) {
+            let cx = link.targetX, cy = link.targetY;
+            if (link.targetBounds) { cx = (link.targetBounds.x1+link.targetBounds.x2)/2; cy = (link.targetBounds.y1+link.targetBounds.y2)/2; }
+            insertPdfMarker(link.id, cx, cy, link.targetPageNum, link.type);
+          }
+        });
+      }).catch(() => { pageCard.dataset.rendering = 'false'; });
+    }).catch(() => { pageCard.dataset.rendering = 'false'; });
+  }
+
+  function getStandardPageDimensions() {
+    const existing = pdfContainer.querySelector('.pdf-page-card');
+    if (existing && existing.offsetWidth > 0) return { width: existing.offsetWidth, height: existing.offsetHeight || Math.round(existing.offsetWidth * 1.3) };
+    return { width: Math.round(612 * currentScale), height: Math.round(792 * currentScale) };
+  }
+
+  function createPageTextLayer() {
+    const tl = document.createElement('div');
+    tl.className = 'page-text-layer';
+    tl.contentEditable = 'true';
+    tl.setAttribute('spellcheck', 'false');
+    tl.setAttribute('placeholder', 'Tap here to type notes...');
+    return tl;
+  }
+
+  function insertPageCardInPlace(pageCard) {
+    const active = getCurrentlyActivePageNode();
+    if (active && active.parentNode === pdfContainer) active.insertAdjacentElement('afterend', pageCard);
+    else pdfContainer.appendChild(pageCard);
+    updateAllPageIndicators();
+    updateDocSummaryLabel();
+    closeModal();
+    redrawGlobalStrokes();
+    const wr = pdfViewWrapper.getBoundingClientRect();
+    const cr = pageCard.getBoundingClientRect();
+    pdfViewWrapper.scrollTo({ top: pdfViewWrapper.scrollTop + (cr.top - wr.top), behavior: 'smooth' });
+  }
+
+  btnAddPage.addEventListener('click', () => { addPageModal.style.display = 'flex'; });
+  function closeModal() { addPageModal.style.display = 'none'; }
+  btnCloseModal.addEventListener('click', closeModal);
+  addPageModal.addEventListener('click', (e) => { if (e.target === addPageModal) closeModal(); });
+  btnTriggerCamera.addEventListener('click', () => { cameraOnlyInput.value = ''; cameraOnlyInput.click(); });
+  btnTriggerGallery.addEventListener('click', () => { galleryOnlyInput.value = ''; galleryOnlyInput.click(); });
+
+  function handleImageFileImport(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        if (emptyState) emptyState.style.display = 'none';
+        const dims = getStandardPageDimensions();
+        const pc = document.createElement('div');
+        pc.className = 'pdf-page-card';
+        pc.dataset.rendered = 'true';
+        pc.style.width = dims.width + 'px';
+        pc.style.height = dims.height + 'px';
+        pc.style.minHeight = dims.height + 'px';
+        const ind = document.createElement('div');
+        ind.className = 'page-number-indicator';
+        const w = document.createElement('div');
+        w.className = 'canvas-wrapper';
+        w.style.width = '100%'; w.style.height = '100%';
+        w.style.display = 'flex'; w.style.alignItems = 'center'; w.style.justifyContent = 'center';
+        w.style.overflow = 'hidden';
+        const ie = document.createElement('img');
+        ie.src = event.target.result;
+        ie.style.maxWidth = '100%';
+        ie.style.maxHeight = '100%';
+        ie.style.objectFit = 'contain';
+        const tl = createPageTextLayer();
+        w.appendChild(ie);
+        w.appendChild(tl);
+        pc.appendChild(ind);
+        pc.appendChild(w);
+        insertPageCardInPlace(pc);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  cameraOnlyInput.addEventListener('change', (e) => handleImageFileImport(e.target.files[0]));
+  galleryOnlyInput.addEventListener('change', (e) => handleImageFileImport(e.target.files[0]));
+
+  document.querySelectorAll('.template-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tt = btn.dataset.template;
+      if (!tt) return;
+      if (emptyState) emptyState.style.display = 'none';
+      const dims = getStandardPageDimensions();
+      const pc = document.createElement('div');
+      pc.className = 'pdf-page-card';
+      pc.dataset.rendered = 'true';
+      pc.style.width = dims.width + 'px';
+      pc.style.height = dims.height + 'px';
+      pc.style.minHeight = dims.height + 'px';
+      const ind = document.createElement('div');
+      ind.className = 'page-number-indicator';
+      const w = document.createElement('div');
+      w.className = `canvas-wrapper page-template-${tt}`;
+      w.style.width = '100%'; w.style.height = '100%';
+      const tl = createPageTextLayer();
+      w.appendChild(tl);
+      pc.appendChild(ind);
+      pc.appendChild(w);
+      insertPageCardInPlace(pc);
+    });
+  });
+
+  btnOpenPdf.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const safeBuffer = event.target.result.slice(0);
+        pdfjsLib.getDocument({ data: safeBuffer }).promise.then(function(pdf) {
+          loadedDocs = [];
+          totalPages = 0;
+          globalStrokes = [];
+          linkData = [];
+          linkIdCounter = 0;
+          notepadEditor.innerHTML = '';
+          loadedDocs.push({ pdfDoc: pdf, fileName: file.name, numPages: pdf.numPages });
+          hideNotepad();
+          setTool('select');
+          modeSelect.value = 'pointer';
+          setToolMode('pointer');
+          if (emptyState) emptyState.style.display = 'none';
+          pdfContainer.innerHTML = '';
+          pdfContainer.style.transform = '';
+          pdfContainer.style.transformOrigin = '';
+          pdfContainer.style.willChange = '';
+          initIntersectionObserver();
+          appendPageCardsForRange(0, 1, pdf.numPages);
+          const first = pdfContainer.querySelector('.pdf-page-card');
+          if (first) renderSinglePage(first);
+          updateDocSummaryLabel();
+          resizeGlobalCanvas();
+          notepadPages = [{ content: '', background: 'bg-white-red-line', scrollY: 0, strokes: [] }];
+          currentNotepadPage = 0;
+          notepadStrokes = [];
+          notepadBgSelect.value = 'bg-white-red-line';
+          notepadEditorContainer.className = 'bg-white-red-line';
+          updateNotepadNavUI();
+          resizeNotepadCanvas();
+        }).catch(() => alert('Failed to parse PDF.'));
+      } catch (err) {}
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  btnCasePlus.addEventListener('click', function() {
+  populateCaseForm();
+  document.getElementById('case-setup-modal').style.display = 'flex';
+});
+document.getElementById('btn-case-modal-close').addEventListener('click', closeCaseModal);
+document.getElementById('btn-case-cancel').addEventListener('click', closeCaseModal);
+document.getElementById('btn-case-save-record').addEventListener('click', function() {
+  saveCurrentCaseToLibrary();
+  closeCaseModal();
+  updateModeStatus('✅ Case saved to library');
+  casePlusInput.value = '';
+  casePlusInput.click();
+});
+  casePlusInput.addEventListener('change', async function(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    for (let file of files) {
+      try {
+        const buffer = await file.arrayBuffer();
+        // Check storage before saving
+        if (currentCaseId && buffer) {
+          const sizeBytes = buffer.byteLength || buffer.size || 0;
+          const check = await checkStorageAvailable(sizeBytes);
+          if (!check.ok) {
+            await showStorageAlert(check);
+            continue;
+          }
+          try { await _pdfDB.savePDF(currentCaseId, buffer.slice(0)); }
+          catch(err) {
+            console.warn('PDF save failed', err);
+            await showStorageAlert({ available: 0, quota: 0, usage: 0, percentUsed: 100 });
+            continue;
+          }
+        }
+        const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+        const docIndex = loadedDocs.length;
+        const numPages = pdf.numPages;
+        loadedDocs.push({ pdfDoc: pdf, fileName: file.name, numPages });
+        if (emptyState) emptyState.style.display = 'none';
+        appendPageCardsForRange(docIndex, 1, numPages);
+        const newly = pdfContainer.querySelector(`[data-doc-index="${docIndex}"][data-internal-page-num="1"]`);
+        if (newly) renderSinglePage(newly);
+      } catch (err) {}
+    }
+    updateDocSummaryLabel();
+    resizeGlobalCanvas();
+  });
+
+  btnClearPage.addEventListener('click', function() {
+    const active = getCurrentlyActivePageNode();
+    if (!active) return;
+    const pNum = parseInt(active.dataset.pageNum, 10);
+    const toRemove = globalStrokes.filter(s => s.container === 'pdf' && s.pageNum === pNum);
+    toRemove.forEach(s => {
+      const ids = [];
+      linkData.forEach(l => {
+        if ((l.sourceType === 'pdf' && l.sourcePageNum === pNum) || (l.targetType === 'pdf' && l.targetPageNum === pNum)) ids.push(l.id);
+      });
+      linkData = linkData.filter(l => !ids.includes(l.id));
+    });
+    globalStrokes = globalStrokes.filter(s => !(s.container === 'pdf' && s.pageNum === pNum));
+    const linkIds = [];
+    linkData.forEach(l => {
+      if ((l.sourceType === 'pdf' && l.sourcePageNum === pNum) || (l.targetType === 'pdf' && l.targetPageNum === pNum)) linkIds.push(l.id);
+    });
+    notepadEditor.querySelectorAll('[data-link-id]').forEach(el => {
+      const id = parseInt(el.dataset.linkId, 10);
+      if (linkIds.includes(id)) el.remove();
+    });
+    document.querySelectorAll('.pdf-link-marker').forEach(m => {
+      const id = parseInt(m.dataset.linkId, 10);
+      if (linkIds.includes(id)) m.remove();
+    });
+    redrawGlobalStrokes();
+  });
+
+  function resizeGlobalCanvas() {
+    const rect = mainWorkspace.getBoundingClientRect();
+    globalCanvas.width = rect.width;
+    globalCanvas.height = rect.height;
+    redrawGlobalStrokes();
+  }
+
+  btnExportPdf.addEventListener('click', () => {
+  if (totalPages === 0) { alert('Please open a PDF document or insert a page first.'); return; }
+  readCaseForm();
+  saveCaseDataToStorage();
+  updateCaseInfoBar();
+  const headerHeight = caseData.caseName ? 72 : 0;
+  const tc = document.createElement('canvas');
+  tc.width = mainWorkspace.clientWidth;
+  tc.height = mainWorkspace.clientHeight + headerHeight;
+  const ctx = tc.getContext('2d');
+  if (headerHeight > 0) {
+    ctx.fillStyle = '#eff6ff';
+    ctx.fillRect(0, 0, tc.width, headerHeight);
+    ctx.strokeStyle = '#bfdbfe';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, headerHeight - 1);
+    ctx.lineTo(tc.width, headerHeight - 1);
+    ctx.stroke();
+    ctx.fillStyle = '#1e40af';
+    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(caseData.caseName || 'Untitled Case', 20, 30);
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+    const meta = [
+      caseData.caseNumber,
+      caseData.courtName,
+      caseData.hearingDate ? '📅 ' + caseData.hearingDate + (caseData.hearingTime ? ' ' + caseData.hearingTime : '') : '',
+      caseData.judgeName ? 'Judge: ' + caseData.judgeName : '',
+      caseData.clientName ? 'Client: ' + caseData.clientName : ''
+    ].filter(Boolean).join('   •   ');
+    if (meta) ctx.fillText(meta, 20, 54);
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, headerHeight, tc.width, mainWorkspace.clientHeight);
+  redrawGlobalStrokes();
+  ctx.drawImage(globalCanvas, 0, headerHeight);
+  const safeName = (caseData.caseName || 'annotated-workspace')
+    .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_').substring(0, 50);
+  const link = document.createElement('a');
+  link.download = safeName + '_' + new Date().toISOString().slice(0,10) + '.png';
+  link.href = tc.toDataURL('image/png');
+  link.click();
+});
+
+  pdfViewWrapper.addEventListener('scroll', redrawGlobalStrokes);
+  notepadEditorContainer.addEventListener('scroll', redrawGlobalStrokes);
+  window.addEventListener('resize', () => { resizeGlobalCanvas(); resizeNotepadCanvas(); });
+
+  hideNotepad();
+  setTool('select');
+  modeSelect.value = 'pointer';
+  setToolMode('pointer');
+  resizeGlobalCanvas();
+  if (loadedDocs.length === 0) emptyState.style.display = 'flex';
+  notepadEditor.addEventListener('focus', function() {
+    if (this.textContent.trim() === 'Type your notes here...') this.textContent = '';
+  });
+  notepadEditor.addEventListener('blur', function() {
+    if (this.textContent.trim() === '') this.textContent = 'Type your notes here...';
+  });
+  if (notepadEditor.textContent.trim() === '') notepadEditor.textContent = 'Type your notes here...';
+  updateNotepadNavUI();
+  setNotepadTool('move');
+  setTimeout(() => { initNotepadCanvas(); }, 200);
+loadCaseDataFromStorage();
+updateCaseInfoBar();
+
+ console.log('✅ All features loaded successfully');
+ 
+// ================================================================
+// BOARD EVENT LISTENERS + INIT
+// ================================================================
+const boardPane = document.getElementById('board-pane');
+const btnToggleBoard = document.getElementById('btn-toggle-board');
+const btnCloseBoard = document.getElementById('btn-close-board');
+
+loadBoardFromStorage();
+initBoardCanvas();
+
+btnToggleBoard.addEventListener('click', function(e) {
+  e.stopPropagation();
+  const isHidden = boardPane.style.display === 'none' || getComputedStyle(boardPane).display === 'none';
+  if (isHidden) openBoardPanel();
+  else closeBoardPanel();
+});
+btnCloseBoard.addEventListener('click', function(e) {
+  e.stopPropagation();
+  closeBoardPanel();
+});
+document.querySelectorAll('.board-tool-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    setBoardTool(this.dataset.boardTool);
+  });
+});
+if (boardCanvas) {
+  boardCanvas.addEventListener('pointerdown', startBoardStroke);
+  boardCanvas.addEventListener('pointermove', drawBoardStroke);
+  boardCanvas.addEventListener('pointerup', stopBoardStroke);
+  boardCanvas.addEventListener('pointercancel', stopBoardStroke);
+  boardCanvas.addEventListener('pointerleave', stopBoardStroke);
+  boardCanvas.addEventListener('touchstart', startBoardStroke, { passive: false });
+  boardCanvas.addEventListener('touchmove', drawBoardStroke, { passive: false });
+  boardCanvas.addEventListener('touchend', stopBoardStroke);
+  boardCanvas.addEventListener('touchcancel', stopBoardStroke);
+}
+document.querySelectorAll('.board-cat-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    boardFilter = this.dataset.cat;
+    document.querySelectorAll('.board-cat-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    renderBoardCards();
+  });
+});
+document.getElementById('btn-add-board-card').addEventListener('click', function() {
+  openBoardCardModal(null);
+});
+document.getElementById('btn-close-board-card-modal').addEventListener('click', closeBoardCardModal);
+document.getElementById('btn-cancel-board-card').addEventListener('click', closeBoardCardModal);
+document.getElementById('btn-save-board-card').addEventListener('click', saveBoardCard);
+document.getElementById('board-card-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeBoardCardModal();
+});
+renderBoardCards();
+setBoardTool('pointer');
+
+// ================================================================
+// CASES PANEL EVENT LISTENERS
+// ================================================================
+loadCasesLibrary();
+var btnCasesListInit = document.getElementById('btn-cases-list');
+if (btnCasesListInit) btnCasesListInit.addEventListener('click', openCasesPanel);
+var btnCasesCloseInit = document.getElementById('btn-cases-close');
+if (btnCasesCloseInit) btnCasesCloseInit.addEventListener('click', closeCasesPanel);
+var casesBackdropInit = document.getElementById('cases-backdrop');
+if (casesBackdropInit) casesBackdropInit.addEventListener('click', closeCasesPanel);
+var casesSearchInit = document.getElementById('cases-search');
+if (casesSearchInit) casesSearchInit.addEventListener('input', renderCasesList);
+document.querySelectorAll('.cases-filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    casesFilter = this.dataset.filter;
+    document.querySelectorAll('.cases-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    renderCasesList();
+  });
+});
+renderCasesList();
+
+ 
+// ================================================================
+// FINAL OVERRIDE — rebind buttons after all original code
+// ================================================================
+setTimeout(function() {
+  // --- Cases Button ---
+  var casesBtn = document.getElementById('btn-cases-list');
+  if (casesBtn) {
+    var newCasesBtn = casesBtn.cloneNode(true);
+    casesBtn.parentNode.replaceChild(newCasesBtn, casesBtn);
+    newCasesBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      openCasesPanel();
+    });
+    console.log('✅ Cases button rebound');
+  }
+  // --- Case+ Button ---
+  var casePlusBtn = document.getElementById('btn-case-plus');
+  if (casePlusBtn) {
+    var newCasePlusBtn = casePlusBtn.cloneNode(true);
+    casePlusBtn.parentNode.replaceChild(newCasePlusBtn, casePlusBtn);
+    newCasePlusBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      populateCaseForm();
+      document.getElementById('case-setup-modal').style.display = 'flex';
+    });
+    console.log('✅ Case+ button rebound');
+  }
+}, 500);
+
+// ================================================================
+// बदलाव 4 — LINK TOOL BUTTONS
+// ================================================================
+function setActiveToolButton(id) {
+  document.querySelectorAll('.tool-group .btn-tool').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(id);
+  if (btn) btn.classList.add('active');
+}
+
+const _linkBtnMap = { 'tool-line': 'line', 'tool-underline': 'underline', 'tool-hl-link': 'highlight', 'tool-scan': 'scan', 'tool-linkpoint': 'linkpoint' };
+Object.keys(_linkBtnMap).forEach(function(id) {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener('click', function() {
+    setActiveToolButton(id);
+    setToolMode(_linkBtnMap[id]);
+    const labels = { 'line': '📏 Line Link', 'underline': '⏺️ Underline Link', 'highlight': '🖍️ Highlight Link', 'scan': '📷 Scan Link', 'linkpoint': '🔗 Link Point' };
+    updateModeStatus(labels[_linkBtnMap[id]] || '');
+  });
+});
+
+// ================================================================
+// बदलाव 5 — LASER TOOL (Red Pen)
+// ================================================================
+const _laserBtn = document.getElementById('tool-laser');
+if (_laserBtn) _laserBtn.addEventListener('click', function() {
+  activeToolMode = 'laser';
+  currentTool = 'laser';
+  setActiveToolButton('tool-laser');
+  globalCanvas.style.pointerEvents = 'auto';
+  globalCanvas.style.cursor = 'crosshair';
+  document.querySelectorAll('.page-text-layer').forEach(el => { el.classList.add('block-events'); el.style.pointerEvents = 'none'; });
+  updateModeStatus('🔴 Laser pointer — fades in 1.5s');
+});
+
+// --- Classic buttons active-state sync ---
+['tool-select', 'tool-pen', 'tool-highlighter', 'tool-eraser'].forEach(function(id) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    setActiveToolButton(id);
+  });
+});
+
+// ================================================================
+// बदलाव 6 — UNDO / REDO / DELETE LAST
+// ================================================================
+let redoStack = [];
+
+function getActiveStrokeArray() {
+  const boardEl = document.getElementById('board-pane');
+  if (boardEl && boardEl.style.display === 'flex') return boardStrokes;
+  const notepadEl = document.getElementById('notepad-pane');
+  if (notepadEl && notepadEl.style.display !== 'none' && notepadEl.style.display !== '') return notepadStrokes;
+  return globalStrokes;
+}
+
+function redrawActiveCanvas() {
+  const boardEl = document.getElementById('board-pane');
+  if (boardEl && boardEl.style.display === 'flex') {
+    if (typeof redrawBoardCanvas === 'function') redrawBoardCanvas();
+    if (typeof saveBoardToStorage === 'function') saveBoardToStorage();
+    return;
+  }
+  const notepadEl = document.getElementById('notepad-pane');
+  if (notepadEl && notepadEl.style.display !== 'none' && notepadEl.style.display !== '') {
+    if (typeof redrawNotepadCanvas === 'function') redrawNotepadCanvas();
+    return;
+  }
+  redrawGlobalStrokes();
+}
+
+function updateUndoRedoButtons() {
+  const arr = getActiveStrokeArray();
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  const d = document.getElementById('btn-delete-last');
+  if (u) u.disabled = (arr.length === 0);
+  if (r) r.disabled = (redoStack.length === 0);
+  if (d) d.disabled = (arr.length === 0);
+}
+
+const _undoBtn = document.getElementById('btn-undo');
+if (_undoBtn) _undoBtn.addEventListener('click', function() {
+  const arr = getActiveStrokeArray();
+  if (!arr.length) return;
+  redoStack.push(arr.pop());
+  redrawActiveCanvas();
+  updateUndoRedoButtons();
+  updateModeStatus('↩️ Undo');
+});
+
+const _redoBtn = document.getElementById('btn-redo');
+if (_redoBtn) _redoBtn.addEventListener('click', function() {
+  const arr = getActiveStrokeArray();
+  if (!redoStack.length) return;
+  arr.push(redoStack.pop());
+  redrawActiveCanvas();
+  updateUndoRedoButtons();
+  updateModeStatus('↪️ Redo');
+});
+
+const _delBtn = document.getElementById('btn-delete-last');
+if (_delBtn) _delBtn.addEventListener('click', function() {
+  const arr = getActiveStrokeArray();
+  if (!arr.length) return;
+  arr.pop();
+  redoStack = [];
+  redrawActiveCanvas();
+  updateUndoRedoButtons();
+  updateModeStatus('🗑️ Deleted last stroke');
+});
+
+setInterval(updateUndoRedoButtons, 500);
+
+// ================================================================
+// SCAN TO PAN — Button Handler
+// ================================================================
+const _scanPanBtn = document.getElementById('tool-scan-pan');
+if (_scanPanBtn) {
+  _scanPanBtn.addEventListener('click', function() {
+    if (activeToolMode === 'scan-pan') {
+      activeToolMode = 'pointer';
+      setActiveToolButton('tool-select');
+      globalCanvas.style.pointerEvents = 'none';
+      updateModeStatus('🖱️ Pointer mode');
+      return;
+    }
+    if (typeof setTypeTextMode === 'function') setTypeTextMode(false);
+    if (typeof cancelPendingLink === 'function') cancelPendingLink();
+    activeToolMode = 'scan-pan';
+    currentTool = 'scan-pan';
+    setActiveToolButton('tool-scan-pan');
+    globalCanvas.style.pointerEvents = 'auto';
+    globalCanvas.style.cursor = 'crosshair';
+    document.querySelectorAll('.page-text-layer').forEach(el => {
+      el.classList.add('block-events');
+      el.style.pointerEvents = 'none';
+    });
+    updateModeStatus('✏️ Pan mode — draw around the image');
+  });
+}
+
+// ================================================================
+// SELECT & TYPE — Event Listeners
+// ================================================================
+const _typeTextBtn = document.getElementById('tool-type-text');
+if (_typeTextBtn) {
+  _typeTextBtn.addEventListener('click', function() {
+    if (isTypeTextActive) setTypeTextMode(false);
+    else setTypeTextMode(true);
+  });
+}
+
+document.addEventListener('click', onPdfClickForType, true);
+document.addEventListener('touchstart', onPdfClickForType, { passive: false, capture: true });
+
+const _typeApplyBtn = document.getElementById('type-apply-btn');
+if (_typeApplyBtn) _typeApplyBtn.addEventListener('click', applyTypeText);
+
+const _typeCancelBtn = document.getElementById('type-cancel-btn');
+if (_typeCancelBtn) _typeCancelBtn.addEventListener('click', function() {
+  hideTypeInput();
+  updateModeStatus('Cancelled');
+});
+
+const _typeTextField = document.getElementById('type-text-field');
+if (_typeTextField) {
+  _typeTextField.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyTypeText(); }
+    if (e.key === 'Escape') { e.preventDefault(); hideTypeInput(); }
+  });
+}
+
+// When switching to another tool, disable type mode
+document.querySelectorAll('#tool-select, #tool-pen, #tool-highlighter, #tool-eraser, #tool-laser, #tool-line, #tool-underline, #tool-hl-link, #tool-scan, #tool-linkpoint').forEach(function(btn) {
+  if (btn) btn.addEventListener('click', function() { setTypeTextMode(false); });
+});
+
+
+// ================================================================
+// FINAL TOOL MANAGER — single source of truth for all tool buttons
+// ================================================================
+(function() {
+  const TOOL_IDS = [
+    'tool-select', 'tool-pen', 'tool-highlighter', 'tool-eraser',
+    'tool-laser', 'tool-type-text',
+    'tool-line', 'tool-underline', 'tool-hl-link', 'tool-scan',
+    'tool-scan-pan', 'tool-linkpoint'
+  ];
+
+  const LINK_MAP = {
+    'tool-line': 'line',
+    'tool-underline': 'underline',
+    'tool-hl-link': 'highlight',
+    'tool-scan': 'scan',
+    'tool-linkpoint': 'linkpoint'
+  };
+
+  function resetModes() {
+    try { if (typeof cancelPendingLink === 'function') cancelPendingLink(); } catch(e) {}
+    try { laserStrokes = []; isLaserDrawing = false; activeLaserStroke = null; } catch(e) {}
+    try { isScanPanDrawing = false; scanPanPoints = []; scanPanContainer = null; } catch(e) {}
+    try { if (typeof hideTypeInput === 'function') hideTypeInput(); isTypeTextActive = false; } catch(e) {}
+  }
+
+  function clearActiveClasses() {
+    TOOL_IDS.forEach(function(tid) {
+      const b = document.getElementById(tid);
+      if (b) b.classList.remove('active');
+    });
+  }
+
+  function setActive(id) {
+    clearActiveClasses();
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.add('active');
+  }
+
+  function blockTextLayers() {
+    document.querySelectorAll('.page-text-layer').forEach(function(el) {
+      el.classList.add('block-events');
+      el.style.pointerEvents = 'none';
+    });
+  }
+  function unblockTextLayers() {
+    document.querySelectorAll('.page-text-layer').forEach(function(el) {
+      el.classList.remove('block-events');
+      el.style.pointerEvents = 'auto';
+    });
+  }
+
+  function activate(id) {
+    resetModes();
+
+    if (id === 'tool-select') {
+      activeToolMode = 'pointer';
+      currentTool = 'select';
+      globalCanvas.style.pointerEvents = 'none';
+      globalCanvas.style.cursor = 'default';
+      unblockTextLayers();
+      setActive('tool-select');
+      updateModeStatus('🖱️ Pointer — कुछ draw नहीं होगा');
+
+    } else if (id === 'tool-pen') {
+      activeToolMode = 'pointer';
+      currentTool = 'pen';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive('tool-pen');
+      updateModeStatus('✏️ Pen — PDF पर draw करें');
+
+    } else if (id === 'tool-highlighter') {
+      activeToolMode = 'pointer';
+      currentTool = 'highlighter';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive('tool-highlighter');
+      updateModeStatus('🟡 Highlighter — highlight करें');
+
+    } else if (id === 'tool-eraser') {
+      activeToolMode = 'pointer';
+      currentTool = 'eraser';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive('tool-eraser');
+      updateModeStatus('🧹 Eraser — मिटाएँ');
+
+    } else if (id === 'tool-laser') {
+      activeToolMode = 'laser';
+      currentTool = 'laser';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive('tool-laser');
+      updateModeStatus('🔴 Laser — mark 1.5s में गायब होगी');
+
+    } else if (id === 'tool-type-text') {
+      activeToolMode = 'pointer';
+      currentTool = 'select';
+      isTypeTextActive = true;
+      globalCanvas.style.pointerEvents = 'none';
+      blockTextLayers();
+      setActive('tool-type-text');
+      updateModeStatus('⌨️ Type — PDF पर tap करें');
+
+    } else if (id === 'tool-scan-pan') {
+      activeToolMode = 'scan-pan';
+      currentTool = 'scan-pan';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive('tool-scan-pan');
+      updateModeStatus('✏️ Pan — चित्र के चारों ओर गोला बनाएँ');
+
+    } else if (LINK_MAP[id]) {
+      const mode = LINK_MAP[id];
+      activeToolMode = mode;
+      if (mode === 'line' || mode === 'underline' || mode === 'scan') currentTool = 'pen';
+      else if (mode === 'highlight') currentTool = 'highlighter';
+      else currentTool = 'select';
+      globalCanvas.style.pointerEvents = 'auto';
+      globalCanvas.style.cursor = 'crosshair';
+      blockTextLayers();
+      setActive(id);
+      const labels = {
+        'line': '📏 Line — PDF पर line खींचें, फिर Notepad पर tap',
+        'underline': '⏺️ Underline — line खींचें, फिर Notepad पर tap',
+        'highlight': '🖍️ Highlight-Link — highlight करें, फिर Notepad पर tap',
+        'scan': '📷 Scan — rectangle select करें, फिर Notepad पर tap',
+        'linkpoint': '🔗 Link Point — PDF पर tap करें, फिर Notepad पर tap'
+      };
+      updateModeStatus(labels[mode] || mode);
+    }
+  }
+
+  // पुराने सारे listeners हटाकर fresh listeners लगाएँ
+  TOOL_IDS.forEach(function(id) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Toggle-off
+      if (id === 'tool-scan-pan' && activeToolMode === 'scan-pan') { activate('tool-select'); return; }
+      if (id === 'tool-type-text' && isTypeTextActive) { activate('tool-select'); return; }
+      if (id === 'tool-laser' && activeToolMode === 'laser') { activate('tool-select'); return; }
+      activate(id);
+    });
+  });
+
+  activate('tool-select');
+  console.log('✅ FINAL TOOL MANAGER installed');
+})();
+
+  </script>
+</body>
+</html>
