@@ -7269,49 +7269,95 @@ ctx.fillRect(0, 0, cv.width, cv.height);
   });
 
   
-  fileInput.addEventListener('change', function(e) {
-  alert('🔵 DEBUG: change event चला! File = ' + (e.target.files[0] ? e.target.files[0].name : 'NONE'));
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      try {
-        const safeBuffer = event.target.result.slice(0);
-        pdfjsLib.getDocument({ data: safeBuffer }).promise.then(function(pdf) {
+  // ═══════════════════════════════════════════════════════════
+// ✅ NEW: Simple & Bulletproof PDF Handler
+// ═══════════════════════════════════════════════════════════
+fileInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  console.log('📄 File selected:', file.name);
+  
+  const reader = new FileReader();
+  
+  reader.onerror = function() {
+    alert('❌ File read error');
+  };
+  
+  reader.onload = function(event) {
+    try {
+      const safeBuffer = event.target.result.slice(0);
+      
+      console.log('📖 Parsing PDF...');
+      
+      pdfjsLib.getDocument({ data: safeBuffer }).promise
+        .then(function(pdf) {
+          console.log('✅ PDF parsed:', pdf.numPages, 'pages');
+          
+          // ---- RESET STATE ----
           loadedDocs = [];
           totalPages = 0;
           globalStrokes = [];
           linkData = [];
           linkIdCounter = 0;
-          notepadEditor.innerHTML = '';
-          loadedDocs.push({ pdfDoc: pdf, fileName: file.name, numPages: pdf.numPages });
-          hideNotepad();
-          setTool('select');
-          modeSelect.value = 'pointer';
-          setToolMode('pointer');
+          textAnnotations = [];
+          window.annotationsLoaded = false;
+          notepadStrokes = [];
+          if (notepadEditor) notepadEditor.innerHTML = '';
+          
+          // ---- PUSH DOC ----
+          loadedDocs.push({
+            pdfDoc: pdf,
+            fileName: file.name,
+            numPages: pdf.numPages
+          });
+          
+          // ---- SAFE UI UPDATES ----
+          try { hideNotepad(); } catch(err) {}
+          try { setTool('select'); } catch(err) {}
+          if (modeSelect) modeSelect.value = 'pointer';
+          try { setToolMode('pointer'); } catch(err) {}
+          
           if (emptyState) emptyState.style.display = 'none';
           pdfContainer.innerHTML = '';
           pdfContainer.style.transform = '';
           pdfContainer.style.transformOrigin = '';
           pdfContainer.style.willChange = '';
-          initIntersectionObserver();
-          appendPageCardsForRange(0, 1, pdf.numPages);
+          
+          // ---- RENDER ----
+          try { initIntersectionObserver(); } catch(err) {
+            console.error('initIntersectionObserver failed:', err);
+          }
+          try { appendPageCardsForRange(0, 1, pdf.numPages); } catch(err) {
+            console.error('appendPageCardsForRange failed:', err);
+          }
+          
           const first = pdfContainer.querySelector('.pdf-page-card');
-          if (first) renderSinglePage(first);
-          updateDocSummaryLabel();
-          resizeGlobalCanvas();
-          notepadPages = [{ content: '', background: 'bg-white-red-line', scrollY: 0, strokes: [] }];
-          currentNotepadPage = 0;
-          notepadStrokes = [];
-          notepadBgSelect.value = 'bg-white-red-line';
-          notepadEditorContainer.className = 'bg-white-red-line';
-          updateNotepadNavUI();
-          resizeNotepadCanvas();
-        }).catch(() => alert('Failed to parse PDF.'));
-      } catch (err) {}
-    };
-    reader.readAsArrayBuffer(file);
-  });
+          if (first) {
+            try { renderSinglePage(first); } catch(err) {
+              console.error('renderSinglePage failed:', err);
+            }
+          }
+          
+          try { updateDocSummaryLabel(); } catch(err) {}
+          try { resizeGlobalCanvas(); } catch(err) {}
+          
+          console.log('✅ PDF ready!');
+          alert('✅ PDF loaded: ' + pdf.numPages + ' pages');
+        })
+        .catch(function(err) {
+          console.error('❌ PDF parse failed:', err);
+          alert('PDF load नहीं हो सका। Error: ' + (err.message || err));
+        });
+        
+    } catch (err) {
+      console.error('❌ Unexpected error:', err);
+      alert('Unexpected error: ' + err.message);
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+});
 
   btnCasePlus.addEventListener('click', function() {
   populateCaseForm();
