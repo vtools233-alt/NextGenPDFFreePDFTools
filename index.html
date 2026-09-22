@@ -9777,23 +9777,6 @@ await page.render({ canvasContext: ctx, viewport: viewport }).promise;
   setTimeout(attachPdfHandler, 2000);
 })();
 
-<script>
 
-  <script>
-  alert('🔵 TEST 1: Page load शुरू');
-  window.addEventListener('load', function() {
-    var fi = document.getElementById('pdf-file-input');
-    alert('🔵 TEST 2: Input = ' + (fi ? 'YES' : 'NO'));
-    
-    var btn = document.getElementById('btn-open-pdf');
-    alert('🔵 TEST 3: Button = ' + (btn ? 'YES' : 'NO'));
-    
-    if (fi) {
-      fi.addEventListener('change', function(e) {
-        alert('🔵 TEST 4: CHANGE FIRED! File = ' + (e.target.files[0] ? e.target.files[0].name : 'NONE'));
-      });
-    }
-  });
-</script>
 </body>
 </html>
