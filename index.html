@@ -1883,21 +1883,6 @@ body.panel-open #pdf-view-wrapper {
   line-height: 22px;
 }
 
-@media (max-width: 700px) {
-  .npp-cat-btn { padding: 5px 10px; font-size: 11px; }
-  .npp-tool-btn, .npp-nav-btn { width: 28px; height: 28px; font-size: 13px; }
-  .npp-action-btn { padding: 5px 10px; font-size: 11px; }
-}
-  </style>
-</head>
-<body>
-
-<header id="top-toolbar">
-
-  <!-- ===== ROW 1: File Operations + View ===== -->
-  <div class="toolbar-row">
-    <div class="toolbar-section">
-  <input type="file" id="pdf-file-input" accept="application/pdf" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;" onchange="alert('🔵 DIRECT: File = ' + (this.files[0] ? this.files[0].name : 'NONE'));" />
   <button class="btn btn-primary" id="btn-open-pdf" onclick="var fi=document.getElementById('pdf-file-input'); fi.value=''; fi.click();">Open PDF</button>
       <input type="file" id="case-plus-input" accept="application/pdf" multiple style="display: none;" />
       <button class="btn" id="btn-cases-list">📁 Cases</button>
@@ -1912,6 +1897,7 @@ body.panel-open #pdf-view-wrapper {
       <span id="zoom-label" class="control-label" style="min-width:42px;text-align:center;">135%</span>
       <button class="btn btn-tool" id="btn-zoom-in">+</button>
     </div>
+   <input type="file" id="pdf-file-input" accept="application/pdf" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;" onchange="if(this.files[0]){var r=new FileReader();r.onload=function(ev){pdfjsLib.getDocument({data:ev.target.result}).promise.then(function(pdf){loadedDocs=[{pdfDoc:pdf,fileName:this.name||'document.pdf',numPages:pdf.numPages}];if(emptyState)emptyState.style.display='none';pdfContainer.innerHTML='';try{initIntersectionObserver()}catch(e){};try{appendPageCardsForRange(0,1,pdf.numPages)}catch(e){};var f=pdfContainer.querySelector('.pdf-page-card');if(f){try{renderSinglePage(f)}catch(e){}};try{updateDocSummaryLabel()}catch(e){};try{resizeGlobalCanvas()}catch(e){};alert('✅ PDF loaded: '+pdf.numPages+' pages');}.bind(this)).catch(function(err){alert('❌ PDF error: '+err.message)})}.bind(this);r.readAsArrayBuffer(this.files[0])}" />
     <div class="toolbar-divider"></div>
     <div class="toolbar-section">
       <div class="color-picker-wrapper">
