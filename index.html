@@ -10699,24 +10699,9 @@ await page.render({ canvasContext: ctx, viewport: viewport }).promise;
   if (!btnIpc || !panel) { console.warn('IPC-BNS: elements missing'); return; }
 
   let currentMode = 'ipc-to-bns';
-/*
+
   const IPC_TO_BNS = {
-    "302": { bns: "103(1)", desc: "Punishment for murder" },
-    "307": { bns: "109", desc: "Attempt to murder" },
-    "304": { bns: "105", desc: "Culpable homicide not amounting to murder" },
-    "304A": { bns: "106", desc: "Death by negligence" },
-    "304B": { bns: "80", desc: "Dowry death" },
-    "306": { bns: "108", desc: "Abetment of suicide" },
-    "309": { bns: "Deleted", desc: "Attempt to suicide (Deleted in BNS)" },
-    "323": { bns: "115(2)", desc: "Punishment for voluntarily causing hurt" },
-    "324": { bns: "117", desc: "Hurt by dangerous weapons" },
-    "325": { bns: "116", desc: "Grievous hurt" },
-    "326": { bns: "118", desc: "Grievous hurt by dangerous weapons" },
-    "326A": { bns: "124", desc: "Acid attack" },
-    "354": { bns: "74", desc: "Outraging modesty of woman" },
-    "354A": { bns: "75", desc: "Sexual harassment" },
-    "354D": { bns: "78", desc: "Stalking" },
-    "363": { bns: "137", desc: "Kidnapping" },
+
     "376": { bns: "64", desc: "Punishment for rape" },
     "377": { bns: "Deleted", desc: "Unnatural offences (Deleted in BNS)" },
     "379": { bns: "303(2)", desc: "Punishment for theft" },
@@ -10743,7 +10728,7 @@ await page.render({ canvasContext: ctx, viewport: viewport }).promise;
     "506": { bns: "351(2)", desc: "Criminal intimidation" },
     "509": { bns: "79", desc: "Insulting modesty of woman" }
   };
-*/
+
   const CRPC_TO_BNSS = {
     "154": { new: "173", desc: "Information in cognizable cases (FIR)" },
     "155": { new: "174", desc: "Information in non-cognizable cases" },
